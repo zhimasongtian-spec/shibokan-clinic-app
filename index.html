@@ -698,10 +698,15 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
     toast("画像を読み込めませんでした");
   }
 });
+// スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー(Cloudflare Worker)経由でGemini APIを呼びます。
+// cloudflare-worker.js をデプロイした後、実際のWorker URLに書き換えてください。
+const MEAL_PROXY_URL = "https://REPLACE-WITH-YOUR-WORKER-URL.workers.dev/";
+
 async function analyzeMealPhoto(aiImage, thumb) {
   const area = document.getElementById("photo-analyze-area");
   const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
-  if (!apiKey) {
+  const proxyReady = MEAL_PROXY_URL && !MEAL_PROXY_URL.includes("REPLACE-WITH-YOUR-WORKER-URL");
+  if (!apiKey && !proxyReady) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="食事写真">
       <div class="analyze-error">AIによる自動判定には「⚙️設定」でGoogle Gemini APIキーの登録が必要です。登録後にもう一度撮影するか、下の「自由入力」から手入力してください。</div>
@@ -713,20 +718,22 @@ async function analyzeMealPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが解析中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
+  const promptText = "この写真に写っている食事の品目とおおよそのカロリー(kcal)を日本語で推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: "この写真に写っている食事の品目とおおよそのカロリー(kcal)を日本語で推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}" },
-            { inline_data: { mime_type: "image/jpeg", data: base64 } }
-          ]
-        }],
-        generationConfig: { responseMimeType: "application/json" }
-      })
-    });
+    const res = apiKey
+      ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        })
+      : await fetch(MEAL_PROXY_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ image: base64, prompt: promptText })
+        });
     const data = await res.json();
     if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
     const text = (data.candidates && data.candidates[0] && data.candidates[0].content
