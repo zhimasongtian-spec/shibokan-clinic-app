@@ -700,7 +700,7 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
 });
 // スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー経由でGemini APIを呼びます。
 // firebase-functions/index.js をデプロイした後、実際のFunction URLに書き換えてください。
-const MEAL_PROXY_URL = "https://REPLACE-WITH-YOUR-PROXY-URL";
+const MEAL_PROXY_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/mealProxy";
 
 function extractFirstJsonObject(str) {
   const start = str.indexOf("{");
