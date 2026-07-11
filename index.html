@@ -147,6 +147,23 @@
   .item-row .nm { flex: 1; }
   .item-row .kc { font-weight: 700; white-space: nowrap; }
   .item-row .del { color: var(--danger); cursor: pointer; border: none; background: none; font-size: .9rem; padding: 2px 6px; }
+  .meal-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+
+  /* photo analyze */
+  .analyze-box { margin-top: 10px; }
+  .analyze-preview { max-width: 160px; border-radius: 10px; display: block; margin-bottom: 8px; }
+  .analyze-status { font-size: .82rem; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .7s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .analyze-item-row {
+    display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line);
+  }
+  .analyze-item-row input[type=text] { flex: 2; }
+  .analyze-item-row input[type=number] { flex: 1; }
+  .analyze-error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .82rem; }
   .kcal-summary {
     margin-top: 10px; padding: 10px 14px; background: var(--accent-soft); border-radius: 10px;
     display: flex; justify-content: space-between; align-items: center; font-size: .85rem;
@@ -274,6 +291,13 @@
 
   <!-- ================= 食事 ================= -->
   <section class="page" id="page-meal">
+    <div class="card">
+      <h2>📷 写真でカロリー判定</h2>
+      <p class="muted">食事の写真を撮ると、AIが料理とおおよそのカロリーを推定します。内容は追加前に確認・修正できます。</p>
+      <input type="file" id="meal-photo-input" accept="image/*" capture="environment" style="display:none;">
+      <button class="btn secondary" id="meal-photo-btn">📷 写真を撮る</button>
+      <div id="photo-analyze-area"></div>
+    </div>
     <div class="card">
       <h2>🍽 食事の記録</h2>
       <label for="meal-date">日付</label>
@@ -451,6 +475,14 @@
       <button class="btn" id="p-save">保存する</button>
     </div>
 
+    <div class="card">
+      <h2>📷 写真カロリー判定 (AI)</h2>
+      <p class="muted">「食事」タブの写真からのカロリー自動判定に、ご自身のGoogle Gemini APIキーを使用します。キーはこの端末にのみ保存され、外部には送信されません（解析時に写真とともにGoogleへ送信されます）。</p>
+      <label for="p-api-key">Google Gemini APIキー</label>
+      <input type="text" id="p-api-key" placeholder="AIzaSy..." autocomplete="off">
+      <p class="muted" style="margin-top:6px;">APIキーは Google AI Studio（aistudio.google.com）で無料で発行できます。利用量に応じて無料枠を超えると課金される場合があります。</p>
+    </div>
+
     <details class="tip">
       <summary>🎯 なぜ「7%減量」なのか</summary>
       <div class="body">
@@ -579,11 +611,14 @@ document.getElementById("meal-add").addEventListener("click", () => {
   document.getElementById("meal-name").value = "";
   document.getElementById("meal-kcal").value = "";
 });
-function addMeal(name, kcal) {
+function addMeal(name, kcal, photo = null) {
   const date = document.getElementById("meal-date").value || todayStr();
   const rec = getDaily(date);
-  rec.meals.push({ cat: mealCat, name, kcal });
-  setDaily(date, rec);
+  const entry = { cat: mealCat, name, kcal };
+  if (photo) entry.photo = photo;
+  rec.meals.push(entry);
+  try { setDaily(date, rec); }
+  catch (err) { entry.photo = null; rec.meals[rec.meals.length - 1] = entry; setDaily(date, rec); toast("保存容量の都合で写真なしで保存しました"); }
   renderMealPage();
   cheer("🍽", "記録しました！えらい！");
 }
@@ -598,6 +633,7 @@ function renderMealPage() {
   } else {
     list.innerHTML = rec.meals.map((m, i) => `
       <div class="item-row">
+        ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
         <span class="cat-tag">${m.cat}</span><span class="nm">${m.name}</span>
         <span class="kc">${m.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
@@ -624,6 +660,126 @@ function renderMealPage() {
       }).join("") + "</table>";
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
+
+/* ---- 写真からのカロリー判定 (AI) ---- */
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+function imgToDataUrl(img, maxDim, quality) {
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(img.width * scale));
+  cv.height = Math.max(1, Math.round(img.height * scale));
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", quality);
+}
+document.getElementById("meal-photo-btn").addEventListener("click", () => {
+  document.getElementById("meal-photo-input").click();
+});
+document.getElementById("meal-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await loadImageFile(file);
+    const aiImage = imgToDataUrl(img, 640, 0.7);
+    const thumb = imgToDataUrl(img, 220, 0.6);
+    analyzeMealPhoto(aiImage, thumb);
+  } catch {
+    toast("画像を読み込めませんでした");
+  }
+});
+async function analyzeMealPhoto(aiImage, thumb) {
+  const area = document.getElementById("photo-analyze-area");
+  const apiKey = (load(K.profile).apiKey || "").trim();
+  if (!apiKey) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="食事写真">
+      <div class="analyze-error">AIによる自動判定には「⚙️設定」でGoogle Gemini APIキーの登録が必要です。登録後にもう一度撮影するか、下の「自由入力」から手入力してください。</div>
+    </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="食事写真">
+    <div class="analyze-status"><span class="spinner"></span>AIが解析中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { text: "この写真に写っている食事の品目とおおよそのカロリー(kcal)を日本語で推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}" },
+            { inline_data: { mime_type: "image/jpeg", data: base64 } }
+          ]
+        }],
+        generationConfig: { responseMimeType: "application/json" }
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
+    const text = (data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) || "";
+    const jsonStr = text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(jsonStr);
+    const items = (parsed.items || [])
+      .filter(it => it && it.name)
+      .map(it => ({ name: String(it.name), kcal: Math.round(Number(it.kcal) || 0) }));
+    if (items.length === 0) throw new Error("食事内容を認識できませんでした");
+    renderAnalyzeResult(thumb, items);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="食事写真">
+      <div class="analyze-error">解析に失敗しました: ${String(err.message || err).slice(0, 200)}<br>下の「自由入力」から手入力してください。</div>
+    </div>`;
+  }
+}
+function renderAnalyzeResult(thumb, items) {
+  const area = document.getElementById("photo-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="食事写真">
+    <p class="muted">🔍 AIの推定結果（追加前に修正できます）</p>
+    <div id="analyze-rows"></div>
+    <div class="row2" style="margin-top:8px;">
+      <button class="btn small secondary" id="analyze-cancel">取消</button>
+      <button class="btn small" id="analyze-confirm">この内容を追加</button>
+    </div>
+  </div>`;
+  const rowsEl = document.getElementById("analyze-rows");
+  const renderRows = () => {
+    if (items.length === 0) { rowsEl.innerHTML = '<p class="empty-note">項目がありません</p>'; return; }
+    rowsEl.innerHTML = items.map((it, i) => `
+      <div class="analyze-item-row">
+        <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
+        <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+        <button class="del" data-i="${i}">✕</button>
+      </div>`).join("");
+    rowsEl.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => {
+      const i = Number(inp.dataset.i);
+      if (inp.dataset.f === "name") items[i].name = inp.value;
+      else items[i].kcal = Number(inp.value) || 0;
+    }));
+    rowsEl.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
+      items.splice(Number(b.dataset.i), 1);
+      renderRows();
+    }));
+  };
+  renderRows();
+  document.getElementById("analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
+  document.getElementById("analyze-confirm").addEventListener("click", () => {
+    if (items.length === 0) { toast("追加する項目がありません"); return; }
+    items.forEach(it => addMeal(it.name, it.kcal, thumb));
+    area.innerHTML = "";
+    toast(`${items.length}件を追加しました`);
+  });
+}
 
 /* ============ 運動 ============ */
 const EXERCISES = [
@@ -939,6 +1095,7 @@ function renderSettings() {
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
   setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
   setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
+  setv("p-api-key", p.apiKey);
   updateBmiView(); updateGoalSuggest();
 }
 function updateBmiView() {
@@ -971,6 +1128,7 @@ document.getElementById("p-save").addEventListener("click", () => {
     height: num("p-height"), startWeight: num("p-start-weight"),
     goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 150,
     goalKcal: num("p-goal-kcal"), goalSteps: num("p-goal-steps") ?? 8000,
+    apiKey: document.getElementById("p-api-key").value.trim() || null,
   };
   if (!p.goalWeight && p.startWeight) p.goalWeight = Math.round(p.startWeight * 0.93 * 10) / 10;
   if (!p.goalKcal && p.height) p.goalKcal = Math.round(22 * (p.height / 100) ** 2 * 27 / 50) * 50;
@@ -1132,7 +1290,8 @@ function buildPrintReport() {
 
 /* ============ export / reset ============ */
 document.getElementById("export-btn").addEventListener("click", () => {
-  const data = { profile: load(K.profile), daily: load(K.daily), visits: load(K.visits) };
+  const { apiKey, ...profileNoKey } = load(K.profile);
+  const data = { profile: profileNoKey, daily: load(K.daily), visits: load(K.visits) };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
