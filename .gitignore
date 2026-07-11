@@ -2,3 +2,4 @@ local-config.js
 firebase-functions/node_modules/
 firebase-debug.log
 .firebase/
+.claude/
