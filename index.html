@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>肝ケア日記 — 脂肪肝改善サポート</title>
+<style>
+  :root {
+    --bg: #f4f7f5;
+    --card: #ffffff;
+    --ink: #24312a;
+    --sub: #6b7a72;
+    --accent: #2e8b6d;
+    --accent-soft: #e3f2ec;
+    --accent-dark: #1f6b52;
+    --gold: #d9a62b;
+    --gold-soft: #fdf6e3;
+    --warn: #d9822b;
+    --warn-soft: #fdf1e3;
+    --danger: #c0504d;
+    --danger-soft: #faeceb;
+    --blue: #3a7ca5;
+    --blue-soft: #e7f1f7;
+    --line: #e2e9e5;
+    --radius: 14px;
+    --shadow: 0 2px 10px rgba(36, 49, 42, .07);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.6;
+    padding-bottom: 84px;
+  }
+  header {
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    color: #fff; padding: 16px 20px 12px;
+  }
+  header h1 { font-size: 1.2rem; letter-spacing: .04em; }
+  header p { font-size: .76rem; opacity: .85; }
+  main { max-width: 640px; margin: 0 auto; padding: 14px; }
+
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--card); border-top: 1px solid var(--line);
+    display: flex; max-width: 640px; margin: 0 auto; z-index: 10;
+  }
+  .tabbar button {
+    flex: 1; padding: 9px 2px 11px; background: none; border: none; cursor: pointer;
+    font-size: .64rem; color: var(--sub);
+    display: flex; flex-direction: column; align-items: center; gap: 1px; font-family: inherit;
+  }
+  .tabbar button .ico { font-size: 1.25rem; line-height: 1.2; }
+  .tabbar button.active { color: var(--accent-dark); font-weight: 700; }
+
+  section.page { display: none; }
+  section.page.active { display: block; animation: fadein .25s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+  .card {
+    background: var(--card); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 12px;
+  }
+  .card h2 { font-size: .98rem; margin-bottom: 8px; color: var(--accent-dark); }
+  .card h3 { font-size: .86rem; margin: 12px 0 4px; }
+  .muted { color: var(--sub); font-size: .78rem; }
+
+  label { display: block; font-size: .78rem; font-weight: 600; margin: 10px 0 3px; }
+  input[type=number], input[type=date], input[type=text], select, textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px;
+    font-size: 1rem; font-family: inherit; background: #fbfdfc; color: var(--ink);
+  }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .unit-note { font-size: .68rem; color: var(--sub); font-weight: 400; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 5px; }
+  .chip {
+    padding: 7px 12px; border-radius: 18px; border: 1.5px solid var(--line);
+    background: #fbfdfc; font-size: .8rem; cursor: pointer; user-select: none;
+    font-family: inherit; color: var(--ink);
+  }
+  .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
+
+  .btn {
+    display: block; width: 100%; padding: 12px; margin-top: 14px;
+    background: var(--accent); color: #fff; border: none; border-radius: 12px;
+    font-size: .98rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn:active { background: var(--accent-dark); }
+  .btn.secondary { background: none; border: 1.5px solid var(--accent); color: var(--accent-dark); }
+  .btn.small { width: auto; display: inline-block; padding: 8px 18px; margin-top: 8px; font-size: .85rem; }
+  .btn.danger-ghost { background: none; border: none; color: var(--danger); font-size: .8rem; padding: 8px; margin-top: 4px; }
+
+  .toast {
+    position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 22px; border-radius: 22px;
+    font-size: .85rem; opacity: 0; pointer-events: none; transition: opacity .3s;
+    z-index: 30; white-space: nowrap;
+  }
+  .toast.show { opacity: .95; }
+
+  /* home */
+  .hero {
+    display: flex; align-items: center; gap: 16px;
+  }
+  .ring-wrap { position: relative; width: 118px; height: 118px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .ring-center .big { font-size: 1.35rem; font-weight: 700; color: var(--accent-dark); line-height: 1.2; }
+  .ring-center .sml { font-size: .62rem; color: var(--sub); }
+  .streak-box {
+    background: var(--gold-soft); border-radius: 10px; padding: 8px 14px;
+    display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  }
+  .streak-box .num { font-size: 1.3rem; font-weight: 700; color: var(--gold); }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--accent-soft); border-radius: 10px; padding: 10px; text-align: center; }
+  .stat .val { font-size: 1.25rem; font-weight: 700; color: var(--accent-dark); }
+  .stat .val .u { font-size: .72rem; }
+  .stat .lbl { font-size: .68rem; color: var(--sub); }
+  .stat.blue { background: var(--blue-soft); }
+  .stat.blue .val { color: var(--blue); }
+  .minibar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .minibar > div { height: 100%; border-radius: 4px; background: var(--accent); transition: width .4s; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge {
+    border-radius: 10px; padding: 8px 10px; text-align: center; font-size: .68rem;
+    background: #f1f4f2; color: #a8b3ac; border: 1.5px dashed var(--line); width: calc(25% - 6px);
+  }
+  .badge.earned { background: var(--gold-soft); color: #8a6d1f; border: 1.5px solid var(--gold); font-weight: 700; }
+  .badge .bico { font-size: 1.3rem; display: block; }
+
+  /* meal / exercise lists */
+  .item-list { margin-top: 8px; }
+  .item-row {
+    display: flex; align-items: center; gap: 8px; padding: 7px 4px;
+    border-bottom: 1px solid var(--line); font-size: .85rem;
+  }
+  .item-row .cat-tag {
+    font-size: .64rem; background: var(--accent-soft); color: var(--accent-dark);
+    border-radius: 8px; padding: 1px 8px; flex-shrink: 0;
+  }
+  .item-row .nm { flex: 1; }
+  .item-row .kc { font-weight: 700; white-space: nowrap; }
+  .item-row .del { color: var(--danger); cursor: pointer; border: none; background: none; font-size: .9rem; padding: 2px 6px; }
+  .kcal-summary {
+    margin-top: 10px; padding: 10px 14px; background: var(--accent-soft); border-radius: 10px;
+    display: flex; justify-content: space-between; align-items: center; font-size: .85rem;
+  }
+  .kcal-summary strong { font-size: 1.15rem; color: var(--accent-dark); }
+  .kcal-summary.over { background: var(--warn-soft); }
+  .kcal-summary.over strong { color: var(--warn); }
+
+  .seg { display: flex; gap: 5px; margin: 8px 0; flex-wrap: wrap; }
+  .seg button {
+    flex: 1; min-width: 56px; padding: 7px 4px; border-radius: 8px; border: 1.5px solid var(--line);
+    background: #fbfdfc; font-size: .78rem; cursor: pointer; font-family: inherit; color: var(--ink);
+  }
+  .seg button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
+
+  table.log { width: 100%; border-collapse: collapse; font-size: .78rem; }
+  table.log th, table.log td { padding: 6px 5px; border-bottom: 1px solid var(--line); text-align: center; }
+  table.log th { color: var(--sub); font-weight: 600; font-size: .68rem; }
+  table.log td:first-child { text-align: left; white-space: nowrap; }
+  table.log .del { color: var(--danger); cursor: pointer; border: none; background: none; }
+  .table-scroll { overflow-x: auto; }
+
+  .fib-line {
+    margin-top: 8px; padding: 10px 14px; border-radius: 10px; font-size: .85rem;
+    background: var(--accent-soft); display: none;
+  }
+  .fib-line.low { display: block; background: var(--accent-soft); color: var(--accent-dark); }
+  .fib-line.mid { display: block; background: var(--warn-soft); color: var(--warn); }
+  .fib-line.high { display: block; background: var(--danger-soft); color: var(--danger); }
+
+  #echo-preview { max-width: 100%; border-radius: 10px; margin-top: 8px; display: none; }
+  #chart { width: 100%; height: auto; display: block; }
+  .empty-note { text-align: center; color: var(--sub); font-size: .82rem; padding: 20px 0; }
+  .banner {
+    background: var(--warn-soft); border-left: 4px solid var(--warn);
+    padding: 10px 14px; border-radius: 8px; font-size: .76rem; color: #7a5a2e; margin-bottom: 12px;
+  }
+  details.tip { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; padding: 0 16px; }
+  details.tip summary { padding: 12px 0; font-weight: 700; font-size: .9rem; cursor: pointer; list-style: none; display: flex; align-items: center; }
+  details.tip summary::after { content: "▾"; margin-left: auto; color: var(--sub); }
+  details.tip[open] summary::after { transform: rotate(180deg); }
+  details.tip .body { padding: 0 0 12px; font-size: .83rem; color: #3c4a43; }
+  details.tip .body ul { padding-left: 18px; margin: 4px 0; }
+
+  .cheer {
+    position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(.8);
+    background: var(--card); border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.18);
+    padding: 22px 30px; text-align: center; z-index: 40; opacity: 0; pointer-events: none;
+    transition: all .35s cubic-bezier(.2,1.4,.5,1);
+  }
+  .cheer.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  .cheer .em { font-size: 2.4rem; }
+  .cheer .tx { font-weight: 700; color: var(--accent-dark); margin-top: 4px; }
+
+  /* print report */
+  #print-report { display: none; }
+  @media print {
+    body { padding: 0; background: #fff; }
+    header, main, .tabbar, .toast, .cheer { display: none !important; }
+    #print-report { display: block; padding: 10mm; font-size: 11px; color: #111; }
+    #print-report h1 { font-size: 16px; border-bottom: 2px solid #2e8b6d; padding-bottom: 4px; margin-bottom: 8px; }
+    #print-report h2 { font-size: 13px; margin: 12px 0 4px; color: #1f6b52; }
+    #print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    #print-report th, #print-report td { border: 1px solid #999; padding: 3px 6px; text-align: center; }
+    #print-report th { background: #e3f2ec; }
+    #print-report .pr-meta { font-size: 10px; color: #555; }
+    #print-report svg { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌿 肝ケア日記</h1>
+  <p>脂肪肝改善サポート — 毎日の小さな記録が肝臓を変える</p>
+</header>
+
+<main>
+  <!-- ================= ホーム ================= -->
+  <section class="page active" id="page-home">
+    <div class="card">
+      <div class="hero">
+        <div class="ring-wrap">
+          <svg width="118" height="118" viewBox="0 0 118 118">
+            <circle cx="59" cy="59" r="50" fill="none" stroke="#e2e9e5" stroke-width="11"/>
+            <circle id="ring-fg" cx="59" cy="59" r="50" fill="none" stroke="#2e8b6d" stroke-width="11"
+              stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16"
+              style="transition: stroke-dashoffset .8s ease;"/>
+          </svg>
+          <div class="ring-center">
+            <div class="big" id="ring-pct">—</div>
+            <div class="sml">目標達成率</div>
+          </div>
+        </div>
+        <div style="flex:1;">
+          <div id="goal-text" style="font-size:.85rem;"></div>
+          <div class="streak-box">
+            <span style="font-size:1.3rem;">🔥</span>
+            <div><span class="num" id="streak-num">0</span><span style="font-size:.75rem;"> 日連続記録中</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>今日のからだ</h2>
+      <div class="stat-grid" id="today-stats"></div>
+    </div>
+
+    <div class="card">
+      <h2>🏅 達成バッジ</h2>
+      <div class="badges" id="badge-area"></div>
+    </div>
+
+    <div class="card">
+      <h2>💡 今日のヒント</h2>
+      <p id="daily-tip" style="font-size:.88rem;"></p>
+    </div>
+
+    <button class="btn secondary" id="print-btn">🖨 診察用レポートを印刷</button>
+    <div class="banner" style="margin-top:12px;">
+      ⚠️ 本アプリは生活習慣の記録・改善を補助するものであり、医学的診断を行うものではありません。治療中の方は必ず主治医の指示に従ってください。
+    </div>
+  </section>
+
+  <!-- ================= 食事 ================= -->
+  <section class="page" id="page-meal">
+    <div class="card">
+      <h2>🍽 食事の記録</h2>
+      <label for="meal-date">日付</label>
+      <input type="date" id="meal-date">
+      <label>区分</label>
+      <div class="seg" id="meal-cat-seg">
+        <button data-cat="朝食" class="on">朝食</button>
+        <button data-cat="昼食">昼食</button>
+        <button data-cat="夕食">夕食</button>
+        <button data-cat="間食">間食・飲料</button>
+      </div>
+      <label>よく食べるもの（タップで追加）</label>
+      <div class="chips" id="food-chips"></div>
+      <label>自由入力</label>
+      <div class="row2">
+        <input type="text" id="meal-name" placeholder="例: 焼き魚定食">
+        <input type="number" id="meal-kcal" min="0" step="10" placeholder="kcal">
+      </div>
+      <button class="btn small" id="meal-add">＋ 追加</button>
+      <div class="item-list" id="meal-list"></div>
+      <div class="kcal-summary" id="kcal-summary"></div>
+    </div>
+    <div class="card">
+      <h2>最近の食事カロリー</h2>
+      <div id="meal-history"></div>
+    </div>
+  </section>
+
+  <!-- ================= 運動 ================= -->
+  <section class="page" id="page-exercise">
+    <div class="card">
+      <h2>🏃 運動の記録</h2>
+      <label for="ex-date">日付</label>
+      <input type="date" id="ex-date">
+      <label>運動の種類（タップで選択）</label>
+      <div class="chips" id="ex-chips"></div>
+      <div class="row2">
+        <div>
+          <label for="ex-min">時間（分）</label>
+          <input type="number" id="ex-min" min="1" step="5" placeholder="例: 30">
+        </div>
+        <div>
+          <label>消費カロリー <span class="unit-note">自動計算</span></label>
+          <input type="text" id="ex-kcal-view" readonly placeholder="— kcal">
+        </div>
+      </div>
+      <button class="btn small" id="ex-add">＋ 追加</button>
+      <div class="item-list" id="ex-list"></div>
+
+      <label for="ex-steps" style="margin-top:16px;">今日の歩数</label>
+      <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
+      <label for="daily-weight">今日の体重 (kg)</label>
+      <input type="number" id="daily-weight" min="20" max="300" step="0.1" placeholder="例: 72.5">
+      <button class="btn" id="ex-save">歩数・体重を保存</button>
+    </div>
+    <div class="card">
+      <h2>今週の運動 <span class="unit-note">目標: 週<span id="ex-goal-view">150</span>分</span></h2>
+      <div id="ex-week-bar"></div>
+      <div id="ex-history" style="margin-top:10px;"></div>
+    </div>
+  </section>
+
+  <!-- ================= 検査（来院時データ） ================= -->
+  <section class="page" id="page-visit">
+    <div class="card">
+      <h2>🏥 来院時データの入力</h2>
+      <p class="muted">健診・診察の結果を記録します。数値は結果票のとおりに入力してください。</p>
+      <label for="v-date">来院日</label>
+      <input type="date" id="v-date">
+
+      <h3>バイタル・身体測定</h3>
+      <div class="row3">
+        <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
+        <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
+        <div><label>体重 <span class="unit-note">kg</span></label><input type="number" id="v-weight" step="0.1" min="20" max="300"></div>
+      </div>
+      <h3>InBody</h3>
+      <div class="row3">
+        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
+        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
+        <div><label>内臓脂肪Lv</label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
+      </div>
+      <h3>血液検査</h3>
+      <div class="row3">
+        <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
+        <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
+        <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
+      </div>
+      <div class="row3">
+        <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
+        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
+        <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
+      </div>
+      <div class="row3">
+        <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
+      </div>
+      <div class="fib-line" id="v-fib-line"></div>
+
+      <h3>肝硬度・脂肪化（FibroScan）</h3>
+      <div class="row2">
+        <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
+        <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="v-cap" min="100" max="450"></div>
+      </div>
+
+      <h3>腹部超音波検査</h3>
+      <label for="v-echo">所見</label>
+      <textarea id="v-echo" rows="2" placeholder="例: 肝腎コントラスト陽性、深部減衰あり"></textarea>
+      <label for="v-echo-img">エコー画像を添付</label>
+      <input type="file" id="v-echo-img" accept="image/*">
+      <img id="echo-preview" alt="エコー画像プレビュー">
+
+      <h3>内服薬</h3>
+      <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回"></textarea>
+
+      <button class="btn" id="v-save">来院データを保存</button>
+    </div>
+
+    <div class="card">
+      <h2>来院履歴</h2>
+      <p class="muted">行をタップすると内容を上のフォームに読み込みます。</p>
+      <div class="table-scroll" id="visit-table"></div>
+    </div>
+  </section>
+
+  <!-- ================= グラフ ================= -->
+  <section class="page" id="page-graph">
+    <div class="card">
+      <h2>📈 推移グラフ</h2>
+      <div class="seg" id="metric-seg">
+        <button data-m="weight" class="on">体重</button>
+        <button data-m="liver">AST/ALT</button>
+        <button data-m="ggtp">γGTP</button>
+        <button data-m="fib4">FIB-4</button>
+        <button data-m="lipid">脂質</button>
+        <button data-m="hba1c">HbA1c</button>
+        <button data-m="fscan">FibroScan</button>
+      </div>
+      <div class="seg" id="range-seg">
+        <button data-days="90" class="on">3か月</button>
+        <button data-days="365">1年</button>
+        <button data-days="0">全期間</button>
+      </div>
+      <svg id="chart" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
+      <p class="muted" id="chart-note" style="margin-top:6px;"></p>
+    </div>
+  </section>
+
+  <!-- ================= 設定 ================= -->
+  <section class="page" id="page-settings">
+    <div class="card">
+      <h2>👤 基本情報</h2>
+      <div class="row2">
+        <div><label>年齢</label><input type="number" id="p-age" min="10" max="120"></div>
+        <div><label>性別</label>
+          <select id="p-sex"><option value="">選択</option><option value="男性">男性</option><option value="女性">女性</option></select>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>身長 <span class="unit-note">cm</span></label><input type="number" id="p-height" step="0.1" min="100" max="230"></div>
+        <div><label>開始時体重 <span class="unit-note">kg</span></label><input type="number" id="p-start-weight" step="0.1" min="20" max="300"></div>
+      </div>
+      <p class="muted" id="bmi-view" style="margin-top:8px;"></p>
+    </div>
+    <div class="card">
+      <h2>🎯 目標設定</h2>
+      <div class="row2">
+        <div><label>目標体重 <span class="unit-note">kg</span></label><input type="number" id="p-goal-weight" step="0.1" min="20" max="300"></div>
+        <div><label>週の運動目標 <span class="unit-note">分</span></label><input type="number" id="p-goal-ex" step="10" min="0" value="150"></div>
+      </div>
+      <div class="row2">
+        <div><label>1日の摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="p-goal-kcal" step="50" min="800"></div>
+        <div><label>1日の歩数目標</label><input type="number" id="p-goal-steps" step="500" min="1000" value="8000"></div>
+      </div>
+      <p class="muted" id="goal-suggest" style="margin-top:8px;"></p>
+      <button class="btn" id="p-save">保存する</button>
+    </div>
+
+    <details class="tip">
+      <summary>🎯 なぜ「7%減量」なのか</summary>
+      <div class="body">
+        <p>体重の<strong>3〜5%の減量で肝臓の脂肪が減少</strong>し、<strong>7%以上で肝臓の炎症まで改善</strong>することが多くの研究で示されています。月1〜2kgのゆっくりしたペースが理想です。</p>
+      </div>
+    </details>
+    <details class="tip">
+      <summary>🍚 食事のポイント</summary>
+      <div class="body"><ul>
+        <li>清涼飲料水・ジュースの果糖は肝臓の脂肪合成を直接促進します。まず最初に減らしましょう。</li>
+        <li>野菜から先に食べる「ベジファースト」で血糖の急上昇を抑えられます。</li>
+        <li>青魚・オリーブオイル・ナッツなど地中海食パターンが有効とされています。</li>
+      </ul></div>
+    </details>
+    <details class="tip">
+      <summary>🏃 運動のポイント</summary>
+      <div class="body"><ul>
+        <li>週150分以上の有酸素運動（早歩きでOK）。体重が減らなくても肝脂肪は減ります。</li>
+        <li>週2回の筋トレを追加すると効果的。筋肉は糖の最大の消費場所です。</li>
+        <li>食後30分〜1時間の軽い散歩は血糖コントロールに特に有効です。</li>
+      </ul></div>
+    </details>
+
+    <div class="card">
+      <h2>データ管理</h2>
+      <button class="btn secondary" id="export-btn">記録をエクスポート (JSON)</button>
+      <button class="btn danger-ghost" id="reset-btn">すべての記録を削除</button>
+    </div>
+  </section>
+</main>
+
+<nav class="tabbar">
+  <button data-page="home" class="active"><span class="ico">🏠</span>ホーム</button>
+  <button data-page="meal"><span class="ico">🍽</span>食事</button>
+  <button data-page="exercise"><span class="ico">🏃</span>運動</button>
+  <button data-page="visit"><span class="ico">🏥</span>検査</button>
+  <button data-page="graph"><span class="ico">📈</span>グラフ</button>
+  <button data-page="settings"><span class="ico">⚙️</span>設定</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+<div class="cheer" id="cheer"><div class="em" id="cheer-em">🎉</div><div class="tx" id="cheer-tx"></div></div>
+<div id="print-report"></div>
+
+<script>
+"use strict";
+/* ============ storage keys ============ */
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1" };
+const load = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+/* ============ utils ============ */
+function todayStr(offset = 0) {
+  const d = new Date(); d.setDate(d.getDate() + offset);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function fmtDate(s) { const [y, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
+function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._tm); toast._tm = setTimeout(() => t.classList.remove("show"), 2200);
+}
+function cheer(em, tx) {
+  const c = document.getElementById("cheer");
+  document.getElementById("cheer-em").textContent = em;
+  document.getElementById("cheer-tx").textContent = tx;
+  c.classList.add("show");
+  clearTimeout(cheer._tm); cheer._tm = setTimeout(() => c.classList.remove("show"), 1600);
+}
+function getDaily(date) {
+  const all = load(K.daily);
+  return all[date] || { weight: null, steps: null, meals: [], exercises: [] };
+}
+function setDaily(date, rec) { const all = load(K.daily); all[date] = rec; save(K.daily, all); }
+function latestWeight() {
+  const all = load(K.daily);
+  const dates = Object.keys(all).sort().reverse();
+  for (const d of dates) if (all[d].weight != null) return all[d].weight;
+  const p = load(K.profile);
+  return p.startWeight || null;
+}
+function calcFib4(age, ast, alt, pltMan) {
+  if (!age || !ast || !alt || !pltMan) return null;
+  return Math.round(((age * ast) / (pltMan * 10 * Math.sqrt(alt))) * 100) / 100;
+}
+
+/* ============ tabs ============ */
+document.querySelectorAll(".tabbar button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tabbar button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("section.page").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("page-" + btn.dataset.page).classList.add("active");
+    const r = { home: renderHome, meal: renderMealPage, exercise: renderExPage, visit: renderVisitTable, graph: renderChart, settings: renderSettings };
+    if (r[btn.dataset.page]) r[btn.dataset.page]();
+  });
+});
+
+/* ============ 食事 ============ */
+const FOODS = [
+  ["ごはん普通盛", 250], ["ごはん少なめ", 170], ["食パン1枚", 160], ["麺類", 450],
+  ["定食", 700], ["丼もの", 750], ["カレー", 750], ["揚げ物", 300],
+  ["サラダ", 60], ["焼き魚", 200], ["納豆", 100], ["味噌汁", 60],
+  ["ジュース500ml", 220], ["缶コーヒー(加糖)", 80], ["ビール500ml", 200],
+  ["スナック菓子", 300], ["菓子パン", 400], ["アイス", 250], ["果物", 80], ["ヨーグルト", 80],
+];
+let mealCat = "朝食";
+const foodChips = document.getElementById("food-chips");
+FOODS.forEach(([name, kcal]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = `${name} ${kcal}`;
+  b.addEventListener("click", () => addMeal(name, kcal));
+  foodChips.appendChild(b);
+});
+document.getElementById("meal-cat-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#meal-cat-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); mealCat = b.dataset.cat;
+});
+document.getElementById("meal-add").addEventListener("click", () => {
+  const name = document.getElementById("meal-name").value.trim();
+  const kcal = Number(document.getElementById("meal-kcal").value);
+  if (!name) { toast("食事名を入力してください"); return; }
+  addMeal(name, kcal || 0);
+  document.getElementById("meal-name").value = "";
+  document.getElementById("meal-kcal").value = "";
+});
+function addMeal(name, kcal) {
+  const date = document.getElementById("meal-date").value || todayStr();
+  const rec = getDaily(date);
+  rec.meals.push({ cat: mealCat, name, kcal });
+  setDaily(date, rec);
+  renderMealPage();
+  cheer("🍽", "記録しました！えらい！");
+}
+function renderMealPage() {
+  const dateEl = document.getElementById("meal-date");
+  if (!dateEl.value) dateEl.value = todayStr();
+  const date = dateEl.value;
+  const rec = getDaily(date);
+  const list = document.getElementById("meal-list");
+  if (rec.meals.length === 0) {
+    list.innerHTML = '<p class="empty-note">この日の食事はまだ記録されていません</p>';
+  } else {
+    list.innerHTML = rec.meals.map((m, i) => `
+      <div class="item-row">
+        <span class="cat-tag">${m.cat}</span><span class="nm">${m.name}</span>
+        <span class="kc">${m.kcal} kcal</span>
+        <button class="del" data-i="${i}">✕</button>
+      </div>`).join("");
+    list.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
+      const r = getDaily(date); r.meals.splice(Number(b.dataset.i), 1); setDaily(date, r); renderMealPage();
+    }));
+  }
+  const total = rec.meals.reduce((s, m) => s + (m.kcal || 0), 0);
+  const target = load(K.profile).goalKcal || null;
+  const sumEl = document.getElementById("kcal-summary");
+  sumEl.className = "kcal-summary" + (target && total > target ? " over" : "");
+  sumEl.innerHTML = `<span>この日の合計</span><span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>`;
+  // history (last 7 days with meals)
+  const all = load(K.daily);
+  const days = Object.keys(all).filter(d => all[d].meals && all[d].meals.length).sort().reverse().slice(0, 7);
+  document.getElementById("meal-history").innerHTML = days.length === 0
+    ? '<p class="empty-note">記録がたまるとここに表示されます</p>'
+    : '<table class="log"><tr><th>日付</th><th>合計kcal</th><th>間食kcal</th><th>品数</th></tr>' + days.map(d => {
+        const ms = all[d].meals;
+        const tot = ms.reduce((s, m) => s + (m.kcal || 0), 0);
+        const snack = ms.filter(m => m.cat === "間食").reduce((s, m) => s + (m.kcal || 0), 0);
+        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td><td>${snack.toLocaleString()}</td><td>${ms.length}</td></tr>`;
+      }).join("") + "</table>";
+}
+document.getElementById("meal-date").addEventListener("change", renderMealPage);
+
+/* ============ 運動 ============ */
+const EXERCISES = [
+  ["ウォーキング", 3.5], ["早歩き", 4.3], ["ジョギング", 7.0], ["自転車", 6.0],
+  ["水泳", 6.0], ["筋トレ", 5.0], ["ヨガ・ストレッチ", 2.5], ["家事・掃除", 3.3],
+  ["ゴルフ", 3.5], ["テニス", 7.3], ["ダンス", 5.0], ["階段のぼり", 8.0],
+];
+let selEx = null;
+const exChips = document.getElementById("ex-chips");
+EXERCISES.forEach(([name, mets]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = name; b.dataset.mets = mets;
+  b.addEventListener("click", () => {
+    exChips.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
+    b.classList.add("on"); selEx = { name, mets };
+    updateExKcal();
+  });
+  exChips.appendChild(b);
+});
+document.getElementById("ex-min").addEventListener("input", updateExKcal);
+function estimateKcal(mets, min) {
+  const w = latestWeight() || 60;
+  return Math.round(mets * w * (min / 60) * 1.05);
+}
+function updateExKcal() {
+  const min = Number(document.getElementById("ex-min").value);
+  document.getElementById("ex-kcal-view").value =
+    (selEx && min > 0) ? `約 ${estimateKcal(selEx.mets, min)} kcal` : "";
+}
+document.getElementById("ex-add").addEventListener("click", () => {
+  const min = Number(document.getElementById("ex-min").value);
+  if (!selEx) { toast("運動の種類を選んでください"); return; }
+  if (!min || min <= 0) { toast("時間（分）を入力してください"); return; }
+  const date = document.getElementById("ex-date").value || todayStr();
+  const rec = getDaily(date);
+  rec.exercises.push({ name: selEx.name, min, kcal: estimateKcal(selEx.mets, min) });
+  setDaily(date, rec);
+  document.getElementById("ex-min").value = "";
+  document.getElementById("ex-kcal-view").value = "";
+  renderExPage();
+  const wk = weekExerciseMin();
+  const goal = load(K.profile).goalEx || 150;
+  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
+  else cheer("🏃", `ナイス運動！今週あと${goal - wk}分`);
+});
+function weekExerciseMin() {
+  const all = load(K.daily); let sum = 0;
+  for (let i = 0; i < 7; i++) {
+    const r = all[todayStr(-i)];
+    if (r && r.exercises) sum += r.exercises.reduce((s, e) => s + e.min, 0);
+  }
+  return sum;
+}
+document.getElementById("ex-save").addEventListener("click", () => {
+  const date = document.getElementById("ex-date").value || todayStr();
+  const rec = getDaily(date);
+  const steps = document.getElementById("ex-steps").value;
+  const w = document.getElementById("daily-weight").value;
+  rec.steps = steps === "" ? null : Number(steps);
+  rec.weight = w === "" ? null : Number(w);
+  setDaily(date, rec);
+  toast("保存しました 🌿");
+  renderExPage();
+});
+function renderExPage() {
+  const dateEl = document.getElementById("ex-date");
+  if (!dateEl.value) dateEl.value = todayStr();
+  const date = dateEl.value;
+  const rec = getDaily(date);
+  document.getElementById("ex-steps").value = rec.steps ?? "";
+  document.getElementById("daily-weight").value = rec.weight ?? "";
+  const list = document.getElementById("ex-list");
+  if (rec.exercises.length === 0) {
+    list.innerHTML = '<p class="empty-note">この日の運動はまだ記録されていません</p>';
+  } else {
+    list.innerHTML = rec.exercises.map((e, i) => `
+      <div class="item-row">
+        <span class="nm">${e.name}</span><span>${e.min}分</span>
+        <span class="kc">${e.kcal} kcal</span>
+        <button class="del" data-i="${i}">✕</button>
+      </div>`).join("");
+    list.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
+      const r = getDaily(date); r.exercises.splice(Number(b.dataset.i), 1); setDaily(date, r); renderExPage();
+    }));
+  }
+  // week bar
+  const goal = load(K.profile).goalEx || 150;
+  document.getElementById("ex-goal-view").textContent = goal;
+  const wk = weekExerciseMin();
+  const pct = Math.min(100, (wk / goal) * 100);
+  document.getElementById("ex-week-bar").innerHTML = `
+    <div style="display:flex;justify-content:space-between;font-size:.82rem;">
+      <span>今週の合計 <strong style="color:var(--accent-dark);">${wk}分</strong></span>
+      <span class="muted">${Math.round(pct)}%</span>
+    </div>
+    <div class="minibar" style="height:12px;"><div style="width:${pct}%;${pct >= 100 ? "background:var(--gold);" : ""}"></div></div>`;
+  // history
+  const all = load(K.daily);
+  const days = Object.keys(all).filter(d => (all[d].exercises && all[d].exercises.length) || all[d].steps != null).sort().reverse().slice(0, 7);
+  document.getElementById("ex-history").innerHTML = days.length === 0 ? "" :
+    '<table class="log"><tr><th>日付</th><th>運動</th><th>分</th><th>消費kcal</th><th>歩数</th></tr>' + days.map(d => {
+      const r = all[d];
+      const names = (r.exercises || []).map(e => e.name).join("、") || "—";
+      const min = (r.exercises || []).reduce((s, e) => s + e.min, 0);
+      const kc = (r.exercises || []).reduce((s, e) => s + e.kcal, 0);
+      return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${min || "—"}</td><td>${kc || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td></tr>`;
+    }).join("") + "</table>";
+}
+document.getElementById("ex-date").addEventListener("change", renderExPage);
+
+/* ============ 検査（来院） ============ */
+let echoImgData = null;
+document.getElementById("v-echo-img").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const img = new Image();
+  img.onload = () => {
+    const max = 640;
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    echoImgData = cv.toDataURL("image/jpeg", 0.7);
+    const pv = document.getElementById("echo-preview");
+    pv.src = echoImgData; pv.style.display = "block";
+  };
+  img.src = URL.createObjectURL(file);
+});
+["v-ast", "v-alt", "v-plt"].forEach(id =>
+  document.getElementById(id).addEventListener("input", updateFibLine));
+function updateFibLine() {
+  const age = Number(load(K.profile).age) || null;
+  const f = calcFib4(age,
+    Number(document.getElementById("v-ast").value),
+    Number(document.getElementById("v-alt").value),
+    Number(document.getElementById("v-plt").value));
+  const el = document.getElementById("v-fib-line");
+  if (f == null) {
+    el.className = "fib-line";
+    el.textContent = age ? "" : "※ FIB-4の自動計算には「設定」で年齢の入力が必要です";
+    if (!age && (document.getElementById("v-ast").value || document.getElementById("v-alt").value)) el.className = "fib-line mid";
+    return;
+  }
+  const cls = f < 1.3 ? "low" : f <= 2.67 ? "mid" : "high";
+  const lbl = f < 1.3 ? "低リスク" : f <= 2.67 ? "中間リスク（専門医への相談を推奨）" : "高リスク（受診を強く推奨）";
+  el.className = "fib-line " + cls;
+  el.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${lbl}`;
+}
+const vNum = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+document.getElementById("v-save").addEventListener("click", () => {
+  const date = document.getElementById("v-date").value;
+  if (!date) { toast("来院日を入力してください"); return; }
+  const p = load(K.profile);
+  const rec = {
+    sbp: vNum("v-sbp"), dbp: vNum("v-dbp"), weight: vNum("v-weight"),
+    fat: vNum("v-fat"), muscle: vNum("v-muscle"), visceral: vNum("v-visceral"),
+    ast: vNum("v-ast"), alt: vNum("v-alt"), ggtp: vNum("v-ggtp"), plt: vNum("v-plt"),
+    ldl: vNum("v-ldl"), tg: vNum("v-tg"), hba1c: vNum("v-hba1c"),
+    kpa: vNum("v-kpa"), cap: vNum("v-cap"),
+    echo: document.getElementById("v-echo").value.trim() || null,
+    echoImg: echoImgData,
+    meds: document.getElementById("v-meds").value.trim() || null,
+  };
+  rec.fib4 = calcFib4(Number(p.age), rec.ast, rec.alt, rec.plt);
+  const visits = load(K.visits);
+  visits[date] = rec;
+  try { save(K.visits, visits); }
+  catch (err) { toast("保存容量を超えました。画像なしで保存します"); rec.echoImg = null; visits[date] = rec; save(K.visits, visits); }
+  toast("来院データを保存しました 🏥");
+  renderVisitTable();
+});
+function loadVisitToForm(date) {
+  const v = load(K.visits)[date]; if (!v) return;
+  document.getElementById("v-date").value = date;
+  const setv = (id, val) => document.getElementById(id).value = val ?? "";
+  setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
+  setv("v-fat", v.fat); setv("v-muscle", v.muscle); setv("v-visceral", v.visceral);
+  setv("v-ast", v.ast); setv("v-alt", v.alt); setv("v-ggtp", v.ggtp); setv("v-plt", v.plt);
+  setv("v-ldl", v.ldl); setv("v-tg", v.tg); setv("v-hba1c", v.hba1c);
+  setv("v-kpa", v.kpa); setv("v-cap", v.cap);
+  document.getElementById("v-echo").value = v.echo ?? "";
+  document.getElementById("v-meds").value = v.meds ?? "";
+  echoImgData = v.echoImg || null;
+  const pv = document.getElementById("echo-preview");
+  if (echoImgData) { pv.src = echoImgData; pv.style.display = "block"; }
+  else { pv.style.display = "none"; }
+  updateFibLine();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function renderVisitTable() {
+  if (!document.getElementById("v-date").value) document.getElementById("v-date").value = todayStr();
+  const visits = load(K.visits);
+  const dates = Object.keys(visits).sort().reverse();
+  const wrap = document.getElementById("visit-table");
+  if (dates.length === 0) { wrap.innerHTML = '<p class="empty-note">まだ来院データがありません</p>'; return; }
+  let html = '<table class="log"><tr><th>来院日</th><th>体重</th><th>血圧</th><th>AST</th><th>ALT</th><th>γGTP</th><th>FIB-4</th><th>CAP</th><th></th></tr>';
+  for (const d of dates) {
+    const v = visits[d];
+    html += `<tr data-date="${d}" style="cursor:pointer;">
+      <td>${fmtDate(d)}</td><td>${v.weight ?? "—"}</td>
+      <td>${v.sbp != null ? v.sbp + "/" + (v.dbp ?? "—") : "—"}</td>
+      <td>${v.ast ?? "—"}</td><td>${v.alt ?? "—"}</td><td>${v.ggtp ?? "—"}</td>
+      <td>${v.fib4 != null ? v.fib4.toFixed(2) : "—"}</td><td>${v.cap ?? "—"}</td>
+      <td><button class="del" data-date="${d}">✕</button></td></tr>`;
+  }
+  wrap.innerHTML = html + "</table>";
+  wrap.querySelectorAll("tr[data-date]").forEach(tr =>
+    tr.addEventListener("click", e => { if (!e.target.closest(".del")) loadVisitToForm(tr.dataset.date); }));
+  wrap.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
+    if (!confirm(b.dataset.date + " の来院データを削除しますか？")) return;
+    const vs = load(K.visits); delete vs[b.dataset.date]; save(K.visits, vs); renderVisitTable();
+  }));
+}
+
+/* ============ グラフ ============ */
+let chartMetric = "weight", chartDays = 90;
+document.getElementById("metric-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#metric-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); chartMetric = b.dataset.m; renderChart();
+});
+document.getElementById("range-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#range-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); chartDays = Number(b.dataset.days); renderChart();
+});
+
+function metricSeries() {
+  const daily = load(K.daily), visits = load(K.visits);
+  const vDates = Object.keys(visits).sort();
+  const pick = (key) => vDates.filter(d => visits[d][key] != null).map(d => ({ x: d, y: visits[d][key] }));
+  switch (chartMetric) {
+    case "weight": {
+      const dDates = Object.keys(daily).sort().filter(d => daily[d].weight != null);
+      const pts = dDates.map(d => ({ x: d, y: daily[d].weight }));
+      vDates.filter(d => visits[d].weight != null).forEach(d => {
+        if (!dDates.includes(d)) pts.push({ x: d, y: visits[d].weight });
+      });
+      pts.sort((a, b) => a.x < b.x ? -1 : 1);
+      const goal = load(K.profile).goalWeight || null;
+      return { series: [{ label: "体重(kg)", color: "#2e8b6d", pts }], goal, note: "日々の記録と来院時体重をあわせて表示しています。" };
+    }
+    case "liver": return { series: [
+      { label: "AST(U/L)", color: "#2e8b6d", pts: pick("ast") },
+      { label: "ALT(U/L)", color: "#3a7ca5", pts: pick("alt") }],
+      refline: 30, note: "点線は一般的な基準の目安 30 U/L。" };
+    case "ggtp": return { series: [{ label: "γGTP(U/L)", color: "#8a5ba5", pts: pick("ggtp") }], refline: 50, note: "点線は一般的な基準の目安 50 U/L。" };
+    case "fib4": return { series: [{ label: "FIB-4", color: "#c0504d", pts: pick("fib4") }], refline: 1.3, note: "点線は低リスクの目安 1.3。2.67超は高リスクです。" };
+    case "lipid": return { series: [
+      { label: "中性脂肪(mg/dL)", color: "#d9822b", pts: pick("tg") },
+      { label: "LDL-C(mg/dL)", color: "#3a7ca5", pts: pick("ldl") }], note: "" };
+    case "hba1c": return { series: [{ label: "HbA1c(%)", color: "#c0504d", pts: pick("hba1c") }], refline: 6.5, note: "点線は糖尿病の判定目安 6.5%。" };
+    case "fscan": return { series: [
+      { label: "肝硬度(kPa)", color: "#c0504d", pts: pick("kpa") },
+      { label: "CAP(dB/m)÷10", color: "#d9a62b", pts: pick("cap").map(p => ({ x: p.x, y: p.y / 10 })) }],
+      note: "CAP値は目盛りを合わせるため1/10で表示（例: 表示28 = 280 dB/m）。" };
+  }
+}
+function renderChart() {
+  const svg = document.getElementById("chart");
+  const { series, goal, refline, note } = metricSeries();
+  document.getElementById("chart-note").textContent = note || "";
+  let cutoff = null;
+  if (chartDays > 0) { const c = new Date(); c.setDate(c.getDate() - chartDays); cutoff = c.toISOString().slice(0, 10); }
+  const ser = series.map(s => ({ ...s, pts: cutoff ? s.pts.filter(p => p.x >= cutoff) : s.pts })).filter(s => s.pts.length > 0);
+  const allPts = ser.flatMap(s => s.pts);
+  if (allPts.length < 2) {
+    svg.innerHTML = '<text x="300" y="160" text-anchor="middle" fill="#6b7a72" font-size="15">記録が2件以上たまるとグラフが表示されます</text>';
+    return;
+  }
+  const W = 600, H = 320, padL = 48, padR = 14, padT = 34, padB = 34;
+  let ys = allPts.map(p => p.y);
+  if (goal != null) ys.push(goal);
+  if (refline != null) ys.push(refline);
+  let minY = Math.min(...ys), maxY = Math.max(...ys);
+  const span = Math.max(maxY - minY, 1e-6);
+  minY -= span * 0.12; maxY += span * 0.12;
+  const t0 = Math.min(...allPts.map(p => new Date(p.x).getTime()));
+  const t1 = Math.max(...allPts.map(p => new Date(p.x).getTime()));
+  const x = d => padL + ((new Date(d).getTime() - t0) / Math.max(t1 - t0, 1)) * (W - padL - padR);
+  const y = v => padT + (1 - (v - minY) / (maxY - minY)) * (H - padT - padB);
+  let el = "";
+  for (let i = 0; i <= 4; i++) {
+    const v = minY + (i / 4) * (maxY - minY), yy = y(v);
+    el += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#e2e9e5"/>`;
+    el += `<text x="${padL - 6}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#6b7a72">${(Math.round(v * 10) / 10).toLocaleString()}</text>`;
+  }
+  const first = allPts.reduce((a, b) => a.x < b.x ? a : b), last = allPts.reduce((a, b) => a.x > b.x ? a : b);
+  [first, last].forEach(p => {
+    el += `<text x="${x(p.x)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDate(p.x)}</text>`;
+  });
+  const dash = (v, color, lbl) => {
+    const gy = y(v);
+    el += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="${color}" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+    el += `<text x="${W - padR}" y="${gy - 5}" text-anchor="end" font-size="11" fill="${color}">${lbl}</text>`;
+  };
+  if (goal != null) dash(goal, "#d9822b", `目標 ${goal}`);
+  if (refline != null) dash(refline, "#d9822b", `目安 ${refline}`);
+  ser.forEach((s, si) => {
+    el += `<polyline fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" points="${s.pts.map(p => x(p.x) + "," + y(p.y)).join(" ")}"/>`;
+    s.pts.forEach(p => { el += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="3.2" fill="${s.color}"/>`; });
+    el += `<rect x="${padL + si * 150}" y="8" width="10" height="10" fill="${s.color}" rx="2"/>`;
+    el += `<text x="${padL + si * 150 + 15}" y="18" font-size="11" fill="#3c4a43">${s.label}</text>`;
+  });
+  svg.innerHTML = el;
+}
+
+/* ============ 設定 ============ */
+function renderSettings() {
+  const p = load(K.profile);
+  const setv = (id, val) => document.getElementById(id).value = val ?? "";
+  setv("p-age", p.age); document.getElementById("p-sex").value = p.sex || "";
+  setv("p-height", p.height); setv("p-start-weight", p.startWeight);
+  setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
+  setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
+  updateBmiView(); updateGoalSuggest();
+}
+function updateBmiView() {
+  const h = Number(document.getElementById("p-height").value);
+  const w = Number(document.getElementById("p-start-weight").value) || latestWeight();
+  const el = document.getElementById("bmi-view");
+  if (h && w) {
+    const bmi = Math.round((w / ((h / 100) ** 2)) * 10) / 10;
+    const cls = bmi < 18.5 ? "低体重" : bmi < 25 ? "普通体重" : bmi < 30 ? "肥満(1度)" : bmi < 35 ? "肥満(2度)" : "肥満(3度以上)";
+    el.innerHTML = `BMI: <strong>${bmi}</strong>（${cls}）`;
+  } else el.textContent = "身長と体重を入力するとBMIが表示されます";
+}
+function updateGoalSuggest() {
+  const h = Number(document.getElementById("p-height").value);
+  const sw = Number(document.getElementById("p-start-weight").value);
+  const el = document.getElementById("goal-suggest");
+  if (!h || !sw) { el.textContent = "基本情報を入力すると推奨目標が表示されます"; return; }
+  const g7 = Math.round(sw * 0.93 * 10) / 10;
+  const stdW = 22 * (h / 100) ** 2;
+  const kcal = Math.round(stdW * 27 / 50) * 50;
+  el.innerHTML = `おすすめ: 目標体重 <strong>${g7}kg</strong>（−7%）、摂取カロリー <strong>約${kcal.toLocaleString()}kcal/日</strong>（標準体重×27kcal）`;
+}
+["p-height", "p-start-weight"].forEach(id => {
+  document.getElementById(id).addEventListener("input", () => { updateBmiView(); updateGoalSuggest(); });
+});
+document.getElementById("p-save").addEventListener("click", () => {
+  const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+  const p = {
+    age: num("p-age"), sex: document.getElementById("p-sex").value || null,
+    height: num("p-height"), startWeight: num("p-start-weight"),
+    goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 150,
+    goalKcal: num("p-goal-kcal"), goalSteps: num("p-goal-steps") ?? 8000,
+  };
+  if (!p.goalWeight && p.startWeight) p.goalWeight = Math.round(p.startWeight * 0.93 * 10) / 10;
+  if (!p.goalKcal && p.height) p.goalKcal = Math.round(22 * (p.height / 100) ** 2 * 27 / 50) * 50;
+  save(K.profile, p);
+  toast("設定を保存しました");
+  renderSettings(); renderHome();
+});
+
+/* ============ ホーム ============ */
+const TIPS = [
+  "清涼飲料水を1本やめるだけで、1か月で約150gの脂肪に相当するカロリーを減らせます。",
+  "食後30分の散歩は血糖の急上昇を抑え、肝臓への脂肪の取り込みを減らします。",
+  "コーヒー（ブラック）1日2〜3杯は肝線維化の進行抑制と関連が報告されています。",
+  "野菜から先に食べる「ベジファースト」は今日からできる肝臓ケアです。",
+  "体重の3%減で肝脂肪は減り始めます。まずは小さな一歩から。",
+  "筋肉は糖の最大の消費場所。スクワット10回からでも始める価値があります。",
+  "夜9時以降の食事は肝臓に脂肪をためやすくします。夕食は早めに。",
+  "睡眠6時間未満は脂肪肝のリスク因子。今夜は少し早く布団へ。",
+  "階段を使う・一駅歩く——日常の「ながら運動」も立派な治療です。",
+  "記録をつけること自体に減量効果があると報告されています。今日もえらい！",
+];
+function calcStreak() {
+  const all = load(K.daily); let streak = 0;
+  let i = 0;
+  const hasRec = d => { const r = all[d]; return r && ((r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null); };
+  if (!hasRec(todayStr())) i = 1; // 今日未記録なら昨日から数える
+  for (; ; i++) {
+    if (hasRec(todayStr(-i))) streak++;
+    else break;
+    if (i > 3650) break;
+  }
+  return streak;
+}
+function weightProgress() {
+  const p = load(K.profile);
+  const cur = latestWeight();
+  const start = p.startWeight || null, goal = p.goalWeight || (start ? Math.round(start * 0.93 * 10) / 10 : null);
+  if (!start || !goal || !cur || start <= goal) return null;
+  const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
+  return { start, goal, cur, pct };
+}
+function renderHome() {
+  // ring
+  const wp = weightProgress();
+  const ring = document.getElementById("ring-fg");
+  const C = 2 * Math.PI * 50;
+  if (wp) {
+    ring.setAttribute("stroke-dashoffset", C * (1 - wp.pct / 100));
+    ring.setAttribute("stroke", wp.pct >= 100 ? "#d9a62b" : "#2e8b6d");
+    document.getElementById("ring-pct").textContent = Math.round(wp.pct) + "%";
+    document.getElementById("goal-text").innerHTML =
+      `現在 <strong>${wp.cur}kg</strong> ／ 目標 <strong>${wp.goal}kg</strong><br>
+       <span class="muted">開始 ${wp.start}kg から ${Math.round((wp.start - wp.cur) * 10) / 10}kg 減${wp.pct >= 100 ? " 🎉 目標達成！" : `、あと ${Math.round((wp.cur - wp.goal) * 10) / 10}kg`}</span>`;
+  } else {
+    ring.setAttribute("stroke-dashoffset", C);
+    document.getElementById("ring-pct").textContent = "—";
+    document.getElementById("goal-text").innerHTML = `<span class="muted">「⚙️設定」で身長・体重・目標を入力すると、達成率が表示されます。</span>`;
+  }
+  document.getElementById("streak-num").textContent = calcStreak();
+
+  // today stats
+  const p = load(K.profile);
+  const t = getDaily(todayStr());
+  const kcalIn = t.meals.reduce((s, m) => s + (m.kcal || 0), 0);
+  const kcalOut = t.exercises.reduce((s, e) => s + (e.kcal || 0), 0);
+  const exMin = t.exercises.reduce((s, e) => s + e.min, 0);
+  const wkMin = weekExerciseMin();
+  const goalEx = p.goalEx || 150;
+  const goalSteps = p.goalSteps || 8000;
+  const stepsPct = t.steps != null ? Math.min(100, t.steps / goalSteps * 100) : 0;
+  const kcalPct = p.goalKcal ? Math.min(100, kcalIn / p.goalKcal * 100) : 0;
+  document.getElementById("today-stats").innerHTML = `
+    <div class="stat"><div class="val">${kcalIn.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の摂取${p.goalKcal ? ` / ${p.goalKcal.toLocaleString()}` : ""}</div>
+      ${p.goalKcal ? `<div class="minibar"><div style="width:${kcalPct}%;${kcalIn > p.goalKcal ? "background:var(--warn);" : ""}"></div></div>` : ""}</div>
+    <div class="stat blue"><div class="val">${kcalOut.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の運動消費（${exMin}分）</div></div>
+    <div class="stat blue"><div class="val">${t.steps != null ? t.steps.toLocaleString() : "—"}</div><div class="lbl">歩数 / 目標${goalSteps.toLocaleString()}</div>
+      <div class="minibar"><div style="width:${stepsPct}%;background:var(--blue);"></div></div></div>
+    <div class="stat"><div class="val">${wkMin}<span class="u"> 分</span></div><div class="lbl">今週の運動 / ${goalEx}分</div>
+      <div class="minibar"><div style="width:${Math.min(100, wkMin / goalEx * 100)}%;${wkMin >= goalEx ? "background:var(--gold);" : ""}"></div></div></div>`;
+
+  // badges
+  const streak = calcStreak();
+  const lost = wp ? wp.start - wp.cur : 0;
+  const lostPct = wp ? (lost / wp.start) * 100 : 0;
+  const anyRec = Object.keys(load(K.daily)).length > 0;
+  const badges = [
+    ["🌱", "はじめの一歩", anyRec],
+    ["🔥", "3日連続", streak >= 3],
+    ["⭐", "7日連続", streak >= 7],
+    ["👑", "30日連続", streak >= 30],
+    ["🏃", `週${goalEx}分運動`, wkMin >= goalEx],
+    ["🍃", "−3%減量", lostPct >= 3],
+    ["💪", "−5%減量", lostPct >= 5],
+    ["🏆", "−7%達成", lostPct >= 7],
+  ];
+  document.getElementById("badge-area").innerHTML = badges.map(([em, nm, ok]) =>
+    `<div class="badge${ok ? " earned" : ""}"><span class="bico">${em}</span>${nm}</div>`).join("");
+
+  const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
+  document.getElementById("daily-tip").textContent = TIPS[dayIdx];
+}
+
+/* ============ 印刷レポート ============ */
+document.getElementById("print-btn").addEventListener("click", () => {
+  buildPrintReport();
+  window.print();
+});
+function buildPrintReport() {
+  const p = load(K.profile), visits = load(K.visits), daily = load(K.daily);
+  const vDates = Object.keys(visits).sort().reverse().slice(0, 6).reverse();
+  const wp = weightProgress();
+  // lifestyle summary last 30 days
+  let recDays = 0, kcalSum = 0, kcalDays = 0, exMinSum = 0, stepSum = 0, stepDays = 0;
+  for (let i = 0; i < 30; i++) {
+    const r = daily[todayStr(-i)];
+    if (!r) continue;
+    const has = (r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null;
+    if (has) recDays++;
+    if (r.meals && r.meals.length) { kcalSum += r.meals.reduce((s, m) => s + (m.kcal || 0), 0); kcalDays++; }
+    if (r.exercises) exMinSum += r.exercises.reduce((s, e) => s + e.min, 0);
+    if (r.steps != null) { stepSum += r.steps; stepDays++; }
+  }
+  const bmi = (p.height && latestWeight()) ? Math.round(latestWeight() / ((p.height / 100) ** 2) * 10) / 10 : null;
+  const rows = [
+    ["体重 (kg)", "weight"], ["血圧 (mmHg)", "bp"], ["体脂肪率 (%)", "fat"], ["骨格筋量 (kg)", "muscle"],
+    ["内臓脂肪Lv", "visceral"], ["AST (U/L)", "ast"], ["ALT (U/L)", "alt"], ["γGTP (U/L)", "ggtp"],
+    ["血小板 (万/µL)", "plt"], ["LDL-C (mg/dL)", "ldl"], ["中性脂肪 (mg/dL)", "tg"], ["HbA1c (%)", "hba1c"],
+    ["FIB-4", "fib4"], ["肝硬度 (kPa)", "kpa"], ["CAP (dB/m)", "cap"],
+  ];
+  const cell = (v, key) => {
+    const rec = visits[v];
+    if (key === "bp") return rec.sbp != null ? `${rec.sbp}/${rec.dbp ?? "—"}` : "—";
+    const val = rec[key];
+    return val != null ? (key === "fib4" ? val.toFixed(2) : val) : "—";
+  };
+  const latestV = vDates.length ? visits[vDates[vDates.length - 1]] : null;
+  document.getElementById("print-report").innerHTML = `
+    <h1>🌿 肝ケア日記 — 診察用レポート</h1>
+    <p class="pr-meta">出力日: ${fmtDateFull(todayStr())}　|
+      ${p.age ? `年齢: ${p.age}歳　` : ""}${p.sex ? `性別: ${p.sex}　` : ""}
+      ${p.height ? `身長: ${p.height}cm　` : ""}${bmi ? `BMI: ${bmi}` : ""}</p>
+    <h2>目標と進捗</h2>
+    <p>${wp ? `開始 ${wp.start}kg → 現在 ${wp.cur}kg（${Math.round((wp.start - wp.cur) * 10) / 10}kg減）／ 目標 ${wp.goal}kg・達成率 ${Math.round(wp.pct)}%` : "目標未設定"}</p>
+    <h2>生活習慣サマリー（直近30日）</h2>
+    <table><tr><th>記録日数</th><th>平均摂取カロリー</th><th>運動合計</th><th>週平均運動</th><th>平均歩数</th></tr>
+      <tr><td>${recDays}/30日</td>
+        <td>${kcalDays ? Math.round(kcalSum / kcalDays).toLocaleString() + " kcal/日" : "—"}</td>
+        <td>${exMinSum}分</td><td>${Math.round(exMinSum / 30 * 7)}分/週</td>
+        <td>${stepDays ? Math.round(stepSum / stepDays).toLocaleString() + " 歩" : "—"}</td></tr></table>
+    <h2>検査値の推移</h2>
+    ${vDates.length ? `<table><tr><th>項目</th>${vDates.map(d => `<th>${fmtDate(d)}</th>`).join("")}</tr>
+      ${rows.map(([lbl, key]) => `<tr><td style="text-align:left;">${lbl}</td>${vDates.map(d => `<td>${cell(d, key)}</td>`).join("")}</tr>`).join("")}</table>`
+      : "<p>来院データ未登録</p>"}
+    <h2>内服薬</h2><p>${latestV && latestV.meds ? latestV.meds.replace(/\n/g, "<br>") : "—"}</p>
+    <h2>腹部超音波所見（最新）</h2><p>${latestV && latestV.echo ? latestV.echo.replace(/\n/g, "<br>") : "—"}</p>
+    ${latestV && latestV.echoImg ? `<img src="${latestV.echoImg}" style="max-width:70mm;border:1px solid #999;">` : ""}
+    <p class="pr-meta" style="margin-top:10px;">本レポートは患者の自己記録アプリ「肝ケア日記」から出力されたものです。</p>`;
+}
+
+/* ============ export / reset ============ */
+document.getElementById("export-btn").addEventListener("click", () => {
+  const data = { profile: load(K.profile), daily: load(K.daily), visits: load(K.visits) };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "kankea-data-" + todayStr() + ".json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById("reset-btn").addEventListener("click", () => {
+  if (confirm("すべての記録（プロフィール・日々の記録・来院データ）を削除します。よろしいですか？")) {
+    Object.values(K).forEach(k => localStorage.removeItem(k));
+    toast("削除しました"); renderHome(); renderSettings();
+  }
+});
+
+/* ============ init ============ */
+document.getElementById("meal-date").value = todayStr();
+document.getElementById("ex-date").value = todayStr();
+document.getElementById("v-date").value = todayStr();
+renderHome();
+</script>
+</body>
+</html>
