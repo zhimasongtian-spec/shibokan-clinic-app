@@ -480,6 +480,7 @@
       <p class="muted">「食事」タブの写真からのカロリー自動判定に、ご自身のGoogle Gemini APIキーを使用します。キーはこの端末にのみ保存され、外部には送信されません（解析時に写真とともにGoogleへ送信されます）。</p>
       <label for="p-api-key">Google Gemini APIキー</label>
       <input type="text" id="p-api-key" placeholder="AIzaSy..." autocomplete="off">
+      <p class="muted" id="local-key-note" style="margin-top:6px; display:none;">この端末のローカル設定ファイルのキーを自動で使用中です。ここで保存すると、この端末専用のキーとして上書きされます。</p>
       <p class="muted" style="margin-top:6px;">APIキーは Google AI Studio（aistudio.google.com）で無料で発行できます。利用量に応じて無料枠を超えると課金される場合があります。</p>
     </div>
 
@@ -527,6 +528,9 @@
 <div class="cheer" id="cheer"><div class="em" id="cheer-em">🎉</div><div class="tx" id="cheer-tx"></div></div>
 <div id="print-report"></div>
 
+<!-- local-config.js is a git-ignored, PC-only file that pre-fills the Gemini API key.
+     It is intentionally absent from the public repo/GitHub Pages build, so this 404s there. -->
+<script src="local-config.js"></script>
 <script>
 "use strict";
 /* ============ storage keys ============ */
@@ -696,7 +700,7 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
 });
 async function analyzeMealPhoto(aiImage, thumb) {
   const area = document.getElementById("photo-analyze-area");
-  const apiKey = (load(K.profile).apiKey || "").trim();
+  const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
   if (!apiKey) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="食事写真">
@@ -710,7 +714,7 @@ async function analyzeMealPhoto(aiImage, thumb) {
   </div>`;
   const base64 = aiImage.split(",")[1];
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -1095,7 +1099,9 @@ function renderSettings() {
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
   setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
   setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
-  setv("p-api-key", p.apiKey);
+  setv("p-api-key", p.apiKey || window.LOCAL_GEMINI_API_KEY || "");
+  const localNote = document.getElementById("local-key-note");
+  if (localNote) localNote.style.display = (!p.apiKey && window.LOCAL_GEMINI_API_KEY) ? "block" : "none";
   updateBmiView(); updateGoalSuggest();
 }
 function updateBmiView() {
