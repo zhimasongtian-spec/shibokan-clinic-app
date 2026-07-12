@@ -218,6 +218,17 @@
   .cheer .em { font-size: 2.4rem; }
   .cheer .tx { font-weight: 700; color: var(--accent-dark); margin-top: 4px; }
 
+  .camera-modal {
+    position: fixed; inset: 0; background: rgba(20, 26, 22, .8); z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .camera-modal.show { display: flex; }
+  .camera-modal-inner { background: var(--card); border-radius: var(--radius); padding: 16px; max-width: 480px; width: 100%; }
+  .camera-modal video { width: 100%; border-radius: 10px; background: #000; max-height: 60vh; object-fit: contain; display: block; }
+  .camera-modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .camera-modal-actions .btn { margin-top: 0; }
+  .camera-modal .camera-err { color: var(--danger); font-size: .82rem; margin-top: 6px; }
+
   /* print report */
   #print-report { display: none; }
   @media print {
@@ -296,6 +307,7 @@
       <p class="muted">食事の写真を撮ると、AIが料理とおおよそのカロリーを推定します。内容は追加前に確認・修正できます。</p>
       <input type="file" id="meal-photo-input" accept="image/*" capture="environment" style="display:none;">
       <button class="btn secondary" id="meal-photo-btn">📷 写真を撮る</button>
+      <button class="btn secondary" id="meal-webcam-btn" style="margin-top:8px;">💻 パソコンのカメラで撮影</button>
       <div id="photo-analyze-area"></div>
     </div>
     <div class="card">
@@ -526,6 +538,16 @@
 
 <div class="toast" id="toast"></div>
 <div class="cheer" id="cheer"><div class="em" id="cheer-em">🎉</div><div class="tx" id="cheer-tx"></div></div>
+<div class="camera-modal" id="camera-modal">
+  <div class="camera-modal-inner">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div id="camera-err"></div>
+    <div class="camera-modal-actions">
+      <button class="btn secondary small" id="camera-cancel" style="flex:1;">キャンセル</button>
+      <button class="btn small" id="camera-capture" style="flex:1;">📸 撮影</button>
+    </div>
+  </div>
+</div>
 <div id="print-report"></div>
 
 <!-- local-config.js is a git-ignored, PC-only file that pre-fills the Gemini API key.
@@ -698,6 +720,42 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
     toast("画像を読み込めませんでした");
   }
 });
+
+/* ---- パソコンのカメラで撮影 ---- */
+let cameraStream = null;
+function closeCameraModal() {
+  document.getElementById("camera-modal").classList.remove("show");
+  document.getElementById("camera-err").innerHTML = "";
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+}
+document.getElementById("meal-webcam-btn").addEventListener("click", async () => {
+  const errEl = document.getElementById("camera-err");
+  errEl.innerHTML = "";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast("このブラウザ・接続方法ではカメラを使用できません（https、またはlocalhost経由で開いてください）");
+    return;
+  }
+  document.getElementById("camera-modal").classList.add("show");
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    document.getElementById("camera-video").srcObject = cameraStream;
+  } catch (err) {
+    errEl.innerHTML = `<p class="analyze-error">カメラを起動できませんでした: ${String((err && err.message) || err).slice(0, 150)}</p>`;
+  }
+});
+document.getElementById("camera-cancel").addEventListener("click", closeCameraModal);
+document.getElementById("camera-capture").addEventListener("click", () => {
+  const video = document.getElementById("camera-video");
+  if (!video.videoWidth) { toast("カメラの映像を取得できていません"); return; }
+  const frame = document.createElement("canvas");
+  frame.width = video.videoWidth; frame.height = video.videoHeight;
+  frame.getContext("2d").drawImage(video, 0, 0);
+  const aiImage = imgToDataUrl(frame, 640, 0.7);
+  const thumb = imgToDataUrl(frame, 220, 0.6);
+  closeCameraModal();
+  analyzeMealPhoto(aiImage, thumb);
+});
+
 // スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー経由でGemini APIを呼びます。
 // firebase-functions/index.js をデプロイした後、実際のFunction URLに書き換えてください。
 const MEAL_PROXY_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/mealProxy";
