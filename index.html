@@ -736,7 +736,7 @@ async function analyzeMealPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが解析中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真に写っている食事の品目とおおよそのカロリー(kcal)を日本語で推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
+  const promptText = "この写真に写っている食事の品目を日本語で判定してください。カロリー(kcal)は、日本食品標準成分表などに基づく一般的な1人前の目安値を採用し、特殊な調理法や極端な数値ではなく、よくある家庭料理・外食店の平均的なカロリーで推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
