@@ -492,10 +492,7 @@
       <p class="muted">行をタップすると内容を上のフォームに読み込みます。</p>
       <div class="table-scroll" id="visit-table"></div>
     </div>
-  </section>
 
-  <!-- ================= グラフ ================= -->
-  <section class="page" id="page-graph">
     <div class="card">
       <h2>📈 推移グラフ</h2>
       <div class="seg" id="metric-seg">
@@ -593,7 +590,6 @@
   <button data-page="meal"><span class="ico">🍽</span>食事</button>
   <button data-page="exercise"><span class="ico">🏃</span>運動</button>
   <button data-page="visit"><span class="ico">🏥</span>検査</button>
-  <button data-page="graph"><span class="ico">📈</span>グラフ</button>
   <button data-page="settings"><span class="ico">⚙️</span>設定</button>
 </nav>
 
@@ -664,7 +660,7 @@ document.querySelectorAll(".tabbar button").forEach(btn => {
     document.querySelectorAll("section.page").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("page-" + btn.dataset.page).classList.add("active");
-    const r = { home: renderHome, record: renderRecordPage, meal: renderMealPage, exercise: renderExPage, visit: renderVisitTable, graph: renderChart, settings: renderSettings };
+    const r = { home: renderHome, record: renderRecordPage, meal: renderMealPage, exercise: renderExPage, visit: renderVisitPage, settings: renderSettings };
     if (r[btn.dataset.page]) r[btn.dataset.page]();
   });
 });
@@ -1265,7 +1261,7 @@ document.getElementById("v-save").addEventListener("click", () => {
   try { save(K.visits, visits); }
   catch (err) { toast("保存容量を超えました。画像なしで保存します"); rec.echoImg = null; visits[date] = rec; save(K.visits, visits); }
   toast("来院データを保存しました 🏥");
-  renderVisitTable();
+  renderVisitPage();
 });
 function loadVisitToForm(date) {
   const v = load(K.visits)[date]; if (!v) return;
@@ -1306,11 +1302,13 @@ function renderVisitTable() {
     tr.addEventListener("click", e => { if (!e.target.closest(".del")) loadVisitToForm(tr.dataset.date); }));
   wrap.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
     if (!confirm(b.dataset.date + " の来院データを削除しますか？")) return;
-    const vs = load(K.visits); delete vs[b.dataset.date]; save(K.visits, vs); renderVisitTable();
+    const vs = load(K.visits); delete vs[b.dataset.date]; save(K.visits, vs); renderVisitPage();
   }));
 }
 
-/* ============ グラフ ============ */
+function renderVisitPage() { renderVisitTable(); renderChart(); }
+
+/* ============ グラフ（検査タブ内） ============ */
 let chartMetric = "weight", chartDays = 90;
 document.getElementById("metric-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
