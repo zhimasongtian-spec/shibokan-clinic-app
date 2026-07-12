@@ -339,7 +339,15 @@
       <div class="kcal-summary" id="kcal-summary"></div>
     </div>
     <div class="card">
-      <h2>最近の食事カロリー</h2>
+      <h2>食事カロリー履歴</h2>
+      <div class="seg" id="meal-range-seg">
+        <button data-days="7" class="on">週</button>
+        <button data-days="30">月</button>
+        <button data-days="90">3か月</button>
+        <button data-days="180">6か月</button>
+        <button data-days="365">年</button>
+      </div>
+      <div id="meal-history-summary"></div>
       <div id="meal-history"></div>
     </div>
   </section>
@@ -715,11 +723,23 @@ function renderMealPage() {
   const sumEl = document.getElementById("kcal-summary");
   sumEl.className = "kcal-summary" + (target && total > target ? " over" : "");
   sumEl.innerHTML = `<span>この日の合計</span><span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>`;
-  // history (last 7 days with meals)
+  // history within selected period
   const all = load(K.daily);
-  const days = Object.keys(all).filter(d => all[d].meals && all[d].meals.length).sort().reverse().slice(0, 7);
+  let cutoff = null;
+  if (mealRangeDays > 0) { const c = new Date(); c.setDate(c.getDate() - mealRangeDays); cutoff = c.toISOString().slice(0, 10); }
+  const days = Object.keys(all)
+    .filter(d => all[d].meals && all[d].meals.length)
+    .filter(d => !cutoff || d >= cutoff)
+    .sort().reverse();
+  const periodTotal = days.reduce((s, d) => s + all[d].meals.reduce((ss, m) => ss + (m.kcal || 0), 0), 0);
+  const periodAvg = days.length ? Math.round(periodTotal / days.length) : 0;
+  document.getElementById("meal-history-summary").innerHTML = days.length === 0 ? "" : `
+    <div class="stat-grid" style="margin-bottom:10px;">
+      <div class="stat"><div class="val">${periodTotal.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">期間合計（${days.length}日分）</div></div>
+      <div class="stat"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">記録日の1日平均</div></div>
+    </div>`;
   document.getElementById("meal-history").innerHTML = days.length === 0
-    ? '<p class="empty-note">記録がたまるとここに表示されます</p>'
+    ? '<p class="empty-note">この期間の記録はまだありません</p>'
     : '<table class="log"><tr><th>日付</th><th>合計kcal</th><th>品数</th></tr>' + days.map(d => {
         const ms = all[d].meals;
         const tot = ms.reduce((s, m) => s + (m.kcal || 0), 0);
@@ -727,6 +747,12 @@ function renderMealPage() {
       }).join("") + "</table>";
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
+let mealRangeDays = 7;
+document.getElementById("meal-range-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#meal-range-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); mealRangeDays = Number(b.dataset.days); renderMealPage();
+});
 
 /* ---- 写真からのカロリー判定 (AI) ---- */
 function loadImageFile(file) {
