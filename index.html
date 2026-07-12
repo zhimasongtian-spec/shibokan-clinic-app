@@ -223,6 +223,17 @@
   .cheer .em { font-size: 2.4rem; }
   .cheer .tx { font-weight: 700; color: var(--accent-dark); margin-top: 4px; }
 
+  .camera-modal {
+    position: fixed; inset: 0; background: rgba(20, 26, 22, .8); z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .camera-modal.show { display: flex; }
+  .camera-modal-inner { background: var(--card); border-radius: var(--radius); padding: 16px; max-width: 480px; width: 100%; }
+  .camera-modal video { width: 100%; border-radius: 10px; background: #000; max-height: 60vh; object-fit: contain; display: block; }
+  .camera-modal-actions { display: flex; gap: 10px; margin-top: 12px; }
+  .camera-modal-actions .btn { margin-top: 0; }
+  .camera-modal .camera-err { color: var(--danger); font-size: .82rem; margin-top: 6px; }
+
   /* print report */
   #print-report { display: none; }
   @media print {
@@ -301,6 +312,7 @@
       <p class="muted">食事の写真を撮ると、AIが料理とおおよそのカロリーを推定します。内容は追加前に確認・修正できます。</p>
       <input type="file" id="meal-photo-input" accept="image/*" capture="environment" style="display:none;">
       <button class="btn secondary" id="meal-photo-btn">📷 写真を撮る</button>
+      <button class="btn secondary" id="meal-webcam-btn" style="margin-top:8px;">💻 パソコンのカメラで撮影</button>
       <div id="photo-analyze-area"></div>
     </div>
     <div class="card">
@@ -532,6 +544,16 @@
 
 <div class="toast" id="toast"></div>
 <div class="cheer" id="cheer"><div class="em" id="cheer-em">🎉</div><div class="tx" id="cheer-tx"></div></div>
+<div class="camera-modal" id="camera-modal">
+  <div class="camera-modal-inner">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <div id="camera-err"></div>
+    <div class="camera-modal-actions">
+      <button class="btn secondary small" id="camera-cancel" style="flex:1;">キャンセル</button>
+      <button class="btn small" id="camera-capture" style="flex:1;">📸 撮影</button>
+    </div>
+  </div>
+</div>
 <div id="print-report"></div>
 
 <!-- local-config.js is a git-ignored, PC-only file that pre-fills the Gemini API key.
@@ -739,9 +761,45 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
     toast("画像を読み込めませんでした");
   }
 });
+
+/* ---- パソコンのカメラで撮影 ---- */
+let cameraStream = null;
+function closeCameraModal() {
+  document.getElementById("camera-modal").classList.remove("show");
+  document.getElementById("camera-err").innerHTML = "";
+  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+}
+document.getElementById("meal-webcam-btn").addEventListener("click", async () => {
+  const errEl = document.getElementById("camera-err");
+  errEl.innerHTML = "";
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    toast("このブラウザ・接続方法ではカメラを使用できません（https、またはlocalhost経由で開いてください）");
+    return;
+  }
+  document.getElementById("camera-modal").classList.add("show");
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+    document.getElementById("camera-video").srcObject = cameraStream;
+  } catch (err) {
+    errEl.innerHTML = `<p class="analyze-error">カメラを起動できませんでした: ${String((err && err.message) || err).slice(0, 150)}</p>`;
+  }
+});
+document.getElementById("camera-cancel").addEventListener("click", closeCameraModal);
+document.getElementById("camera-capture").addEventListener("click", () => {
+  const video = document.getElementById("camera-video");
+  if (!video.videoWidth) { toast("カメラの映像を取得できていません"); return; }
+  const frame = document.createElement("canvas");
+  frame.width = video.videoWidth; frame.height = video.videoHeight;
+  frame.getContext("2d").drawImage(video, 0, 0);
+  const aiImage = imgToDataUrl(frame, 640, 0.7);
+  const thumb = imgToDataUrl(frame, 220, 0.6);
+  closeCameraModal();
+  analyzeMealPhoto(aiImage, thumb);
+});
+
 // スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー経由でGemini APIを呼びます。
 // firebase-functions/index.js をデプロイした後、実際のFunction URLに書き換えてください。
-const MEAL_PROXY_URL = "https://REPLACE-WITH-YOUR-PROXY-URL";
+const MEAL_PROXY_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/mealProxy";
 
 function extractFirstJsonObject(str) {
   const start = str.indexOf("{");
@@ -777,7 +835,7 @@ async function analyzeMealPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが解析中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真に写っている食事の品目とおおよそのカロリー(kcal)を日本語で推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
+  const promptText = "この写真に写っている食事の品目を日本語で判定してください。カロリー(kcal)は、日本食品標準成分表などに基づく一般的な1人前の目安値を採用し、特殊な調理法や極端な数値ではなく、よくある家庭料理・外食店の平均的なカロリーで推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -826,15 +884,22 @@ function renderAnalyzeResult(thumb, items) {
   const renderRows = () => {
     if (items.length === 0) { rowsEl.innerHTML = '<p class="empty-note">項目がありません</p>'; return; }
     rowsEl.innerHTML = items.map((it, i) => `
-      <div class="analyze-item-row">
-        <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
-        <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
-        <button class="del" data-i="${i}">✕</button>
+      <div>
+        <div class="analyze-item-row">
+          <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
+          <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+          <button class="del" data-i="${i}">✕</button>
+        </div>
+        <p class="muted analyze-zero-note" data-note-i="${i}" style="font-size:.7rem;margin:-4px 0 4px;${it.kcal === 0 ? "" : "display:none;"}">AIが0kcalと推定（無糖飲料・水など低カロリー食品の可能性）</p>
       </div>`).join("");
     rowsEl.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => {
       const i = Number(inp.dataset.i);
       if (inp.dataset.f === "name") items[i].name = inp.value;
-      else items[i].kcal = Number(inp.value) || 0;
+      else {
+        items[i].kcal = Number(inp.value) || 0;
+        const note = rowsEl.querySelector(`.analyze-zero-note[data-note-i="${i}"]`);
+        if (note) note.style.display = items[i].kcal === 0 ? "block" : "none";
+      }
     }));
     rowsEl.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
       items.splice(Number(b.dataset.i), 1);
