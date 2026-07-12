@@ -720,19 +720,9 @@ function renderRecordPage() {
 document.getElementById("rec-date").addEventListener("change", renderRecordPage);
 
 /* ============ 食事 ============ */
-const DEFAULT_FOODS = [
-  ["ごはん普通盛", 250], ["ごはん少なめ", 170], ["食パン1枚", 160], ["麺類", 450],
-  ["定食", 700], ["丼もの", 750], ["カレー", 750], ["揚げ物", 300],
-  ["サラダ", 60], ["焼き魚", 200], ["納豆", 100], ["味噌汁", 60],
-  ["ジュース500ml", 220], ["缶コーヒー(加糖)", 80], ["ビール500ml", 200],
-  ["スナック菓子", 300], ["菓子パン", 400], ["アイス", 250], ["果物", 80], ["ヨーグルト", 80],
-];
 function loadFoods() {
   const saved = load(K.foods);
-  if (Array.isArray(saved.list)) return saved.list;
-  const seeded = DEFAULT_FOODS.map(([name, kcal]) => ({ name, kcal }));
-  save(K.foods, { list: seeded });
-  return seeded;
+  return Array.isArray(saved.list) ? saved.list : [];
 }
 function saveFoods(list) { save(K.foods, { list }); }
 let foodEditMode = false;
