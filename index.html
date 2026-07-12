@@ -785,15 +785,22 @@ function renderAnalyzeResult(thumb, items) {
   const renderRows = () => {
     if (items.length === 0) { rowsEl.innerHTML = '<p class="empty-note">項目がありません</p>'; return; }
     rowsEl.innerHTML = items.map((it, i) => `
-      <div class="analyze-item-row">
-        <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
-        <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
-        <button class="del" data-i="${i}">✕</button>
+      <div>
+        <div class="analyze-item-row">
+          <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
+          <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+          <button class="del" data-i="${i}">✕</button>
+        </div>
+        <p class="muted analyze-zero-note" data-note-i="${i}" style="font-size:.7rem;margin:-4px 0 4px;${it.kcal === 0 ? "" : "display:none;"}">AIが0kcalと推定（無糖飲料・水など低カロリー食品の可能性）</p>
       </div>`).join("");
     rowsEl.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => {
       const i = Number(inp.dataset.i);
       if (inp.dataset.f === "name") items[i].name = inp.value;
-      else items[i].kcal = Number(inp.value) || 0;
+      else {
+        items[i].kcal = Number(inp.value) || 0;
+        const note = rowsEl.querySelector(`.analyze-zero-note[data-note-i="${i}"]`);
+        if (note) note.style.display = items[i].kcal === 0 ? "block" : "none";
+      }
     }));
     rowsEl.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
       items.splice(Number(b.dataset.i), 1);
