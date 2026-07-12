@@ -81,6 +81,11 @@
     font-family: inherit; color: var(--ink);
   }
   .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
+  .chip.editing { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+  .btn-link {
+    background: none; border: none; color: var(--accent-dark); font-size: .78rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; padding: 4px 2px;
+  }
 
   .btn {
     display: block; width: 100%; padding: 12px; margin-top: 14px;
@@ -302,16 +307,17 @@
       <h2>🍽 食事の記録</h2>
       <label for="meal-date">日付</label>
       <input type="date" id="meal-date">
-      <label>区分</label>
-      <div class="seg" id="meal-cat-seg">
-        <button data-cat="朝食" class="on">朝食</button>
-        <button data-cat="昼食">昼食</button>
-        <button data-cat="夕食">夕食</button>
-        <button data-cat="間食">間食・飲料</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
+        <label style="margin:0;">よく食べるもの（タップで追加）</label>
+        <button type="button" class="btn-link" id="food-edit-toggle">編集</button>
       </div>
-      <label>よく食べるもの（タップで追加）</label>
       <div class="chips" id="food-chips"></div>
-      <label>自由入力</label>
+      <div class="row2" style="margin-top:8px;">
+        <input type="text" id="new-food-name" placeholder="名前（例: 焼き魚定食）">
+        <input type="number" id="new-food-kcal" min="0" step="10" placeholder="kcal">
+      </div>
+      <button class="btn small" id="food-register-btn">＋ よく食べるものに登録</button>
+      <label style="margin-top:14px;">自由入力</label>
       <div class="row2">
         <input type="text" id="meal-name" placeholder="例: 焼き魚定食">
         <input type="number" id="meal-kcal" min="0" step="10" placeholder="kcal">
@@ -534,7 +540,7 @@
 <script>
 "use strict";
 /* ============ storage keys ============ */
-const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1" };
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1" };
 const load = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -587,25 +593,61 @@ document.querySelectorAll(".tabbar button").forEach(btn => {
 });
 
 /* ============ 食事 ============ */
-const FOODS = [
+const DEFAULT_FOODS = [
   ["ごはん普通盛", 250], ["ごはん少なめ", 170], ["食パン1枚", 160], ["麺類", 450],
   ["定食", 700], ["丼もの", 750], ["カレー", 750], ["揚げ物", 300],
   ["サラダ", 60], ["焼き魚", 200], ["納豆", 100], ["味噌汁", 60],
   ["ジュース500ml", 220], ["缶コーヒー(加糖)", 80], ["ビール500ml", 200],
   ["スナック菓子", 300], ["菓子パン", 400], ["アイス", 250], ["果物", 80], ["ヨーグルト", 80],
 ];
-let mealCat = "朝食";
+function loadFoods() {
+  const saved = load(K.foods);
+  if (Array.isArray(saved.list)) return saved.list;
+  const seeded = DEFAULT_FOODS.map(([name, kcal]) => ({ name, kcal }));
+  save(K.foods, { list: seeded });
+  return seeded;
+}
+function saveFoods(list) { save(K.foods, { list }); }
+let foodEditMode = false;
 const foodChips = document.getElementById("food-chips");
-FOODS.forEach(([name, kcal]) => {
-  const b = document.createElement("button");
-  b.className = "chip"; b.textContent = `${name} ${kcal}`;
-  b.addEventListener("click", () => addMeal(name, kcal));
-  foodChips.appendChild(b);
+function renderFoodChips() {
+  const foods = loadFoods();
+  foodChips.innerHTML = "";
+  if (foods.length === 0) {
+    foodChips.innerHTML = '<p class="empty-note">まだ登録がありません。下から登録できます。</p>';
+    return;
+  }
+  foods.forEach((f, i) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (foodEditMode ? " editing" : "");
+    b.textContent = foodEditMode ? `✕ ${f.name} ${f.kcal}` : `${f.name} ${f.kcal}`;
+    b.addEventListener("click", () => {
+      if (foodEditMode) {
+        const list = loadFoods(); list.splice(i, 1); saveFoods(list); renderFoodChips();
+      } else {
+        addMeal(f.name, f.kcal);
+      }
+    });
+    foodChips.appendChild(b);
+  });
+}
+renderFoodChips();
+document.getElementById("food-edit-toggle").addEventListener("click", e => {
+  foodEditMode = !foodEditMode;
+  e.target.textContent = foodEditMode ? "完了" : "編集";
+  renderFoodChips();
 });
-document.getElementById("meal-cat-seg").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  document.querySelectorAll("#meal-cat-seg button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); mealCat = b.dataset.cat;
+document.getElementById("food-register-btn").addEventListener("click", () => {
+  const name = document.getElementById("new-food-name").value.trim();
+  const kcal = Number(document.getElementById("new-food-kcal").value);
+  if (!name) { toast("名前を入力してください"); return; }
+  const list = loadFoods();
+  list.push({ name, kcal: kcal || 0 });
+  saveFoods(list);
+  document.getElementById("new-food-name").value = "";
+  document.getElementById("new-food-kcal").value = "";
+  renderFoodChips();
+  toast("よく食べるものに登録しました");
 });
 document.getElementById("meal-add").addEventListener("click", () => {
   const name = document.getElementById("meal-name").value.trim();
@@ -618,7 +660,7 @@ document.getElementById("meal-add").addEventListener("click", () => {
 function addMeal(name, kcal, photo = null) {
   const date = document.getElementById("meal-date").value || todayStr();
   const rec = getDaily(date);
-  const entry = { cat: mealCat, name, kcal };
+  const entry = { name, kcal };
   if (photo) entry.photo = photo;
   rec.meals.push(entry);
   try { setDaily(date, rec); }
@@ -638,7 +680,7 @@ function renderMealPage() {
     list.innerHTML = rec.meals.map((m, i) => `
       <div class="item-row">
         ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
-        <span class="cat-tag">${m.cat}</span><span class="nm">${m.name}</span>
+        <span class="nm">${m.name}</span>
         <span class="kc">${m.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
       </div>`).join("");
@@ -656,11 +698,10 @@ function renderMealPage() {
   const days = Object.keys(all).filter(d => all[d].meals && all[d].meals.length).sort().reverse().slice(0, 7);
   document.getElementById("meal-history").innerHTML = days.length === 0
     ? '<p class="empty-note">記録がたまるとここに表示されます</p>'
-    : '<table class="log"><tr><th>日付</th><th>合計kcal</th><th>間食kcal</th><th>品数</th></tr>' + days.map(d => {
+    : '<table class="log"><tr><th>日付</th><th>合計kcal</th><th>品数</th></tr>' + days.map(d => {
         const ms = all[d].meals;
         const tot = ms.reduce((s, m) => s + (m.kcal || 0), 0);
-        const snack = ms.filter(m => m.cat === "間食").reduce((s, m) => s + (m.kcal || 0), 0);
-        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td><td>${snack.toLocaleString()}</td><td>${ms.length}</td></tr>`;
+        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td><td>${ms.length}</td></tr>`;
       }).join("") + "</table>";
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
