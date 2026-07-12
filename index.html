@@ -827,10 +827,10 @@ function renderMealPage() {
     </div>`;
   document.getElementById("meal-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
-    : '<table class="log"><tr><th>日付</th><th>合計kcal</th><th>品数</th></tr>' + days.map(d => {
+    : '<table class="log"><tr><th>日付</th><th>合計kcal</th></tr>' + days.map(d => {
         const ms = all[d].meals;
         const tot = ms.reduce((s, m) => s + (m.kcal || 0), 0);
-        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td><td>${ms.length}</td></tr>`;
+        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td></tr>`;
       }).join("") + "</table>";
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
