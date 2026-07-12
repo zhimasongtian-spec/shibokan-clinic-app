@@ -286,6 +286,15 @@
 
     <div class="card">
       <h2>今日のからだ</h2>
+      <div class="row2" style="margin-bottom:10px;">
+        <div>
+          <label for="home-weight" style="margin-top:0;">体重 <span class="unit-note">kg</span></label>
+          <input type="number" id="home-weight" min="20" max="300" step="0.1" placeholder="例: 72.5">
+        </div>
+        <div style="display:flex; align-items:flex-end;">
+          <button class="btn small" id="home-weight-save" style="margin-top:0; width:100%;">体重を保存</button>
+        </div>
+      </div>
       <div class="stat-grid" id="today-stats"></div>
     </div>
 
@@ -360,7 +369,9 @@
       <input type="date" id="ex-date">
       <label>運動の種類（タップで選択）</label>
       <div class="chips" id="ex-chips"></div>
-      <div class="row2">
+      <label>筋トレ系（タップで選択・回数で記録）</label>
+      <div class="chips" id="ex-chips-reps"></div>
+      <div class="row2" id="ex-min-row">
         <div>
           <label for="ex-min">時間（分）</label>
           <input type="number" id="ex-min" min="1" step="5" placeholder="例: 30">
@@ -370,19 +381,39 @@
           <input type="text" id="ex-kcal-view" readonly placeholder="— kcal">
         </div>
       </div>
+      <div class="row2" id="ex-reps-row" style="display:none;">
+        <div>
+          <label for="ex-reps">回数（回）</label>
+          <input type="number" id="ex-reps" min="1" step="1" placeholder="例: 20">
+        </div>
+        <div>
+          <label>消費カロリー <span class="unit-note">自動計算</span></label>
+          <input type="text" id="ex-reps-kcal-view" readonly placeholder="— kcal">
+        </div>
+      </div>
       <button class="btn small" id="ex-add">＋ 追加</button>
       <div class="item-list" id="ex-list"></div>
+      <div class="kcal-summary" id="ex-kcal-summary"></div>
 
       <label for="ex-steps" style="margin-top:16px;">今日の歩数</label>
       <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
-      <label for="daily-weight">今日の体重 (kg)</label>
-      <input type="number" id="daily-weight" min="20" max="300" step="0.1" placeholder="例: 72.5">
-      <button class="btn" id="ex-save">歩数・体重を保存</button>
+      <button class="btn" id="ex-save">歩数を保存</button>
     </div>
     <div class="card">
       <h2>今週の運動 <span class="unit-note">目標: 週<span id="ex-goal-view">150</span>分</span></h2>
       <div id="ex-week-bar"></div>
-      <div id="ex-history" style="margin-top:10px;"></div>
+    </div>
+    <div class="card">
+      <h2>運動消費カロリー履歴</h2>
+      <div class="seg" id="ex-range-seg">
+        <button data-days="7" class="on">週</button>
+        <button data-days="30">月</button>
+        <button data-days="90">3か月</button>
+        <button data-days="180">6か月</button>
+        <button data-days="365">年</button>
+      </div>
+      <div id="ex-history-summary"></div>
+      <div id="ex-history"></div>
     </div>
   </section>
 
@@ -945,41 +976,75 @@ function renderAnalyzeResult(thumb, items) {
 /* ============ 運動 ============ */
 const EXERCISES = [
   ["ウォーキング", 3.5], ["早歩き", 4.3], ["ジョギング", 7.0], ["自転車", 6.0],
-  ["水泳", 6.0], ["筋トレ", 5.0], ["ヨガ・ストレッチ", 2.5], ["家事・掃除", 3.3],
+  ["水泳", 6.0], ["ヨガ・ストレッチ", 2.5], ["家事・掃除", 3.3],
   ["ゴルフ", 3.5], ["テニス", 7.3], ["ダンス", 5.0], ["階段のぼり", 8.0],
+];
+const REP_EXERCISES = [
+  ["スクワット", 5.0, 20], ["腕立て伏せ", 6.0, 15], ["腹筋(クランチ)", 4.0, 20], ["ランジ", 5.0, 15],
 ];
 let selEx = null;
 const exChips = document.getElementById("ex-chips");
 EXERCISES.forEach(([name, mets]) => {
   const b = document.createElement("button");
-  b.className = "chip"; b.textContent = name; b.dataset.mets = mets;
+  b.className = "chip"; b.textContent = name;
   b.addEventListener("click", () => {
-    exChips.querySelectorAll(".chip").forEach(c => c.classList.remove("on"));
-    b.classList.add("on"); selEx = { name, mets };
+    document.querySelectorAll("#ex-chips .chip, #ex-chips-reps .chip").forEach(c => c.classList.remove("on"));
+    b.classList.add("on"); selEx = { name, mets, mode: "time" };
+    document.getElementById("ex-min-row").style.display = "";
+    document.getElementById("ex-reps-row").style.display = "none";
+    document.getElementById("ex-reps").value = ""; document.getElementById("ex-reps-kcal-view").value = "";
     updateExKcal();
   });
   exChips.appendChild(b);
 });
+const exChipsReps = document.getElementById("ex-chips-reps");
+REP_EXERCISES.forEach(([name, mets, repsPerMin]) => {
+  const b = document.createElement("button");
+  b.className = "chip"; b.textContent = name;
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#ex-chips .chip, #ex-chips-reps .chip").forEach(c => c.classList.remove("on"));
+    b.classList.add("on"); selEx = { name, mets, repsPerMin, mode: "reps" };
+    document.getElementById("ex-reps-row").style.display = "";
+    document.getElementById("ex-min-row").style.display = "none";
+    document.getElementById("ex-min").value = ""; document.getElementById("ex-kcal-view").value = "";
+    updateExKcal();
+  });
+  exChipsReps.appendChild(b);
+});
 document.getElementById("ex-min").addEventListener("input", updateExKcal);
+document.getElementById("ex-reps").addEventListener("input", updateExKcal);
 function estimateKcal(mets, min) {
   const w = latestWeight() || 60;
   return Math.round(mets * w * (min / 60) * 1.05);
 }
 function updateExKcal() {
-  const min = Number(document.getElementById("ex-min").value);
-  document.getElementById("ex-kcal-view").value =
-    (selEx && min > 0) ? `約 ${estimateKcal(selEx.mets, min)} kcal` : "";
+  if (!selEx) return;
+  if (selEx.mode === "time") {
+    const min = Number(document.getElementById("ex-min").value);
+    document.getElementById("ex-kcal-view").value = min > 0 ? `約 ${estimateKcal(selEx.mets, min)} kcal` : "";
+  } else {
+    const reps = Number(document.getElementById("ex-reps").value);
+    document.getElementById("ex-reps-kcal-view").value = reps > 0 ? `約 ${estimateKcal(selEx.mets, reps / selEx.repsPerMin)} kcal` : "";
+  }
 }
 document.getElementById("ex-add").addEventListener("click", () => {
-  const min = Number(document.getElementById("ex-min").value);
   if (!selEx) { toast("運動の種類を選んでください"); return; }
-  if (!min || min <= 0) { toast("時間（分）を入力してください"); return; }
   const date = document.getElementById("ex-date").value || todayStr();
   const rec = getDaily(date);
-  rec.exercises.push({ name: selEx.name, min, kcal: estimateKcal(selEx.mets, min) });
+  if (selEx.mode === "time") {
+    const min = Number(document.getElementById("ex-min").value);
+    if (!min || min <= 0) { toast("時間（分）を入力してください"); return; }
+    rec.exercises.push({ name: selEx.name, min, kcal: estimateKcal(selEx.mets, min) });
+    document.getElementById("ex-min").value = "";
+    document.getElementById("ex-kcal-view").value = "";
+  } else {
+    const reps = Number(document.getElementById("ex-reps").value);
+    if (!reps || reps <= 0) { toast("回数（回）を入力してください"); return; }
+    rec.exercises.push({ name: selEx.name, reps, kcal: estimateKcal(selEx.mets, reps / selEx.repsPerMin) });
+    document.getElementById("ex-reps").value = "";
+    document.getElementById("ex-reps-kcal-view").value = "";
+  }
   setDaily(date, rec);
-  document.getElementById("ex-min").value = "";
-  document.getElementById("ex-kcal-view").value = "";
   renderExPage();
   const wk = weekExerciseMin();
   const goal = load(K.profile).goalEx || 150;
@@ -990,7 +1055,7 @@ function weekExerciseMin() {
   const all = load(K.daily); let sum = 0;
   for (let i = 0; i < 7; i++) {
     const r = all[todayStr(-i)];
-    if (r && r.exercises) sum += r.exercises.reduce((s, e) => s + e.min, 0);
+    if (r && r.exercises) sum += r.exercises.reduce((s, e) => s + (e.min || 0), 0);
   }
   return sum;
 }
@@ -998,12 +1063,16 @@ document.getElementById("ex-save").addEventListener("click", () => {
   const date = document.getElementById("ex-date").value || todayStr();
   const rec = getDaily(date);
   const steps = document.getElementById("ex-steps").value;
-  const w = document.getElementById("daily-weight").value;
   rec.steps = steps === "" ? null : Number(steps);
-  rec.weight = w === "" ? null : Number(w);
   setDaily(date, rec);
   toast("保存しました 🌿");
   renderExPage();
+});
+let exRangeDays = 7;
+document.getElementById("ex-range-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#ex-range-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); exRangeDays = Number(b.dataset.days); renderExPage();
 });
 function renderExPage() {
   const dateEl = document.getElementById("ex-date");
@@ -1011,14 +1080,13 @@ function renderExPage() {
   const date = dateEl.value;
   const rec = getDaily(date);
   document.getElementById("ex-steps").value = rec.steps ?? "";
-  document.getElementById("daily-weight").value = rec.weight ?? "";
   const list = document.getElementById("ex-list");
   if (rec.exercises.length === 0) {
     list.innerHTML = '<p class="empty-note">この日の運動はまだ記録されていません</p>';
   } else {
     list.innerHTML = rec.exercises.map((e, i) => `
       <div class="item-row">
-        <span class="nm">${e.name}</span><span>${e.min}分</span>
+        <span class="nm">${e.name}</span><span>${e.min != null ? e.min + "分" : e.reps + "回"}</span>
         <span class="kc">${e.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
       </div>`).join("");
@@ -1026,6 +1094,9 @@ function renderExPage() {
       const r = getDaily(date); r.exercises.splice(Number(b.dataset.i), 1); setDaily(date, r); renderExPage();
     }));
   }
+  const dayKcal = rec.exercises.reduce((s, e) => s + (e.kcal || 0), 0);
+  document.getElementById("ex-kcal-summary").innerHTML =
+    `<span>この日の消費</span><span><strong>${dayKcal.toLocaleString()}</strong> kcal</span>`;
   // week bar
   const goal = load(K.profile).goalEx || 150;
   document.getElementById("ex-goal-view").textContent = goal;
@@ -1037,16 +1108,32 @@ function renderExPage() {
       <span class="muted">${Math.round(pct)}%</span>
     </div>
     <div class="minibar" style="height:12px;"><div style="width:${pct}%;${pct >= 100 ? "background:var(--gold);" : ""}"></div></div>`;
-  // history
+  // history within selected period
   const all = load(K.daily);
-  const days = Object.keys(all).filter(d => (all[d].exercises && all[d].exercises.length) || all[d].steps != null).sort().reverse().slice(0, 7);
-  document.getElementById("ex-history").innerHTML = days.length === 0 ? "" :
-    '<table class="log"><tr><th>日付</th><th>運動</th><th>分</th><th>消費kcal</th><th>歩数</th></tr>' + days.map(d => {
+  let cutoff = null;
+  if (exRangeDays > 0) { const c = new Date(); c.setDate(c.getDate() - exRangeDays); cutoff = c.toISOString().slice(0, 10); }
+  const days = Object.keys(all)
+    .filter(d => (all[d].exercises && all[d].exercises.length) || all[d].steps != null)
+    .filter(d => !cutoff || d >= cutoff)
+    .sort().reverse();
+  const exDays = days.filter(d => all[d].exercises && all[d].exercises.length);
+  const periodKcal = exDays.reduce((s, d) => s + all[d].exercises.reduce((ss, e) => ss + (e.kcal || 0), 0), 0);
+  const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
+  document.getElementById("ex-history-summary").innerHTML = days.length === 0 ? "" : `
+    <div class="stat-grid" style="margin-bottom:10px;">
+      <div class="stat blue"><div class="val">${periodKcal.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">期間消費合計（${exDays.length}日分）</div></div>
+      <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均</div></div>
+    </div>`;
+  document.getElementById("ex-history").innerHTML = days.length === 0
+    ? '<p class="empty-note">この期間の記録はまだありません</p>'
+    : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>消費kcal</th><th>歩数</th></tr>' + days.map(d => {
       const r = all[d];
       const names = (r.exercises || []).map(e => e.name).join("、") || "—";
-      const min = (r.exercises || []).reduce((s, e) => s + e.min, 0);
-      const kc = (r.exercises || []).reduce((s, e) => s + e.kcal, 0);
-      return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${min || "—"}</td><td>${kc || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td></tr>`;
+      const min = (r.exercises || []).reduce((s, e) => s + (e.min || 0), 0);
+      const reps = (r.exercises || []).reduce((s, e) => s + (e.reps || 0), 0);
+      const amt = [min ? `${min}分` : "", reps ? `${reps}回` : ""].filter(Boolean).join(" / ");
+      const kc = (r.exercises || []).reduce((s, e) => s + (e.kcal || 0), 0);
+      return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${kc || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td></tr>`;
     }).join("") + "</table>";
 }
 document.getElementById("ex-date").addEventListener("change", renderExPage);
@@ -1333,6 +1420,14 @@ function weightProgress() {
   const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
   return { start, goal, cur, pct };
 }
+document.getElementById("home-weight-save").addEventListener("click", () => {
+  const w = document.getElementById("home-weight").value;
+  const rec = getDaily(todayStr());
+  rec.weight = w === "" ? null : Number(w);
+  setDaily(todayStr(), rec);
+  toast("体重を保存しました 🌿");
+  renderHome();
+});
 function renderHome() {
   // ring
   const wp = weightProgress();
@@ -1352,12 +1447,17 @@ function renderHome() {
   }
   document.getElementById("streak-num").textContent = calcStreak();
 
+  // weight input
+  document.getElementById("home-weight").value = getDaily(todayStr()).weight ?? "";
+
   // today stats
   const p = load(K.profile);
   const t = getDaily(todayStr());
   const kcalIn = t.meals.reduce((s, m) => s + (m.kcal || 0), 0);
   const kcalOut = t.exercises.reduce((s, e) => s + (e.kcal || 0), 0);
-  const exMin = t.exercises.reduce((s, e) => s + e.min, 0);
+  const exMin = t.exercises.reduce((s, e) => s + (e.min || 0), 0);
+  const exReps = t.exercises.reduce((s, e) => s + (e.reps || 0), 0);
+  const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : ""].filter(Boolean).join("・");
   const wkMin = weekExerciseMin();
   const goalEx = p.goalEx || 150;
   const goalSteps = p.goalSteps || 8000;
@@ -1366,7 +1466,7 @@ function renderHome() {
   document.getElementById("today-stats").innerHTML = `
     <div class="stat"><div class="val">${kcalIn.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の摂取${p.goalKcal ? ` / ${p.goalKcal.toLocaleString()}` : ""}</div>
       ${p.goalKcal ? `<div class="minibar"><div style="width:${kcalPct}%;${kcalIn > p.goalKcal ? "background:var(--warn);" : ""}"></div></div>` : ""}</div>
-    <div class="stat blue"><div class="val">${kcalOut.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の運動消費（${exMin}分）</div></div>
+    <div class="stat blue"><div class="val">${kcalOut.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の運動消費${exAmtLbl ? `（${exAmtLbl}）` : ""}</div></div>
     <div class="stat blue"><div class="val">${t.steps != null ? t.steps.toLocaleString() : "—"}</div><div class="lbl">歩数 / 目標${goalSteps.toLocaleString()}</div>
       <div class="minibar"><div style="width:${stepsPct}%;background:var(--blue);"></div></div></div>
     <div class="stat"><div class="val">${wkMin}<span class="u"> 分</span></div><div class="lbl">今週の運動 / ${goalEx}分</div>
@@ -1411,7 +1511,7 @@ function buildPrintReport() {
     const has = (r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null;
     if (has) recDays++;
     if (r.meals && r.meals.length) { kcalSum += r.meals.reduce((s, m) => s + (m.kcal || 0), 0); kcalDays++; }
-    if (r.exercises) exMinSum += r.exercises.reduce((s, e) => s + e.min, 0);
+    if (r.exercises) exMinSum += r.exercises.reduce((s, e) => s + (e.min || 0), 0);
     if (r.steps != null) { stepSum += r.steps; stepDays++; }
   }
   const bmi = (p.height && latestWeight()) ? Math.round(latestWeight() / ((p.height / 100) ** 2) * 10) / 10 : null;
