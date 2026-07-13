@@ -66,8 +66,9 @@
 
   label { display: block; font-size: .78rem; font-weight: 600; margin: 10px 0 3px; }
   input[type=number], input[type=date], input[type=text], select, textarea {
-    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px;
+    width: 100%; min-width: 0; max-width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 1rem; font-family: inherit; background: #fbfdfc; color: var(--ink);
+    box-sizing: border-box;
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
