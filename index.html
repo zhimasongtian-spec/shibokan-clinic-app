@@ -383,7 +383,10 @@
       <h2>🏃 運動の記録</h2>
       <label for="ex-date">日付</label>
       <input type="date" id="ex-date">
-      <label>運動の種類（タップで選択）</label>
+      <label for="ex-steps">今日の歩数</label>
+      <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
+      <button class="btn small" id="ex-save">歩数を保存</button>
+      <label style="margin-top:16px;">運動の種類（タップで選択）</label>
       <div class="chips" id="ex-chips"></div>
       <label>筋トレ系（タップで選択・回数で記録）</label>
       <div class="chips" id="ex-chips-reps"></div>
@@ -410,10 +413,6 @@
       <button class="btn small" id="ex-add">＋ 追加</button>
       <div class="item-list" id="ex-list"></div>
       <div class="kcal-summary" id="ex-kcal-summary"></div>
-
-      <label for="ex-steps" style="margin-top:16px;">今日の歩数</label>
-      <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
-      <button class="btn" id="ex-save">歩数を保存</button>
     </div>
     <div class="card">
       <h2>今週の運動 <span class="unit-note">目標: 週<span id="ex-goal-view">150</span>分</span></h2>
