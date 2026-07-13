@@ -509,7 +509,10 @@
       </div>
 
       <h3>内服薬</h3>
-      <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回"></textarea>
+      <input type="file" id="meds-photo-input" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn secondary small" id="meds-photo-btn">📷 処方箋を撮影して読み取る</button>
+      <div id="meds-analyze-area"></div>
+      <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回" style="margin-top:8px;"></textarea>
 
       <button class="btn" id="v-save">来院データを保存</button>
     </div>
@@ -1052,6 +1055,93 @@ function renderAnalyzeResult(thumb, items) {
     items.forEach(it => addMeal(it.name, it.kcal, thumb));
     area.innerHTML = "";
     toast(`${items.length}件を追加しました`);
+  });
+}
+
+/* ---- 処方箋の写真読み取り (AI) ---- */
+document.getElementById("meds-photo-btn").addEventListener("click", () => {
+  document.getElementById("meds-photo-input").click();
+});
+document.getElementById("meds-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await loadImageFile(file);
+    const aiImage = imgToDataUrl(img, 900, 0.8);
+    const thumb = imgToDataUrl(img, 220, 0.6);
+    analyzeMedsPhoto(aiImage, thumb);
+  } catch {
+    toast("画像を読み込めませんでした");
+  }
+});
+async function analyzeMedsPhoto(aiImage, thumb) {
+  const area = document.getElementById("meds-analyze-area");
+  const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
+  const proxyReady = MEAL_PROXY_URL && !MEAL_PROXY_URL.includes("REPLACE-WITH-YOUR-PROXY-URL");
+  if (!apiKey && !proxyReady) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="処方箋">
+      <div class="analyze-error">AIによる自動読み取りには「⚙️設定」でGoogle Gemini APIキーの登録が必要です。登録後にもう一度撮影するか、下に直接入力してください。</div>
+    </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="処方箋">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\"}";
+  try {
+    const res = apiKey
+      ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        })
+      : await fetch(MEAL_PROXY_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ image: base64, prompt: promptText })
+        });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
+    const text = (data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) || "";
+    const jsonStr = extractFirstJsonObject(text.replace(/```json|```/g, "").trim());
+    const parsed = JSON.parse(jsonStr);
+    const meds = String(parsed.meds || "").trim();
+    if (!meds) throw new Error("薬剤情報を認識できませんでした");
+    renderMedsAnalyzeResult(thumb, meds);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="処方箋">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下に直接入力してください。</div>
+    </div>`;
+  }
+}
+function renderMedsAnalyzeResult(thumb, meds) {
+  const area = document.getElementById("meds-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="処方箋">
+    <p class="muted">🔍 AIの読み取り結果（追加前に修正できます）</p>
+    <textarea id="meds-analyze-text" rows="4">${meds.replace(/</g, "&lt;")}</textarea>
+    <div class="row2" style="margin-top:8px;">
+      <button class="btn small secondary" id="meds-analyze-cancel">取消</button>
+      <button class="btn small" id="meds-analyze-confirm">この内容を追加</button>
+    </div>
+  </div>`;
+  document.getElementById("meds-analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
+  document.getElementById("meds-analyze-confirm").addEventListener("click", () => {
+    const text = document.getElementById("meds-analyze-text").value.trim();
+    if (!text) { toast("追加する内容がありません"); return; }
+    const medsEl = document.getElementById("v-meds");
+    medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${text}` : text;
+    area.innerHTML = "";
+    toast("内服薬を追加しました");
   });
 }
 
