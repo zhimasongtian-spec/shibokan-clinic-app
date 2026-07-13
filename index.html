@@ -205,7 +205,6 @@
   .fib-line.high { display: block; background: var(--danger-soft); color: var(--danger); }
   .fib-line.info { display: block; background: var(--accent-soft); color: var(--sub); margin-top: 0; }
 
-  #echo-preview { max-width: 100%; border-radius: 10px; margin-top: 8px; display: none; }
   #chart { width: 100%; height: auto; display: block; }
   .empty-note { text-align: center; color: var(--sub); font-size: .82rem; padding: 20px 0; }
   .banner {
@@ -503,18 +502,11 @@
       </div>
       <div class="fib-line" id="v-fib-line"></div>
 
-      <h3>肝硬度・脂肪化（FibroScan）</h3>
+      <h3>腹部超音波検査</h3>
       <div class="row2">
         <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
         <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="v-cap" min="100" max="450"></div>
       </div>
-
-      <h3>腹部超音波検査</h3>
-      <label for="v-echo">所見</label>
-      <textarea id="v-echo" rows="2" placeholder="例: 肝腎コントラスト陽性、深部減衰あり"></textarea>
-      <label for="v-echo-img">エコー画像を添付</label>
-      <input type="file" id="v-echo-img" accept="image/*">
-      <img id="echo-preview" alt="エコー画像プレビュー">
 
       <h3>内服薬</h3>
       <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回"></textarea>
@@ -1314,23 +1306,6 @@ function renderExPage() {
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
 /* ============ 検査（来院） ============ */
-let echoImgData = null;
-document.getElementById("v-echo-img").addEventListener("change", e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const img = new Image();
-  img.onload = () => {
-    const max = 640;
-    const scale = Math.min(1, max / Math.max(img.width, img.height));
-    const cv = document.createElement("canvas");
-    cv.width = Math.round(img.width * scale); cv.height = Math.round(img.height * scale);
-    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
-    echoImgData = cv.toDataURL("image/jpeg", 0.7);
-    const pv = document.getElementById("echo-preview");
-    pv.src = echoImgData; pv.style.display = "block";
-  };
-  img.src = URL.createObjectURL(file);
-});
 ["v-ast", "v-alt", "v-plt"].forEach(id =>
   document.getElementById(id).addEventListener("input", updateFibLine));
 function updateFibLine() {
@@ -1362,15 +1337,12 @@ document.getElementById("v-save").addEventListener("click", () => {
     ast: vNum("v-ast"), alt: vNum("v-alt"), ggtp: vNum("v-ggtp"), plt: vNum("v-plt"),
     ldl: vNum("v-ldl"), tg: vNum("v-tg"), hba1c: vNum("v-hba1c"),
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
-    echo: document.getElementById("v-echo").value.trim() || null,
-    echoImg: echoImgData,
     meds: document.getElementById("v-meds").value.trim() || null,
   };
   rec.fib4 = calcFib4(Number(p.age), rec.ast, rec.alt, rec.plt);
   const visits = load(K.visits);
   visits[date] = rec;
-  try { save(K.visits, visits); }
-  catch (err) { toast("保存容量を超えました。画像なしで保存します"); rec.echoImg = null; visits[date] = rec; save(K.visits, visits); }
+  save(K.visits, visits);
   toast("来院データを保存しました 🏥");
   renderVisitPage();
 });
@@ -1383,12 +1355,7 @@ function loadVisitToForm(date) {
   setv("v-ast", v.ast); setv("v-alt", v.alt); setv("v-ggtp", v.ggtp); setv("v-plt", v.plt);
   setv("v-ldl", v.ldl); setv("v-tg", v.tg); setv("v-hba1c", v.hba1c);
   setv("v-kpa", v.kpa); setv("v-cap", v.cap);
-  document.getElementById("v-echo").value = v.echo ?? "";
   document.getElementById("v-meds").value = v.meds ?? "";
-  echoImgData = v.echoImg || null;
-  const pv = document.getElementById("echo-preview");
-  if (echoImgData) { pv.src = echoImgData; pv.style.display = "block"; }
-  else { pv.style.display = "none"; }
   updateFibLine();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -1733,8 +1700,6 @@ function buildPrintReport() {
       ${rows.map(([lbl, key]) => `<tr><td style="text-align:left;">${lbl}</td>${vDates.map(d => `<td>${cell(d, key)}</td>`).join("")}</tr>`).join("")}</table>`
       : "<p>来院データ未登録</p>"}
     <h2>内服薬</h2><p>${latestV && latestV.meds ? latestV.meds.replace(/\n/g, "<br>") : "—"}</p>
-    <h2>腹部超音波所見（最新）</h2><p>${latestV && latestV.echo ? latestV.echo.replace(/\n/g, "<br>") : "—"}</p>
-    ${latestV && latestV.echoImg ? `<img src="${latestV.echoImg}" style="max-width:70mm;border:1px solid #999;">` : ""}
     <p class="pr-meta" style="margin-top:10px;">本レポートは患者の自己記録アプリ「肝ケア日記」から出力されたものです。</p>`;
 }
 
