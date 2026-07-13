@@ -1286,9 +1286,8 @@ function renderExPage() {
   const periodKcal = exDays.reduce((s, d) => s + dayTotalKcal(d), 0);
   const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
   document.getElementById("ex-history-summary").innerHTML = days.length === 0 ? "" : `
-    <div class="stat-grid" style="margin-bottom:10px;">
-      <div class="stat blue"><div class="val">${periodKcal.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">期間消費合計（${exDays.length}日分）</div></div>
-      <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均</div></div>
+    <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
+      <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均（${exDays.length}日分）</div></div>
     </div>`;
   document.getElementById("ex-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
