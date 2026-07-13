@@ -385,6 +385,7 @@
       <input type="date" id="ex-date">
       <label for="ex-steps">今日の歩数</label>
       <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
+      <p class="muted" id="ex-steps-kcal-view" style="font-size:.78rem; margin:4px 0 0;"></p>
       <button class="btn small" id="ex-save">歩数を保存</button>
       <label style="margin-top:16px;">運動の種類（タップで選択）</label>
       <div class="chips" id="ex-chips"></div>
@@ -1072,6 +1073,10 @@ function estimateKcal(mets, min) {
   const w = latestWeight() || 60;
   return Math.round(mets * w * (min / 60) * 1.05);
 }
+function stepsKcal(steps) {
+  if (!steps) return 0;
+  return estimateKcal(3.5, steps / 100);
+}
 function updateExKcal() {
   if (!selEx) return;
   if (selEx.mode === "time") {
@@ -1114,6 +1119,11 @@ function weekExerciseMin() {
   }
   return sum;
 }
+function updateStepsKcal() {
+  const steps = Number(document.getElementById("ex-steps").value);
+  document.getElementById("ex-steps-kcal-view").textContent = steps > 0 ? `約 ${stepsKcal(steps)} kcal 消費（自動計算）` : "";
+}
+document.getElementById("ex-steps").addEventListener("input", updateStepsKcal);
 document.getElementById("ex-save").addEventListener("click", () => {
   const date = document.getElementById("ex-date").value || todayStr();
   const rec = getDaily(date);
@@ -1135,6 +1145,7 @@ function renderExPage() {
   const date = dateEl.value;
   const rec = getDaily(date);
   document.getElementById("ex-steps").value = rec.steps ?? "";
+  updateStepsKcal();
   const list = document.getElementById("ex-list");
   if (rec.exercises.length === 0) {
     list.innerHTML = '<p class="empty-note">この日の運動はまだ記録されていません</p>';
@@ -1149,7 +1160,7 @@ function renderExPage() {
       const r = getDaily(date); r.exercises.splice(Number(b.dataset.i), 1); setDaily(date, r); renderExPage();
     }));
   }
-  const dayKcal = rec.exercises.reduce((s, e) => s + (e.kcal || 0), 0);
+  const dayKcal = rec.exercises.reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(rec.steps);
   document.getElementById("ex-kcal-summary").innerHTML =
     `<span>この日の消費</span><span><strong>${dayKcal.toLocaleString()}</strong> kcal</span>`;
   // week bar
@@ -1171,8 +1182,9 @@ function renderExPage() {
     .filter(d => (all[d].exercises && all[d].exercises.length) || all[d].steps != null)
     .filter(d => !cutoff || d >= cutoff)
     .sort().reverse();
-  const exDays = days.filter(d => all[d].exercises && all[d].exercises.length);
-  const periodKcal = exDays.reduce((s, d) => s + all[d].exercises.reduce((ss, e) => ss + (e.kcal || 0), 0), 0);
+  const dayTotalKcal = d => (all[d].exercises || []).reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(all[d].steps);
+  const exDays = days.filter(d => dayTotalKcal(d) > 0);
+  const periodKcal = exDays.reduce((s, d) => s + dayTotalKcal(d), 0);
   const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
   document.getElementById("ex-history-summary").innerHTML = days.length === 0 ? "" : `
     <div class="stat-grid" style="margin-bottom:10px;">
@@ -1187,7 +1199,7 @@ function renderExPage() {
       const min = (r.exercises || []).reduce((s, e) => s + (e.min || 0), 0);
       const reps = (r.exercises || []).reduce((s, e) => s + (e.reps || 0), 0);
       const amt = [min ? `${min}分` : "", reps ? `${reps}回` : ""].filter(Boolean).join(" / ");
-      const kc = (r.exercises || []).reduce((s, e) => s + (e.kcal || 0), 0);
+      const kc = dayTotalKcal(d);
       return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${kc || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td></tr>`;
     }).join("") + "</table>";
 }
@@ -1500,10 +1512,10 @@ function renderHome() {
   const p = load(K.profile);
   const t = getDaily(todayStr());
   const kcalIn = t.meals.reduce((s, m) => s + (m.kcal || 0), 0);
-  const kcalOut = t.exercises.reduce((s, e) => s + (e.kcal || 0), 0);
+  const kcalOut = t.exercises.reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(t.steps);
   const exMin = t.exercises.reduce((s, e) => s + (e.min || 0), 0);
   const exReps = t.exercises.reduce((s, e) => s + (e.reps || 0), 0);
-  const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : ""].filter(Boolean).join("・");
+  const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : "", t.steps ? `${t.steps.toLocaleString()}歩` : ""].filter(Boolean).join("・");
   const wkMin = weekExerciseMin();
   const goalEx = p.goalEx || 150;
   const goalSteps = p.goalSteps || 8000;
