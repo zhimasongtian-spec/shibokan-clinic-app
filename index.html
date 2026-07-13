@@ -821,9 +821,8 @@ function renderMealPage() {
   const periodTotal = days.reduce((s, d) => s + all[d].meals.reduce((ss, m) => ss + (m.kcal || 0), 0), 0);
   const periodAvg = days.length ? Math.round(periodTotal / days.length) : 0;
   document.getElementById("meal-history-summary").innerHTML = days.length === 0 ? "" : `
-    <div class="stat-grid" style="margin-bottom:10px;">
-      <div class="stat"><div class="val">${periodTotal.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">期間合計（${days.length}日分）</div></div>
-      <div class="stat"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">記録日の1日平均</div></div>
+    <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
+      <div class="stat"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">記録日の1日平均（${days.length}日分）</div></div>
     </div>`;
   document.getElementById("meal-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
