@@ -203,6 +203,7 @@
   .fib-line.low { display: block; background: var(--accent-soft); color: var(--accent-dark); }
   .fib-line.mid { display: block; background: var(--warn-soft); color: var(--warn); }
   .fib-line.high { display: block; background: var(--danger-soft); color: var(--danger); }
+  .fib-line.info { display: block; background: var(--accent-soft); color: var(--sub); margin-top: 0; }
 
   #echo-preview { max-width: 100%; border-radius: 10px; margin-top: 8px; display: none; }
   #chart { width: 100%; height: auto; display: block; }
@@ -287,6 +288,11 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>🩺 肝機能の状態（FIB-4）</h2>
+      <div id="home-fib-line"></div>
     </div>
 
     <div class="card">
@@ -1591,7 +1597,28 @@ function weightProgress() {
   const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
   return { start, goal, cur, pct };
 }
+function latestFib4() {
+  const visits = load(K.visits);
+  const dates = Object.keys(visits).sort().reverse();
+  for (const d of dates) if (visits[d].fib4 != null) return { value: visits[d].fib4, date: d };
+  return null;
+}
 function renderHome() {
+  // FIB-4
+  const fibInfo = latestFib4();
+  const fibEl = document.getElementById("home-fib-line");
+  if (fibInfo) {
+    const f = fibInfo.value;
+    const cls = f < 1.3 ? "low" : f <= 2.67 ? "mid" : "high";
+    const lbl = f < 1.3 ? "低リスク" : f <= 2.67 ? "中間リスク（専門医への相談を推奨）" : "高リスク（受診を強く推奨）";
+    fibEl.className = "fib-line " + cls;
+    fibEl.style.marginTop = "0";
+    fibEl.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${lbl}<br><span style="font-size:.72rem; opacity:.75;">${fmtDateFull(fibInfo.date)} 時点</span>`;
+  } else {
+    fibEl.className = "fib-line info";
+    fibEl.textContent = "「検査」タブで血液検査データ（AST・ALT・血小板数）を登録するとFIB-4指数が表示されます。";
+  }
+
   // ring
   const wp = weightProgress();
   const ring = document.getElementById("ring-fg");
