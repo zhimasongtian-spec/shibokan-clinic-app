@@ -205,8 +205,8 @@
   .fib-line.high { display: block; background: var(--danger-soft); color: var(--danger); }
   .fib-line.info { display: block; background: var(--accent-soft); color: var(--sub); margin-top: 0; }
 
-  .v-warn-note { font-size: .68rem; color: var(--danger); font-weight: 700; margin-top: 3px; display: none; }
-  .v-warn-note.show { display: block; }
+  .v-warn-note { font-size: .68rem; color: var(--sub); margin-top: 3px; }
+  .v-warn-note.bad { color: var(--danger); font-weight: 700; }
 
   #chart { width: 100%; height: auto; display: block; }
   .empty-note { text-align: center; color: var(--sub); font-size: .82rem; padding: 20px 0; }
@@ -480,35 +480,35 @@
       <h3>バイタル・身体測定</h3>
       <div class="row3">
         <div><label>体重 <span class="unit-note">kg</span></label><input type="number" id="v-weight" step="0.1" min="20" max="300"></div>
-        <div><label>血圧 上 <span class="unit-note">mmHg・基準 129以下</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
-        <div><label>血圧 下 <span class="unit-note">mmHg・基準 84以下</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
+        <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
+        <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
       </div>
       <h3>InBody</h3>
       <div class="row3">
-        <div><label>体脂肪率 <span class="unit-note">%・基準 男10〜19/女20〜29</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
+        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
         <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
-        <div><label>内臓脂肪Lv <span class="unit-note">基準 9以下</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
+        <div><label>内臓脂肪Lv</label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
       </div>
       <h3>血液検査</h3>
       <div class="row3">
-        <div><label>AST(GOT) <span class="unit-note">U/L・基準 30以下</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
-        <div><label>ALT(GPT) <span class="unit-note">U/L・基準 30以下</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
-        <div><label>γGTP <span class="unit-note">U/L・基準 50以下</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
+        <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
+        <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
+        <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
       </div>
       <div class="row3">
-        <div><label>血小板数 <span class="unit-note">万/µL・基準 15〜35</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
-        <div><label>LDL-C <span class="unit-note">mg/dL・基準 119以下</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
-        <div><label>中性脂肪 <span class="unit-note">mg/dL・基準 149以下</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
+        <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
+        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
+        <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
       </div>
       <div class="row3">
-        <div><label>HbA1c <span class="unit-note">%・基準 5.9以下</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
+        <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
       </div>
       <div class="fib-line" id="v-fib-line"></div>
 
       <h3>腹部超音波検査</h3>
       <div class="row2">
-        <div><label>肝硬度 <span class="unit-note">kPa・基準 7.9以下</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
-        <div><label>CAP値 <span class="unit-note">dB/m・基準 237以下</span></label><input type="number" id="v-cap" min="100" max="450"></div>
+        <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
+        <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="v-cap" min="100" max="450"></div>
       </div>
 
       <h3>内服薬</h3>
@@ -1436,15 +1436,23 @@ const REF_RANGES = {
   "v-kpa": { max: 7.9 },
   "v-cap": { max: 237 },
 };
+function rangeLabel(range) {
+  if (!range) return "";
+  if (range.min != null && range.max != null) return `基準 ${range.min}〜${range.max}`;
+  if (range.max != null) return `基準 ${range.max}以下`;
+  if (range.min != null) return `基準 ${range.min}以上`;
+  return "";
+}
 function updateRangeWarning(id) {
   const el = document.getElementById(id);
   const note = document.getElementById("warn-" + id);
   if (!el || !note) return;
   const val = el.value === "" ? null : Number(el.value);
   const range = typeof REF_RANGES[id] === "function" ? REF_RANGES[id]() : REF_RANGES[id];
+  const label = rangeLabel(range);
   const outOfRange = val != null && range && ((range.min != null && val < range.min) || (range.max != null && val > range.max));
-  note.classList.toggle("show", !!outOfRange);
-  if (outOfRange) note.textContent = "⚠ 要注意（基準値外）";
+  note.className = "v-warn-note" + (outOfRange ? " bad" : "");
+  note.textContent = outOfRange ? `⚠ 要注意（${label}）` : label;
 }
 Object.keys(REF_RANGES).forEach(id => {
   const el = document.getElementById(id);
@@ -1453,6 +1461,7 @@ Object.keys(REF_RANGES).forEach(id => {
   note.id = "warn-" + id;
   el.insertAdjacentElement("afterend", note);
   el.addEventListener("input", () => updateRangeWarning(id));
+  updateRangeWarning(id);
 });
 const vNum = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
 document.getElementById("v-save").addEventListener("click", () => {
