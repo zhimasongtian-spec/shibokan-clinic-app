@@ -624,7 +624,7 @@ function todayStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function fmtDate(s) { const [y, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
+function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function toast(msg) {
   const t = document.getElementById("toast");
