@@ -412,6 +412,21 @@
         </div>
       </div>
       <button class="btn small" id="ex-add">＋ 追加</button>
+
+      <label style="margin-top:16px;">自由入力</label>
+      <input type="text" id="ex-free-name" placeholder="例: バドミントン">
+      <div class="row2">
+        <div>
+          <label for="ex-free-min">時間（分） <span class="unit-note">任意</span></label>
+          <input type="number" id="ex-free-min" min="0" step="5" placeholder="例: 30">
+        </div>
+        <div>
+          <label for="ex-free-kcal">消費カロリー</label>
+          <input type="number" id="ex-free-kcal" min="0" step="10" placeholder="例: 150">
+        </div>
+      </div>
+      <button class="btn small" id="ex-free-add">＋ 追加</button>
+
       <div class="item-list" id="ex-list"></div>
       <div class="kcal-summary" id="ex-kcal-summary"></div>
     </div>
@@ -1111,6 +1126,26 @@ document.getElementById("ex-add").addEventListener("click", () => {
   if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
   else cheer("🏃", `ナイス運動！今週あと${goal - wk}分`);
 });
+document.getElementById("ex-free-add").addEventListener("click", () => {
+  const name = document.getElementById("ex-free-name").value.trim();
+  if (!name) { toast("運動名を入力してください"); return; }
+  const min = Number(document.getElementById("ex-free-min").value) || 0;
+  const kcal = Number(document.getElementById("ex-free-kcal").value) || 0;
+  const date = document.getElementById("ex-date").value || todayStr();
+  const rec = getDaily(date);
+  const entry = { name, kcal };
+  if (min > 0) entry.min = min;
+  rec.exercises.push(entry);
+  setDaily(date, rec);
+  document.getElementById("ex-free-name").value = "";
+  document.getElementById("ex-free-min").value = "";
+  document.getElementById("ex-free-kcal").value = "";
+  renderExPage();
+  const wk = weekExerciseMin();
+  const goal = load(K.profile).goalEx || 150;
+  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
+  else cheer("🏃", "記録しました！えらい！");
+});
 function weekExerciseMin() {
   const all = load(K.daily); let sum = 0;
   for (let i = 0; i < 7; i++) {
@@ -1152,7 +1187,7 @@ function renderExPage() {
   } else {
     list.innerHTML = rec.exercises.map((e, i) => `
       <div class="item-row">
-        <span class="nm">${e.name}</span><span>${e.min != null ? e.min + "分" : e.reps + "回"}</span>
+        <span class="nm">${e.name}</span><span>${e.min != null ? e.min + "分" : e.reps != null ? e.reps + "回" : "—"}</span>
         <span class="kc">${e.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
       </div>`).join("");
