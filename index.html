@@ -387,6 +387,19 @@
       <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
       <p class="muted" id="ex-steps-kcal-view" style="font-size:.78rem; margin:4px 0 0;"></p>
       <button class="btn small" id="ex-save">歩数を保存</button>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:16px;">
+        <label style="margin:0;">よくする運動（タップで追加）</label>
+        <button type="button" class="btn-link" id="custom-ex-edit-toggle">編集</button>
+      </div>
+      <div class="chips" id="custom-ex-chips"></div>
+      <input type="text" id="new-ex-name" placeholder="名前（例: バドミントン）" style="margin-top:8px;">
+      <div class="row2" style="margin-top:8px;">
+        <input type="number" id="new-ex-min" min="0" step="5" placeholder="時間(分・任意)">
+        <input type="number" id="new-ex-kcal" min="0" step="10" placeholder="kcal">
+      </div>
+      <button class="btn small" id="custom-ex-register-btn">＋ よくする運動に登録</button>
+
       <label style="margin-top:16px;">運動の種類（タップで選択）</label>
       <div class="chips" id="ex-chips"></div>
       <label>筋トレ系（タップで選択・回数で記録）</label>
@@ -631,7 +644,7 @@
 <script>
 "use strict";
 /* ============ storage keys ============ */
-const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1" };
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1" };
 const load = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
 const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 
@@ -1045,6 +1058,65 @@ function renderAnalyzeResult(thumb, items) {
 }
 
 /* ============ 運動 ============ */
+function loadCustomEx() {
+  const saved = load(K.customEx);
+  return Array.isArray(saved.list) ? saved.list : [];
+}
+function saveCustomEx(list) { save(K.customEx, { list }); }
+let customExEditMode = false;
+const customExChips = document.getElementById("custom-ex-chips");
+function renderCustomExChips() {
+  const items = loadCustomEx();
+  customExChips.innerHTML = "";
+  if (items.length === 0) {
+    customExChips.innerHTML = '<p class="empty-note">まだ登録がありません。下から登録できます。</p>';
+    return;
+  }
+  items.forEach((it, i) => {
+    const b = document.createElement("button");
+    b.className = "chip" + (customExEditMode ? " editing" : "");
+    const amtLbl = it.min ? `${it.min}分 ` : "";
+    b.textContent = customExEditMode ? `✕ ${it.name} ${amtLbl}${it.kcal}kcal` : `${it.name} ${amtLbl}${it.kcal}kcal`;
+    b.addEventListener("click", () => {
+      if (customExEditMode) {
+        const list = loadCustomEx(); list.splice(i, 1); saveCustomEx(list); renderCustomExChips();
+      } else {
+        const date = document.getElementById("ex-date").value || todayStr();
+        const rec = getDaily(date);
+        const entry = { name: it.name, kcal: it.kcal };
+        if (it.min) entry.min = it.min;
+        rec.exercises.push(entry);
+        setDaily(date, rec);
+        renderExPage();
+        cheer("🏃", "記録しました！えらい！");
+      }
+    });
+    customExChips.appendChild(b);
+  });
+}
+renderCustomExChips();
+document.getElementById("custom-ex-edit-toggle").addEventListener("click", e => {
+  customExEditMode = !customExEditMode;
+  e.target.textContent = customExEditMode ? "完了" : "編集";
+  renderCustomExChips();
+});
+document.getElementById("custom-ex-register-btn").addEventListener("click", () => {
+  const name = document.getElementById("new-ex-name").value.trim();
+  if (!name) { toast("名前を入力してください"); return; }
+  const min = Number(document.getElementById("new-ex-min").value) || 0;
+  const kcal = Number(document.getElementById("new-ex-kcal").value) || 0;
+  const list = loadCustomEx();
+  const item = { name, kcal };
+  if (min > 0) item.min = min;
+  list.push(item);
+  saveCustomEx(list);
+  document.getElementById("new-ex-name").value = "";
+  document.getElementById("new-ex-min").value = "";
+  document.getElementById("new-ex-kcal").value = "";
+  renderCustomExChips();
+  toast("よくする運動に登録しました");
+});
+
 const EXERCISES = [
   ["ウォーキング", 3.5], ["早歩き", 4.3], ["ジョギング", 7.0], ["自転車", 6.0],
   ["水泳", 6.0], ["ヨガ・ストレッチ", 2.5], ["家事・掃除", 3.3],
