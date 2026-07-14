@@ -237,12 +237,6 @@
     background: var(--warn-soft); border-left: 4px solid var(--warn);
     padding: 11px 14px; border-radius: 8px; font-size: .82rem; color: #6a4d26; margin-bottom: 12px;
   }
-  details.tip { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 10px; padding: 0 16px; }
-  details.tip summary { padding: 13px 0; font-weight: 700; font-size: .96rem; cursor: pointer; list-style: none; display: flex; align-items: center; }
-  details.tip summary::after { content: "▾"; margin-left: auto; color: var(--sub); }
-  details.tip[open] summary::after { transform: rotate(180deg); }
-  details.tip .body { padding: 0 0 13px; font-size: .89rem; color: #3c4a43; }
-  details.tip .body ul { padding-left: 18px; margin: 4px 0; }
 
   .cheer {
     position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(.8);
@@ -607,29 +601,6 @@
       <p class="muted" id="local-key-note" style="margin-top:6px; display:none;">この端末のローカル設定ファイルのキーを自動で使用中です。ここで保存すると、この端末専用のキーとして上書きされます。</p>
       <p class="muted" style="margin-top:6px;">APIキーは Google AI Studio（aistudio.google.com）で無料で発行できます。利用量に応じて無料枠を超えると課金される場合があります。</p>
     </div>
-
-    <details class="tip">
-      <summary>🎯 なぜ「7%減量」なのか</summary>
-      <div class="body">
-        <p>体重の<strong>3〜5%の減量で肝臓の脂肪が減少</strong>し、<strong>7%以上で肝臓の炎症まで改善</strong>することが多くの研究で示されています。月1〜2kgのゆっくりしたペースが理想です。</p>
-      </div>
-    </details>
-    <details class="tip">
-      <summary>🍚 食事のポイント</summary>
-      <div class="body"><ul>
-        <li>清涼飲料水・ジュースの果糖は肝臓の脂肪合成を直接促進します。まず最初に減らしましょう。</li>
-        <li>野菜から先に食べる「ベジファースト」で血糖の急上昇を抑えられます。</li>
-        <li>青魚・オリーブオイル・ナッツなど地中海食パターンが有効とされています。</li>
-      </ul></div>
-    </details>
-    <details class="tip">
-      <summary>🏃 運動のポイント</summary>
-      <div class="body"><ul>
-        <li>週150分以上の有酸素運動（早歩きでOK）。体重が減らなくても肝脂肪は減ります。</li>
-        <li>週2回の筋トレを追加すると効果的。筋肉は糖の最大の消費場所です。</li>
-        <li>食後30分〜1時間の軽い散歩は血糖コントロールに特に有効です。</li>
-      </ul></div>
-    </details>
 
     <div class="card">
       <h2>データ管理</h2>
