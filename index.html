@@ -138,6 +138,27 @@
   .stat.blue .val { color: var(--blue); }
   .minibar { height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .minibar > div { height: 100%; border-radius: 4px; background: var(--accent); transition: width .4s; }
+
+  .check-list { display: flex; flex-direction: column; gap: 10px; }
+  .check-item {
+    display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px;
+    border: 1.5px dashed var(--line); background: #f8faf9; cursor: pointer;
+    text-align: left; font-family: inherit; width: 100%;
+  }
+  .check-item.done { border: 1.5px solid var(--accent); background: var(--accent-soft); }
+  .check-icon {
+    font-size: 1.5rem; flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+    background: #fff; display: flex; align-items: center; justify-content: center;
+  }
+  .check-item.done .check-icon { background: var(--accent); }
+  .check-body { flex: 1; min-width: 0; }
+  .check-title { font-weight: 700; font-size: 1rem; color: var(--ink); }
+  .check-item.done .check-title { color: var(--accent-dark); }
+  .check-detail { font-size: .84rem; color: var(--sub); margin-top: 2px; }
+  .check-item.done .check-detail { color: var(--accent-dark); }
+  .check-sub { font-size: .74rem; color: var(--sub); margin-top: 3px; }
+  .check-mark { font-size: 1.5rem; color: var(--accent); flex-shrink: 0; font-weight: 700; }
+
   .badges { display: flex; flex-wrap: wrap; gap: 8px; }
   .badge {
     border-radius: 10px; padding: 9px 10px; text-align: center; font-size: .74rem;
@@ -300,8 +321,8 @@
     </div>
 
     <div class="card">
-      <h2>今日のからだ</h2>
-      <div class="stat-grid" id="today-stats"></div>
+      <h2>✅ 今日の記録チェック</h2>
+      <div class="check-list" id="today-checklist"></div>
     </div>
 
     <div class="card">
@@ -1740,7 +1761,7 @@ function renderHome() {
   }
   document.getElementById("streak-num").textContent = calcStreak();
 
-  // today stats
+  // today checklist
   const p = load(K.profile);
   const t = getDaily(todayStr());
   const kcalIn = t.meals.reduce((s, m) => s + (m.kcal || 0), 0);
@@ -1750,17 +1771,41 @@ function renderHome() {
   const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : "", t.steps ? `${t.steps.toLocaleString()}歩` : ""].filter(Boolean).join("・");
   const wkMin = weekExerciseMin();
   const goalEx = p.goalEx || 150;
-  const goalSteps = p.goalSteps || 8000;
-  const stepsPct = t.steps != null ? Math.min(100, t.steps / goalSteps * 100) : 0;
-  const kcalPct = p.goalKcal ? Math.min(100, kcalIn / p.goalKcal * 100) : 0;
-  document.getElementById("today-stats").innerHTML = `
-    <div class="stat"><div class="val">${kcalIn.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の摂取${p.goalKcal ? ` / ${p.goalKcal.toLocaleString()}` : ""}</div>
-      ${p.goalKcal ? `<div class="minibar"><div style="width:${kcalPct}%;${kcalIn > p.goalKcal ? "background:var(--warn);" : ""}"></div></div>` : ""}</div>
-    <div class="stat blue"><div class="val">${kcalOut.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">今日の運動消費${exAmtLbl ? `（${exAmtLbl}）` : ""}</div></div>
-    <div class="stat blue"><div class="val">${t.steps != null ? t.steps.toLocaleString() : "—"}</div><div class="lbl">歩数 / 目標${goalSteps.toLocaleString()}</div>
-      <div class="minibar"><div style="width:${stepsPct}%;background:var(--blue);"></div></div></div>
-    <div class="stat"><div class="val">${wkMin}<span class="u"> 分</span></div><div class="lbl">今週の運動 / ${goalEx}分</div>
-      <div class="minibar"><div style="width:${Math.min(100, wkMin / goalEx * 100)}%;${wkMin >= goalEx ? "background:var(--gold);" : ""}"></div></div></div>`;
+  const weightDone = t.weight != null;
+  const mealDone = t.meals.length > 0;
+  const exDone = t.exercises.length > 0 || t.steps != null;
+  const checklist = [
+    {
+      goto: "record", icon: "⚖️", title: "体重記録", done: weightDone,
+      detail: weightDone ? `${t.weight}kg を記録済み` : "まだ未記録です",
+    },
+    {
+      goto: "meal", icon: "🍽", title: "食事記録", done: mealDone,
+      detail: mealDone
+        ? `${kcalIn.toLocaleString()}kcal を記録済み${p.goalKcal ? `（目標 ${p.goalKcal.toLocaleString()}kcal）` : ""}`
+        : "まだ未記録です",
+    },
+    {
+      goto: "exercise", icon: "🏃", title: "運動記録", done: exDone,
+      detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `（${exAmtLbl}）` : ""}` : "まだ未記録です",
+      sub: `今週の運動 ${wkMin}/${goalEx}分`,
+    },
+  ];
+  document.getElementById("today-checklist").innerHTML = checklist.map(it => `
+    <button type="button" class="check-item${it.done ? " done" : ""}" data-goto="${it.goto}">
+      <div class="check-icon">${it.icon}</div>
+      <div class="check-body">
+        <div class="check-title">${it.title}</div>
+        <div class="check-detail">${it.detail}</div>
+        ${it.sub ? `<div class="check-sub">${it.sub}</div>` : ""}
+      </div>
+      <div class="check-mark">${it.done ? "✓" : ""}</div>
+    </button>`).join("");
+  document.querySelectorAll("#today-checklist .check-item").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelector(`[data-page="${el.dataset.goto}"]`).click();
+    });
+  });
 
   // badges
   const streak = calcStreak();
