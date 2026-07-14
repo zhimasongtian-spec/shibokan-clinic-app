@@ -340,6 +340,83 @@
       <div id="rec-history-summary"></div>
       <div id="rec-history"></div>
     </div>
+
+    <div class="card">
+      <h2>🏥 来院時データの入力</h2>
+      <p class="muted">健診・診察の結果を記録します。数値は結果票のとおりに入力してください。</p>
+      <label for="v-date">来院日</label>
+      <input type="date" id="v-date">
+
+      <h3>バイタル・身体測定</h3>
+      <div class="row3">
+        <div><label>体重 <span class="unit-note">kg</span></label><input type="number" id="v-weight" step="0.1" min="20" max="300"></div>
+        <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
+        <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
+      </div>
+      <h3>InBody</h3>
+      <div class="row3">
+        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
+        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
+        <div><label>内臓脂肪Lv</label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
+      </div>
+      <h3>血液検査</h3>
+      <div class="row3">
+        <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
+        <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
+        <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
+      </div>
+      <div class="row3">
+        <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
+        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
+        <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
+      </div>
+      <div class="row3">
+        <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
+      </div>
+      <div class="fib-line" id="v-fib-line"></div>
+
+      <h3>腹部超音波検査</h3>
+      <div class="row2">
+        <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
+        <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="v-cap" min="100" max="450"></div>
+      </div>
+
+      <h3>内服薬</h3>
+      <input type="file" id="meds-photo-input" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn secondary small" id="meds-photo-btn">📷 処方箋を撮影して読み取る</button>
+      <div id="meds-analyze-area"></div>
+      <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回" style="margin-top:8px;"></textarea>
+
+      <button class="btn" id="v-save">来院データを保存</button>
+    </div>
+
+    <div class="card">
+      <h2>来院履歴</h2>
+      <p class="muted">行をタップすると内容を上のフォームに読み込みます。</p>
+      <div class="table-scroll" id="visit-table"></div>
+    </div>
+
+    <div class="card">
+      <h2>📈 推移グラフ</h2>
+      <div class="seg" id="metric-seg">
+        <button data-m="weight" class="on">体重</button>
+        <button data-m="liver">AST/ALT</button>
+        <button data-m="ggtp">γGTP</button>
+        <button data-m="fib4">FIB-4</button>
+        <button data-m="lipid">脂質</button>
+        <button data-m="hba1c">HbA1c</button>
+        <button data-m="fscan">FibroScan</button>
+      </div>
+      <div class="seg" id="range-seg">
+        <button data-days="7">週</button>
+        <button data-days="30">月</button>
+        <button data-days="90" class="on">3か月</button>
+        <button data-days="180">6か月</button>
+        <button data-days="365">年</button>
+      </div>
+      <svg id="chart" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
+      <p class="muted" id="chart-note" style="margin-top:6px;"></p>
+    </div>
   </section>
 
   <!-- ================= 食事 ================= -->
@@ -469,86 +546,6 @@
     </div>
   </section>
 
-  <!-- ================= 検査（来院時データ） ================= -->
-  <section class="page" id="page-visit">
-    <div class="card">
-      <h2>🏥 来院時データの入力</h2>
-      <p class="muted">健診・診察の結果を記録します。数値は結果票のとおりに入力してください。</p>
-      <label for="v-date">来院日</label>
-      <input type="date" id="v-date">
-
-      <h3>バイタル・身体測定</h3>
-      <div class="row3">
-        <div><label>体重 <span class="unit-note">kg</span></label><input type="number" id="v-weight" step="0.1" min="20" max="300"></div>
-        <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
-        <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
-      </div>
-      <h3>InBody</h3>
-      <div class="row3">
-        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
-        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
-        <div><label>内臓脂肪Lv</label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
-      </div>
-      <h3>血液検査</h3>
-      <div class="row3">
-        <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
-        <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
-        <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
-      </div>
-      <div class="row3">
-        <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
-        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
-        <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
-      </div>
-      <div class="row3">
-        <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
-      </div>
-      <div class="fib-line" id="v-fib-line"></div>
-
-      <h3>腹部超音波検査</h3>
-      <div class="row2">
-        <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="v-kpa" step="0.1" min="1" max="80"></div>
-        <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="v-cap" min="100" max="450"></div>
-      </div>
-
-      <h3>内服薬</h3>
-      <input type="file" id="meds-photo-input" accept="image/*" capture="environment" style="display:none;">
-      <button type="button" class="btn secondary small" id="meds-photo-btn">📷 処方箋を撮影して読み取る</button>
-      <div id="meds-analyze-area"></div>
-      <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回" style="margin-top:8px;"></textarea>
-
-      <button class="btn" id="v-save">来院データを保存</button>
-    </div>
-
-    <div class="card">
-      <h2>来院履歴</h2>
-      <p class="muted">行をタップすると内容を上のフォームに読み込みます。</p>
-      <div class="table-scroll" id="visit-table"></div>
-    </div>
-
-    <div class="card">
-      <h2>📈 推移グラフ</h2>
-      <div class="seg" id="metric-seg">
-        <button data-m="weight" class="on">体重</button>
-        <button data-m="liver">AST/ALT</button>
-        <button data-m="ggtp">γGTP</button>
-        <button data-m="fib4">FIB-4</button>
-        <button data-m="lipid">脂質</button>
-        <button data-m="hba1c">HbA1c</button>
-        <button data-m="fscan">FibroScan</button>
-      </div>
-      <div class="seg" id="range-seg">
-        <button data-days="7">週</button>
-        <button data-days="30">月</button>
-        <button data-days="90" class="on">3か月</button>
-        <button data-days="180">6か月</button>
-        <button data-days="365">年</button>
-      </div>
-      <svg id="chart" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
-      <p class="muted" id="chart-note" style="margin-top:6px;"></p>
-    </div>
-  </section>
-
   <!-- ================= 設定 ================= -->
   <section class="page" id="page-settings">
     <div class="card">
@@ -624,7 +621,6 @@
   <button data-page="record"><span class="ico">⚖️</span>記録</button>
   <button data-page="meal"><span class="ico">🍽</span>食事</button>
   <button data-page="exercise"><span class="ico">🏃</span>運動</button>
-  <button data-page="visit"><span class="ico">🏥</span>検査</button>
   <button data-page="settings"><span class="ico">⚙️</span>設定</button>
 </nav>
 
@@ -695,7 +691,7 @@ document.querySelectorAll(".tabbar button").forEach(btn => {
     document.querySelectorAll("section.page").forEach(p => p.classList.remove("active"));
     btn.classList.add("active");
     document.getElementById("page-" + btn.dataset.page).classList.add("active");
-    const r = { home: renderHome, record: renderRecordPage, meal: renderMealPage, exercise: renderExPage, visit: renderVisitPage, settings: renderSettings };
+    const r = { home: renderHome, record: () => { renderRecordPage(); renderVisitPage(); }, meal: renderMealPage, exercise: renderExPage, settings: renderSettings };
     if (r[btn.dataset.page]) r[btn.dataset.page]();
   });
 });
@@ -1524,7 +1520,7 @@ function renderVisitTable() {
 
 function renderVisitPage() { renderVisitTable(); renderChart(); }
 
-/* ============ グラフ（検査タブ内） ============ */
+/* ============ グラフ（記録タブ内） ============ */
 let chartMetric = "weight", chartDays = 90;
 document.getElementById("metric-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
@@ -1721,7 +1717,7 @@ function renderHome() {
     fibEl.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${lbl}<br><span style="font-size:.72rem; opacity:.75;">${fmtDateFull(fibInfo.date)} 時点</span>`;
   } else {
     fibEl.className = "fib-line info";
-    fibEl.textContent = "「検査」タブで血液検査データ（AST・ALT・血小板数）を登録するとFIB-4指数が表示されます。";
+    fibEl.textContent = "「記録」タブで血液検査データ（AST・ALT・血小板数）を登録するとFIB-4指数が表示されます。";
   }
 
   // ring
