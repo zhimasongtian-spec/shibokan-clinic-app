@@ -274,8 +274,8 @@
 
     <div id="auth-patient-view">
       <h2>患者ログイン</h2>
-      <p class="muted">病院で発行されたアプリIDと生年月日を入力してください。</p>
-      <label for="auth-appid">アプリID（4桁）</label>
+      <p class="muted">お電話番号の下4桁と生年月日を入力してください。</p>
+      <label for="auth-appid">電話番号の下4桁</label>
       <input type="text" id="auth-appid" placeholder="0000" inputmode="numeric" maxlength="4">
       <label for="auth-birthdate">生年月日</label>
       <input type="date" id="auth-birthdate">
@@ -659,7 +659,7 @@ document.getElementById("auth-patient-login").addEventListener("click", async ()
   errEl.style.display = "none";
   const appId = document.getElementById("auth-appid").value.trim();
   const birthdate = document.getElementById("auth-birthdate").value;
-  if (!/^\d{4}$/.test(appId)) { errEl.textContent = "アプリIDは4桁の数字で入力してください"; errEl.style.display = "block"; return; }
+  if (!/^\d{4}$/.test(appId)) { errEl.textContent = "電話番号の下4桁を数字で入力してください"; errEl.style.display = "block"; return; }
   if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
   authStatus("確認中...");
   try {

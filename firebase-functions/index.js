@@ -128,29 +128,31 @@ exports.staffRegisterPatient = onRequest(
       res.status(401).json({ error: { message: "invalid auth token" } });
       return;
     }
-    const { hospitalId, birthdate } = req.body || {};
-    if (!hospitalId || !birthdate) {
-      res.status(400).json({ error: { message: "hospitalId and birthdate are required" } });
+    const { hospitalId, birthdate, phoneLast4 } = req.body || {};
+    if (!hospitalId || !birthdate || !/^\d{4}$/.test(phoneLast4 || "")) {
+      res.status(400).json({ error: { message: "hospitalId, birthdate and a 4-digit phoneLast4 are required" } });
       return;
     }
+    const appId = phoneLast4;
     try {
-      let appId = null;
-      for (let i = 0; i < 20; i++) {
-        const candidate = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
-        const existing = await mainDb.collection("patients").doc(candidate).get();
-        if (!existing.exists) { appId = candidate; break; }
-      }
-      if (!appId) {
-        res.status(500).json({ error: { message: "could not allocate a new appId, try again" } });
+      const ref = mainDb.collection("patients").doc(appId);
+      const existing = await ref.get();
+      if (existing.exists) {
+        if (existing.data().birthdate === birthdate) {
+          // 同じ電話番号下4桁・同じ生年月日 → 既に登録済みの同一患者とみなす
+          res.status(200).json({ appId, alreadyRegistered: true });
+          return;
+        }
+        res.status(409).json({
+          error: { message: "この電話番号下4桁は別の患者さんが既に使用しています。電話番号をご確認ください。" },
+        });
         return;
       }
-      await mainDb.collection("patients").doc(appId).set({
-        birthdate, failedAttempts: 0, lockUntil: null, createdAt: Date.now(),
-      });
+      await ref.set({ birthdate, failedAttempts: 0, lockUntil: null, createdAt: Date.now() });
       await mappingDb.collection("hospitalMap").doc(appId).set({
         hospitalId, createdAt: Date.now(),
       });
-      res.status(200).json({ appId });
+      res.status(200).json({ appId, alreadyRegistered: false });
     } catch (err) {
       res.status(500).json({ error: { message: String((err && err.message) || err) } });
     }
