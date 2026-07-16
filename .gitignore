@@ -3,3 +3,5 @@ firebase-functions/node_modules/
 firebase-debug.log
 .firebase/
 .claude/
+admin-scripts/service-account-key.json
+admin-scripts/node_modules/

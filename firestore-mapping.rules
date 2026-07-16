@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 病院ID⇔アプリIDの対応表。スタッフ（role=staff）のみ読み書き可。
+    // 患者アカウントはこのデータベースに一切アクセスできない。
+    match /hospitalMap/{appId} {
+      allow read, write: if request.auth != null && request.auth.token.role == "staff";
+    }
+  }
+}

@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 患者ドキュメント本体（生年月日・ログイン失敗回数など）は
+    // クライアントから直接読み書きさせない。patientLogin Cloud Function
+    // （Admin SDK・ルールをバイパス）だけがここを操作する。
+    match /patients/{appId} {
+      allow read, write: if false;
+
+      // 実際の記録（体重・食事・運動・検査）はここ。
+      // 本人（uid=アプリID）か、role=staffのスタッフのみアクセス可。
+      match /data/{docId} {
+        allow read, write: if request.auth != null &&
+          (request.auth.uid == appId || request.auth.token.role == "staff");
+      }
+    }
+  }
+}
