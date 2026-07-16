@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>肝ケア日記 — 脂肪肝改善サポート</title>
+<title>かん活 — 脂肪肝改善サポート</title>
 <style>
   :root {
     --bg: #f4f7f5;
@@ -225,10 +225,6 @@
 
   #chart { width: 100%; height: auto; display: block; }
   .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
-  .banner {
-    background: var(--warn-soft); border-left: 4px solid var(--warn);
-    padding: 11px 14px; border-radius: 8px; font-size: .82rem; color: #6a4d26; margin-bottom: 12px;
-  }
 
   .cheer {
     position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(.8);
@@ -256,8 +252,8 @@
 <body>
 
 <header>
-  <h1>🌿 肝ケア日記</h1>
-  <p>脂肪肝改善サポート — 毎日の小さな記録が肝臓を変える</p>
+  <h1>🌿 かん活</h1>
+  <p>脂肪肝改善サポート — 香川大学</p>
 </header>
 
 <main>
@@ -295,15 +291,6 @@
     <div class="card">
       <h2>🩺 肝機能の状態（FIB-4）</h2>
       <div id="home-fib-line"></div>
-    </div>
-
-    <div class="card">
-      <h2>💡 今日のヒント</h2>
-      <p id="daily-tip" style="font-size:.88rem;"></p>
-    </div>
-
-    <div class="banner">
-      ⚠️ 本アプリは生活習慣の記録・改善を補助するものであり、医学的診断を行うものではありません。治療中の方は必ず主治医の指示に従ってください。
     </div>
   </section>
 
@@ -1618,18 +1605,6 @@ document.getElementById("p-save").addEventListener("click", () => {
 });
 
 /* ============ ホーム ============ */
-const TIPS = [
-  "清涼飲料水を1本やめるだけで、1か月で約150gの脂肪に相当するカロリーを減らせます。",
-  "食後30分の散歩は血糖の急上昇を抑え、肝臓への脂肪の取り込みを減らします。",
-  "コーヒー（ブラック）1日2〜3杯は肝線維化の進行抑制と関連が報告されています。",
-  "野菜から先に食べる「ベジファースト」は今日からできる肝臓ケアです。",
-  "体重の3%減で肝脂肪は減り始めます。まずは小さな一歩から。",
-  "筋肉は糖の最大の消費場所。スクワット10回からでも始める価値があります。",
-  "夜9時以降の食事は肝臓に脂肪をためやすくします。夕食は早めに。",
-  "睡眠6時間未満は脂肪肝のリスク因子。今夜は少し早く布団へ。",
-  "階段を使う・一駅歩く——日常の「ながら運動」も立派な治療です。",
-  "記録をつけること自体に減量効果があると報告されています。今日もえらい！",
-];
 function calcStreak() {
   const all = load(K.daily); let streak = 0;
   let i = 0;
@@ -1735,9 +1710,6 @@ function renderHome() {
       document.querySelector(`[data-page="${el.dataset.goto}"]`).click();
     });
   });
-
-  const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
-  document.getElementById("daily-tip").textContent = TIPS[dayIdx];
 }
 
 /* ============ export / reset ============ */
@@ -1747,7 +1719,7 @@ document.getElementById("export-btn").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "kankea-data-" + todayStr() + ".json";
+  a.download = "kankatsu-data-" + todayStr() + ".json";
   a.click(); URL.revokeObjectURL(a.href);
 });
 document.getElementById("reset-btn").addEventListener("click", () => {
