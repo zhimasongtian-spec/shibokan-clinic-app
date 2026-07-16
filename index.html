@@ -636,7 +636,7 @@ firebase.initializeApp({
   appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
 });
 const auth = firebase.auth();
-const db = firebase.firestore();
+const db = firebase.firestore(firebase.app(), "patients");
 let currentUid = null;
 
 /* ============ storage keys ============ */

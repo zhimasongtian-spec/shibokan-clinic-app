@@ -6,11 +6,11 @@ const { getFirestore } = require("firebase-admin/firestore");
 const { getAuth } = require("firebase-admin/auth");
 
 initializeApp();
-// 患者の健康データ（体重・食事・運動・検査）が入るメインのFirestore。
-const mainDb = getFirestore();
-// 病院ID⇔アプリIDの対応表専用の、別名のFirestoreデータベース。
-// Firebaseコンソールの「Firestore Database」で databaseId "mapping" を
-// 事前に作成しておく必要があります。
+// 患者の健康データ（体重・食事・運動・検査）が入るFirestore（databaseId "patients"）。
+const mainDb = getFirestore("patients");
+// 病院ID⇔アプリIDの対応表専用の、別のFirestoreデータベース（databaseId "mapping"）。
+// どちらもFirebaseコンソールの「Firestore Database」で事前に作成しておく必要があります
+// （"(default)" ではなく、"patients" と "mapping" という名前で作成してください）。
 const mappingDb = getFirestore("mapping");
 const authAdmin = getAuth();
 
