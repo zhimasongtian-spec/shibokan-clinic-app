@@ -281,40 +281,9 @@
       <input type="date" id="auth-birthdate">
       <button class="btn" id="auth-patient-login">ログイン</button>
       <p class="muted" id="auth-patient-error" style="color:var(--danger); display:none;"></p>
-      <button type="button" class="btn-link" id="auth-goto-staff">医師・スタッフの方はこちら</button>
-    </div>
-
-    <div id="auth-staff-view" style="display:none;">
-      <h2>医師・スタッフログイン</h2>
-      <label for="auth-staff-email">メールアドレス</label>
-      <input type="email" id="auth-staff-email" autocomplete="username">
-      <label for="auth-staff-pass">パスワード</label>
-      <input type="password" id="auth-staff-pass" autocomplete="current-password">
-      <button class="btn" id="auth-staff-login">ログイン</button>
-      <p class="muted" id="auth-staff-error" style="color:var(--danger); display:none;"></p>
-      <button type="button" class="btn-link" id="auth-goto-patient">患者の方はこちら</button>
     </div>
 
     <p class="muted" id="auth-status"></p>
-  </div>
-</div>
-
-<div class="auth-gate hidden" id="staff-panel">
-  <div class="auth-box">
-    <div class="auth-logo">🩺</div>
-    <h2>新規患者登録</h2>
-    <p class="muted">病院IDと生年月日を入力すると、新しいアプリIDを発行します。</p>
-    <label for="reg-hospital-id">病院ID</label>
-    <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
-    <label for="reg-birthdate">生年月日</label>
-    <input type="date" id="reg-birthdate">
-    <button class="btn" id="reg-submit">アプリIDを発行</button>
-    <p class="muted" id="reg-error" style="color:var(--danger); display:none;"></p>
-    <div class="kcal-summary" id="reg-result" style="display:none;">
-      <span>発行されたアプリID</span><span><strong id="reg-result-id"></strong></span>
-    </div>
-    <p class="muted" id="reg-result-note" style="display:none;">この番号と生年月日を患者さんにお伝えください。</p>
-    <button type="button" class="btn secondary" id="staff-logout-btn" style="margin-top:20px;">ログアウト</button>
   </div>
 </div>
 
@@ -682,17 +651,9 @@ const save = (k, v) => {
   }
 };
 
-/* ============ ログイン（患者: アプリID＋生年月日 / スタッフ: メール） ============ */
+/* ============ ログイン（患者: アプリID＋生年月日） ============ */
 const PATIENT_LOGIN_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/patientLogin";
 function authStatus(msg) { document.getElementById("auth-status").textContent = msg || ""; }
-document.getElementById("auth-goto-staff").addEventListener("click", () => {
-  document.getElementById("auth-patient-view").style.display = "none";
-  document.getElementById("auth-staff-view").style.display = "block";
-});
-document.getElementById("auth-goto-patient").addEventListener("click", () => {
-  document.getElementById("auth-staff-view").style.display = "none";
-  document.getElementById("auth-patient-view").style.display = "block";
-});
 document.getElementById("auth-patient-login").addEventListener("click", async () => {
   const errEl = document.getElementById("auth-patient-error");
   errEl.style.display = "none";
@@ -715,21 +676,6 @@ document.getElementById("auth-patient-login").addEventListener("click", async ()
     errEl.style.display = "block";
   }
 });
-document.getElementById("auth-staff-login").addEventListener("click", async () => {
-  const errEl = document.getElementById("auth-staff-error");
-  errEl.style.display = "none";
-  const email = document.getElementById("auth-staff-email").value.trim();
-  const pass = document.getElementById("auth-staff-pass").value;
-  if (!email || !pass) return;
-  authStatus("ログイン中...");
-  try {
-    await auth.signInWithEmailAndPassword(email, pass);
-  } catch (err) {
-    authStatus("");
-    errEl.textContent = "メールアドレスまたはパスワードが正しくありません";
-    errEl.style.display = "block";
-  }
-});
 async function pullFromFirestore(appId) {
   for (const k of Object.values(K)) {
     try {
@@ -749,61 +695,28 @@ async function pullFromFirestore(appId) {
 }
 auth.onAuthStateChanged(async user => {
   const gate = document.getElementById("auth-gate");
-  const staffPanel = document.getElementById("staff-panel");
   if (!user) {
     currentUid = null;
     gate.classList.remove("hidden");
-    staffPanel.classList.add("hidden");
     return;
   }
   authStatus("読み込み中...");
   const tokenResult = await user.getIdTokenResult();
-  if (tokenResult.claims.role === "staff") {
-    currentUid = null;
-    authStatus("");
-    gate.classList.add("hidden");
-    staffPanel.classList.remove("hidden");
-  } else {
+  const role = tokenResult.claims.role;
+  if (role === "patient") {
     currentUid = user.uid;
     await pullFromFirestore(user.uid);
     authStatus("");
     gate.classList.add("hidden");
-    staffPanel.classList.add("hidden");
     renderHome();
+  } else {
+    // role=patient以外（正規の登録経路を通っていない、またはスタッフアカウント）は
+    // この患者用アプリでは利用できないのでサインアウトさせる
+    currentUid = null;
+    await auth.signOut();
+    authStatus("このアカウントは利用できません。");
   }
 });
-
-/* ============ スタッフ: 新規患者登録 ============ */
-const STAFF_REGISTER_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/staffRegisterPatient";
-document.getElementById("reg-submit").addEventListener("click", async () => {
-  const errEl = document.getElementById("reg-error");
-  errEl.style.display = "none";
-  document.getElementById("reg-result").style.display = "none";
-  document.getElementById("reg-result-note").style.display = "none";
-  const hospitalId = document.getElementById("reg-hospital-id").value.trim();
-  const birthdate = document.getElementById("reg-birthdate").value;
-  if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
-  if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
-  try {
-    const idToken = await auth.currentUser.getIdToken();
-    const res = await fetch(STAFF_REGISTER_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json", "authorization": "Bearer " + idToken },
-      body: JSON.stringify({ hospitalId, birthdate })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
-    document.getElementById("reg-result-id").textContent = data.appId;
-    document.getElementById("reg-result").style.display = "flex";
-    document.getElementById("reg-result-note").style.display = "block";
-    document.getElementById("reg-hospital-id").value = "";
-    document.getElementById("reg-birthdate").value = "";
-  } catch (err) {
-    errEl.textContent = "登録に失敗しました: " + (err.message || err);
-    errEl.style.display = "block";
-  }
-});
-document.getElementById("staff-logout-btn").addEventListener("click", () => auth.signOut());
 
 /* ============ utils ============ */
 function todayStr(offset = 0) {

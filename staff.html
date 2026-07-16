@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>かん活 スタッフ用</title>
+<style>
+  :root {
+    --bg: #f4f7f5; --card: #ffffff; --ink: #24312a; --sub: #566158;
+    --accent: #2e8b6d; --accent-soft: #e3f2ec; --accent-dark: #1f6b52;
+    --danger: #c0504d; --danger-soft: #faeceb; --line: #e2e9e5;
+    --radius: 14px; --shadow: 0 2px 10px rgba(36, 49, 42, .07);
+  }
+  html { font-size: 118%; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo", sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.65;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
+  }
+  .box { max-width: 400px; width: 100%; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 22px; text-align: center; }
+  .logo { font-size: 2.6rem; margin-bottom: 4px; }
+  .box h2 { font-size: 1.2rem; color: var(--accent-dark); margin-bottom: 8px; }
+  .box label { display: block; text-align: left; font-size: .84rem; font-weight: 600; margin: 11px 0 4px; }
+  .box input {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px;
+    font-size: 1.05rem; font-family: inherit; background: #fbfdfc; color: var(--ink);
+  }
+  .box input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .muted { color: var(--sub); font-size: .84rem; }
+  .btn {
+    display: block; width: 100%; padding: 14px; margin-top: 14px;
+    background: var(--accent); color: #fff; border: none; border-radius: 12px;
+    font-size: 1.05rem; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn:active { background: var(--accent-dark); }
+  .btn.secondary { background: none; border: 1.5px solid var(--accent); color: var(--accent-dark); }
+  .btn-link {
+    background: none; border: none; color: var(--accent-dark); font-size: .84rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; padding: 6px 2px; margin-top: 12px;
+  }
+  .error { color: var(--danger); font-size: .84rem; margin-top: 8px; display: none; }
+  .result {
+    margin-top: 10px; padding: 11px 14px; background: var(--accent-soft); border-radius: 10px;
+    display: none; justify-content: space-between; align-items: center; font-size: .92rem;
+  }
+  .result strong { font-size: 1.2rem; color: var(--accent-dark); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+
+<div class="box" id="login-view">
+  <div class="logo">🩺</div>
+  <h2>医師・スタッフログイン</h2>
+  <label for="staff-email">メールアドレス</label>
+  <input type="email" id="staff-email" autocomplete="username">
+  <label for="staff-pass">パスワード</label>
+  <input type="password" id="staff-pass" autocomplete="current-password">
+  <button class="btn" id="staff-login">ログイン</button>
+  <p class="error" id="login-error"></p>
+  <p class="muted" id="status"></p>
+</div>
+
+<div class="box hidden" id="panel-view">
+  <div class="logo">🌿</div>
+  <h2>新規患者登録</h2>
+  <p class="muted">病院IDと生年月日を入力すると、新しいアプリIDを発行します。</p>
+  <label for="reg-hospital-id">病院ID</label>
+  <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
+  <label for="reg-birthdate">生年月日</label>
+  <input type="date" id="reg-birthdate">
+  <button class="btn" id="reg-submit">アプリIDを発行</button>
+  <p class="error" id="reg-error"></p>
+  <div class="result" id="reg-result">
+    <span>発行されたアプリID</span><span><strong id="reg-result-id"></strong></span>
+  </div>
+  <p class="muted hidden" id="reg-result-note">この番号と生年月日を患者さんにお伝えください。</p>
+  <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script>
+"use strict";
+firebase.initializeApp({
+  apiKey: "AIzaSyBaxpb3ZTabQ1PojPN5UC2_XYU32-nBBas",
+  authDomain: "kancare-8a0d1.firebaseapp.com",
+  projectId: "kancare-8a0d1",
+  storageBucket: "kancare-8a0d1.firebasestorage.app",
+  messagingSenderId: "884218065527",
+  appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
+});
+const auth = firebase.auth();
+const STAFF_REGISTER_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/staffRegisterPatient";
+
+function setStatus(msg) { document.getElementById("status").textContent = msg || ""; }
+
+document.getElementById("staff-login").addEventListener("click", async () => {
+  const errEl = document.getElementById("login-error");
+  errEl.style.display = "none";
+  const email = document.getElementById("staff-email").value.trim();
+  const pass = document.getElementById("staff-pass").value;
+  if (!email || !pass) return;
+  setStatus("ログイン中...");
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (err) {
+    setStatus("");
+    errEl.textContent = "メールアドレスまたはパスワードが正しくありません";
+    errEl.style.display = "block";
+  }
+});
+
+document.getElementById("reg-submit").addEventListener("click", async () => {
+  const errEl = document.getElementById("reg-error");
+  errEl.style.display = "none";
+  document.getElementById("reg-result").style.display = "none";
+  document.getElementById("reg-result-note").classList.add("hidden");
+  const hospitalId = document.getElementById("reg-hospital-id").value.trim();
+  const birthdate = document.getElementById("reg-birthdate").value;
+  if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
+  if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch(STAFF_REGISTER_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "authorization": "Bearer " + idToken },
+      body: JSON.stringify({ hospitalId, birthdate })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
+    document.getElementById("reg-result-id").textContent = data.appId;
+    document.getElementById("reg-result").style.display = "flex";
+    document.getElementById("reg-result-note").classList.remove("hidden");
+    document.getElementById("reg-hospital-id").value = "";
+    document.getElementById("reg-birthdate").value = "";
+  } catch (err) {
+    errEl.textContent = "登録に失敗しました: " + (err.message || err);
+    errEl.style.display = "block";
+  }
+});
+
+document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
+
+auth.onAuthStateChanged(async user => {
+  const loginView = document.getElementById("login-view");
+  const panelView = document.getElementById("panel-view");
+  if (!user) {
+    loginView.classList.remove("hidden");
+    panelView.classList.add("hidden");
+    return;
+  }
+  setStatus("確認中...");
+  const tokenResult = await user.getIdTokenResult();
+  if (tokenResult.claims.role === "staff") {
+    setStatus("");
+    loginView.classList.add("hidden");
+    panelView.classList.remove("hidden");
+  } else {
+    setStatus("このアカウントはスタッフとして登録されていません。");
+    await auth.signOut();
+  }
+});
+</script>
+</body>
+</html>
