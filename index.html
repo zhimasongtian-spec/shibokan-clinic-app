@@ -1338,6 +1338,12 @@ function renderExPage() {
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
 /* ============ 検査（来院） ============ */
+function fib4Class(f, age) {
+  const lowMax = (age != null && age >= 65) ? 2.0 : 1.3;
+  if (f < lowMax) return { cls: "low", label: "肝臓が固くなっている可能性は低いです。" };
+  if (f <= 2.67) return { cls: "mid", label: "肝臓が固くなりかけている可能性があります。" };
+  return { cls: "high", label: "肝臓が硬くなっている可能性が高い状態です。" };
+}
 ["v-ast", "v-alt", "v-plt"].forEach(id =>
   document.getElementById(id).addEventListener("input", updateFibLine));
 function updateFibLine() {
@@ -1353,10 +1359,9 @@ function updateFibLine() {
     if (!age && (document.getElementById("v-ast").value || document.getElementById("v-alt").value)) el.className = "fib-line mid";
     return;
   }
-  const cls = f < 1.3 ? "low" : f <= 2.67 ? "mid" : "high";
-  const lbl = f < 1.3 ? "低リスク" : f <= 2.67 ? "中間リスク（専門医への相談を推奨）" : "高リスク（受診を強く推奨）";
+  const { cls, label } = fib4Class(f, age);
   el.className = "fib-line " + cls;
-  el.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${lbl}`;
+  el.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${label}`;
 }
 
 /* ---- 検査値の基準値チェック ---- */
@@ -1637,11 +1642,11 @@ function renderHome() {
   const fibEl = document.getElementById("home-fib-line");
   if (fibInfo) {
     const f = fibInfo.value;
-    const cls = f < 1.3 ? "low" : f <= 2.67 ? "mid" : "high";
-    const lbl = f < 1.3 ? "低リスク" : f <= 2.67 ? "中間リスク（専門医への相談を推奨）" : "高リスク（受診を強く推奨）";
+    const age = Number(load(K.profile).age) || null;
+    const { cls, label } = fib4Class(f, age);
     fibEl.className = "fib-line " + cls;
     fibEl.style.marginTop = "0";
-    fibEl.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${lbl}<br><span style="font-size:.72rem; opacity:.75;">${fmtDateFull(fibInfo.date)} 時点</span>`;
+    fibEl.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${label}<br><span style="font-size:.72rem; opacity:.75;">${fmtDateFull(fibInfo.date)} 時点</span>`;
   } else {
     fibEl.className = "fib-line info";
     fibEl.textContent = "「記録」タブで血液検査データ（AST・ALT・血小板数）を登録するとFIB-4指数が表示されます。";
