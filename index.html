@@ -159,14 +159,6 @@
   .check-sub { font-size: .74rem; color: var(--sub); margin-top: 3px; }
   .check-mark { font-size: 1.5rem; color: var(--accent); flex-shrink: 0; font-weight: 700; }
 
-  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
-  .badge {
-    border-radius: 10px; padding: 9px 10px; text-align: center; font-size: .74rem;
-    background: #f1f4f2; color: #8a988f; border: 1.5px dashed var(--line); width: calc(25% - 6px);
-  }
-  .badge.earned { background: var(--gold-soft); color: #8a6d1f; border: 1.5px solid var(--gold); font-weight: 700; }
-  .badge .bico { font-size: 1.35rem; display: block; }
-
   /* meal / exercise lists */
   .item-list { margin-top: 8px; }
   .item-row {
@@ -259,20 +251,6 @@
   .camera-modal-actions .btn { margin-top: 0; }
   .camera-modal .camera-err { color: var(--danger); font-size: .82rem; margin-top: 6px; }
 
-  /* print report */
-  #print-report { display: none; }
-  @media print {
-    body { padding: 0; background: #fff; }
-    header, main, .tabbar, .toast, .cheer { display: none !important; }
-    #print-report { display: block; padding: 10mm; font-size: 11px; color: #111; }
-    #print-report h1 { font-size: 16px; border-bottom: 2px solid #2e8b6d; padding-bottom: 4px; margin-bottom: 8px; }
-    #print-report h2 { font-size: 13px; margin: 12px 0 4px; color: #1f6b52; }
-    #print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    #print-report th, #print-report td { border: 1px solid #999; padding: 3px 6px; text-align: center; }
-    #print-report th { background: #e3f2ec; }
-    #print-report .pr-meta { font-size: 10px; color: #555; }
-    #print-report svg { max-width: 100%; }
-  }
 </style>
 </head>
 <body>
@@ -285,6 +263,11 @@
 <main>
   <!-- ================= ホーム ================= -->
   <section class="page active" id="page-home">
+    <div class="card">
+      <h2>✅ 今日の記録チェック</h2>
+      <div class="check-list" id="today-checklist"></div>
+    </div>
+
     <div class="card">
       <div class="hero">
         <div class="ring-wrap">
@@ -315,22 +298,11 @@
     </div>
 
     <div class="card">
-      <h2>✅ 今日の記録チェック</h2>
-      <div class="check-list" id="today-checklist"></div>
-    </div>
-
-    <div class="card">
-      <h2>🏅 達成バッジ</h2>
-      <div class="badges" id="badge-area"></div>
-    </div>
-
-    <div class="card">
       <h2>💡 今日のヒント</h2>
       <p id="daily-tip" style="font-size:.88rem;"></p>
     </div>
 
-    <button class="btn secondary" id="print-btn">🖨 診察用レポートを印刷</button>
-    <div class="banner" style="margin-top:12px;">
+    <div class="banner">
       ⚠️ 本アプリは生活習慣の記録・改善を補助するものであり、医学的診断を行うものではありません。治療中の方は必ず主治医の指示に従ってください。
     </div>
   </section>
@@ -621,7 +593,6 @@
     </div>
   </div>
 </div>
-<div id="print-report"></div>
 
 <!-- local-config.js is a git-ignored, PC-only file that pre-fills the Gemini API key.
      It is intentionally absent from the public repo/GitHub Pages build, so this 404s there. -->
@@ -1765,81 +1736,8 @@ function renderHome() {
     });
   });
 
-  // badges
-  const streak = calcStreak();
-  const lost = wp ? wp.start - wp.cur : 0;
-  const lostPct = wp ? (lost / wp.start) * 100 : 0;
-  const anyRec = Object.keys(load(K.daily)).length > 0;
-  const badges = [
-    ["🌱", "はじめの一歩", anyRec],
-    ["🔥", "3日連続", streak >= 3],
-    ["⭐", "7日連続", streak >= 7],
-    ["👑", "30日連続", streak >= 30],
-    ["🏃", `週${goalEx}分運動`, wkMin >= goalEx],
-    ["🍃", "−3%減量", lostPct >= 3],
-    ["💪", "−5%減量", lostPct >= 5],
-    ["🏆", "−7%達成", lostPct >= 7],
-  ];
-  document.getElementById("badge-area").innerHTML = badges.map(([em, nm, ok]) =>
-    `<div class="badge${ok ? " earned" : ""}"><span class="bico">${em}</span>${nm}</div>`).join("");
-
   const dayIdx = Math.floor(Date.now() / 86400000) % TIPS.length;
   document.getElementById("daily-tip").textContent = TIPS[dayIdx];
-}
-
-/* ============ 印刷レポート ============ */
-document.getElementById("print-btn").addEventListener("click", () => {
-  buildPrintReport();
-  window.print();
-});
-function buildPrintReport() {
-  const p = load(K.profile), visits = load(K.visits), daily = load(K.daily);
-  const vDates = Object.keys(visits).sort().reverse().slice(0, 6).reverse();
-  const wp = weightProgress();
-  // lifestyle summary last 30 days
-  let recDays = 0, kcalSum = 0, kcalDays = 0, exMinSum = 0, stepSum = 0, stepDays = 0;
-  for (let i = 0; i < 30; i++) {
-    const r = daily[todayStr(-i)];
-    if (!r) continue;
-    const has = (r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null;
-    if (has) recDays++;
-    if (r.meals && r.meals.length) { kcalSum += r.meals.reduce((s, m) => s + (m.kcal || 0), 0); kcalDays++; }
-    if (r.exercises) exMinSum += r.exercises.reduce((s, e) => s + (e.min || 0), 0);
-    if (r.steps != null) { stepSum += r.steps; stepDays++; }
-  }
-  const bmi = (p.height && latestWeight()) ? Math.round(latestWeight() / ((p.height / 100) ** 2) * 10) / 10 : null;
-  const rows = [
-    ["体重 (kg)", "weight"], ["血圧 (mmHg)", "bp"], ["体脂肪率 (%)", "fat"], ["骨格筋量 (kg)", "muscle"],
-    ["内臓脂肪Lv", "visceral"], ["AST (U/L)", "ast"], ["ALT (U/L)", "alt"], ["γGTP (U/L)", "ggtp"],
-    ["血小板 (万/µL)", "plt"], ["LDL-C (mg/dL)", "ldl"], ["中性脂肪 (mg/dL)", "tg"], ["HbA1c (%)", "hba1c"],
-    ["FIB-4", "fib4"], ["肝硬度 (kPa)", "kpa"], ["CAP (dB/m)", "cap"],
-  ];
-  const cell = (v, key) => {
-    const rec = visits[v];
-    if (key === "bp") return rec.sbp != null ? `${rec.sbp}/${rec.dbp ?? "—"}` : "—";
-    const val = rec[key];
-    return val != null ? (key === "fib4" ? val.toFixed(2) : val) : "—";
-  };
-  const latestV = vDates.length ? visits[vDates[vDates.length - 1]] : null;
-  document.getElementById("print-report").innerHTML = `
-    <h1>🌿 肝ケア日記 — 診察用レポート</h1>
-    <p class="pr-meta">出力日: ${fmtDateFull(todayStr())}　|
-      ${p.age ? `年齢: ${p.age}歳　` : ""}${p.sex ? `性別: ${p.sex}　` : ""}
-      ${p.height ? `身長: ${p.height}cm　` : ""}${bmi ? `BMI: ${bmi}` : ""}</p>
-    <h2>目標と進捗</h2>
-    <p>${wp ? `開始 ${wp.start}kg → 現在 ${wp.cur}kg（${Math.round((wp.start - wp.cur) * 10) / 10}kg減）／ 目標 ${wp.goal}kg・達成率 ${Math.round(wp.pct)}%` : "目標未設定"}</p>
-    <h2>生活習慣サマリー（直近30日）</h2>
-    <table><tr><th>記録日数</th><th>平均摂取カロリー</th><th>運動合計</th><th>週平均運動</th><th>平均歩数</th></tr>
-      <tr><td>${recDays}/30日</td>
-        <td>${kcalDays ? Math.round(kcalSum / kcalDays).toLocaleString() + " kcal/日" : "—"}</td>
-        <td>${exMinSum}分</td><td>${Math.round(exMinSum / 30 * 7)}分/週</td>
-        <td>${stepDays ? Math.round(stepSum / stepDays).toLocaleString() + " 歩" : "—"}</td></tr></table>
-    <h2>検査値の推移</h2>
-    ${vDates.length ? `<table><tr><th>項目</th>${vDates.map(d => `<th>${fmtDate(d)}</th>`).join("")}</tr>
-      ${rows.map(([lbl, key]) => `<tr><td style="text-align:left;">${lbl}</td>${vDates.map(d => `<td>${cell(d, key)}</td>`).join("")}</tr>`).join("")}</table>`
-      : "<p>来院データ未登録</p>"}
-    <h2>内服薬</h2><p>${latestV && latestV.meds ? latestV.meds.replace(/\n/g, "<br>") : "—"}</p>
-    <p class="pr-meta" style="margin-top:10px;">本レポートは患者の自己記録アプリ「肝ケア日記」から出力されたものです。</p>`;
 }
 
 /* ============ export / reset ============ */
