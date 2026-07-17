@@ -40,11 +40,6 @@
     cursor: pointer; font-family: inherit; padding: 6px 2px; margin-top: 12px;
   }
   .error { color: var(--danger); font-size: .84rem; margin-top: 8px; display: none; }
-  .result {
-    margin-top: 10px; padding: 11px 14px; background: var(--accent-soft); border-radius: 10px;
-    display: none; justify-content: space-between; align-items: center; font-size: .92rem;
-  }
-  .result strong { font-size: 1.2rem; color: var(--accent-dark); }
   .hidden { display: none; }
 </style>
 </head>
@@ -74,10 +69,7 @@
   <input type="text" id="reg-phone-last4" placeholder="0000" inputmode="numeric" maxlength="4">
   <button class="btn" id="reg-submit">登録する</button>
   <p class="error" id="reg-error"></p>
-  <div class="result" id="reg-result">
-    <span id="reg-result-label">登録した電話番号の下4桁</span><span><strong id="reg-result-id"></strong></span>
-  </div>
-  <p class="muted hidden" id="reg-result-note">この番号と生年月日を患者さんにお伝えください。</p>
+  <p class="muted hidden" id="reg-result-note" style="color:var(--accent-dark); font-weight:700; font-size:1rem;"></p>
   <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
 </div>
 
@@ -117,7 +109,6 @@ document.getElementById("staff-login").addEventListener("click", async () => {
 document.getElementById("reg-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
-  document.getElementById("reg-result").style.display = "none";
   document.getElementById("reg-result-note").classList.add("hidden");
   const hospitalId = document.getElementById("reg-hospital-id").value.trim();
   const birthdate = document.getElementById("reg-birthdate").value;
@@ -134,10 +125,9 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
-    document.getElementById("reg-result-label").textContent = data.alreadyRegistered ? "既に登録済みの電話番号下4桁" : "登録した電話番号の下4桁";
-    document.getElementById("reg-result-id").textContent = data.phoneLast4;
-    document.getElementById("reg-result").style.display = "flex";
-    document.getElementById("reg-result-note").classList.remove("hidden");
+    const noteEl = document.getElementById("reg-result-note");
+    noteEl.textContent = data.alreadyRegistered ? "✓ この患者さんは既に登録済みです" : "✓ 登録できました";
+    noteEl.classList.remove("hidden");
     document.getElementById("reg-hospital-id").value = "";
     document.getElementById("reg-birthdate").value = "";
     document.getElementById("reg-phone-last4").value = "";
