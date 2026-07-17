@@ -86,6 +86,9 @@ firebase.initializeApp({
   appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
 });
 const auth = firebase.auth();
+// タブ単位でログイン状態を保持する（localStorageで全ページ共通にすると、
+// 同じサイトのindex.htmlを別タブで開いたときにログイン状態が競合するため）。
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
 const STAFF_REGISTER_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/staffRegisterPatient";
 
 function setStatus(msg) { document.getElementById("status").textContent = msg || ""; }
