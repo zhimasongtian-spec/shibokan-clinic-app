@@ -65,17 +65,17 @@
 <div class="box hidden" id="panel-view">
   <div class="logo">🌿</div>
   <h2>新規患者登録</h2>
-  <p class="muted">病院ID・生年月日・電話番号の下4桁を入力してください。電話番号の下4桁がそのままアプリIDになります。</p>
+  <p class="muted">病院ID・生年月日・電話番号の下4桁を入力してください。</p>
   <label for="reg-hospital-id">病院ID</label>
   <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
   <label for="reg-birthdate">生年月日</label>
   <input type="date" id="reg-birthdate">
   <label for="reg-phone-last4">電話番号の下4桁</label>
   <input type="text" id="reg-phone-last4" placeholder="0000" inputmode="numeric" maxlength="4">
-  <button class="btn" id="reg-submit">アプリIDを発行</button>
+  <button class="btn" id="reg-submit">登録する</button>
   <p class="error" id="reg-error"></p>
   <div class="result" id="reg-result">
-    <span id="reg-result-label">発行されたアプリID</span><span><strong id="reg-result-id"></strong></span>
+    <span id="reg-result-label">登録した電話番号の下4桁</span><span><strong id="reg-result-id"></strong></span>
   </div>
   <p class="muted hidden" id="reg-result-note">この番号と生年月日を患者さんにお伝えください。</p>
   <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
@@ -134,7 +134,7 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
     });
     const data = await res.json();
     if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
-    document.getElementById("reg-result-label").textContent = data.alreadyRegistered ? "既に登録済みのアプリID" : "発行されたアプリID";
+    document.getElementById("reg-result-label").textContent = data.alreadyRegistered ? "既に登録済みの電話番号下4桁" : "登録した電話番号の下4桁";
     document.getElementById("reg-result-id").textContent = data.appId;
     document.getElementById("reg-result").style.display = "flex";
     document.getElementById("reg-result-note").classList.remove("hidden");

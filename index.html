@@ -651,7 +651,7 @@ const save = (k, v) => {
   }
 };
 
-/* ============ ログイン（患者: アプリID＋生年月日） ============ */
+/* ============ ログイン（患者: 電話番号下4桁＋生年月日） ============ */
 const PATIENT_LOGIN_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/patientLogin";
 function authStatus(msg) { document.getElementById("auth-status").textContent = msg || ""; }
 document.getElementById("auth-patient-login").addEventListener("click", async () => {
@@ -672,7 +672,7 @@ document.getElementById("auth-patient-login").addEventListener("click", async ()
     await auth.signInWithCustomToken(data.token);
   } catch (err) {
     authStatus("");
-    errEl.textContent = "アプリIDまたは生年月日が正しくありません";
+    errEl.textContent = "電話番号の下4桁または生年月日が正しくありません";
     errEl.style.display = "block";
   }
 });
