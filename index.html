@@ -701,7 +701,7 @@ auth.onAuthStateChanged(async user => {
     return;
   }
   authStatus("読み込み中...");
-  const tokenResult = await user.getIdTokenResult();
+  const tokenResult = await user.getIdTokenResult(true);
   const role = tokenResult.claims.role;
   if (role === "patient") {
     currentUid = user.uid;
