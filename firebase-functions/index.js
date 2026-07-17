@@ -55,9 +55,12 @@ exports.mealProxy = onRequest(
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_MS = 15 * 60 * 1000;
+// 電話番号下4桁＋生年月日を組み合わせた文字列を、そのままデータの保存キーにする。
+// 「IDを発行する」という別概念を持たず、この2つの値だけで患者データを管理する。
+const patientKey = (phoneLast4, birthdate) => `${phoneLast4}_${birthdate}`;
 
-// 患者ログイン: アプリID(4桁)＋生年月日で本人確認し、カスタムトークンを発行する。
-// 病院ID・氏名は一切扱わない（mainDbにはアプリIDと生年月日しか無い）。
+// 患者ログイン: 電話番号下4桁＋生年月日で本人確認し、カスタムトークンを発行する。
+// 病院ID・氏名は一切扱わない（mainDbには電話番号下4桁と生年月日の組み合わせしか無い）。
 exports.patientLogin = onRequest(
   { cors: true, region: "asia-northeast1", memory: "128MiB" },
   async (req, res) => {
@@ -65,37 +68,37 @@ exports.patientLogin = onRequest(
       res.status(405).json({ error: { message: "Method Not Allowed" } });
       return;
     }
-    const { appId, birthdate } = req.body || {};
-    if (!/^\d{4}$/.test(appId || "") || !birthdate) {
-      res.status(400).json({ error: { message: "appId and birthdate are required" } });
+    const { phoneLast4, birthdate } = req.body || {};
+    if (!/^\d{4}$/.test(phoneLast4 || "") || !birthdate) {
+      res.status(400).json({ error: { message: "phoneLast4 and birthdate are required" } });
       return;
     }
-    const ref = mainDb.collection("patients").doc(appId);
+    // 総当たり対策: 失敗回数は電話番号下4桁単位でカウントする
+    // （生年月日を変えて何度も試されるのを防ぐため、患者データ本体とは別に記録）。
+    const attemptsRef = mainDb.collection("loginAttempts").doc(phoneLast4);
     try {
-      const doc = await ref.get();
-      if (!doc.exists) {
-        res.status(401).json({ error: { message: "invalid credentials" } });
-        return;
-      }
-      const data = doc.data();
+      const attemptsDoc = await attemptsRef.get();
+      const attemptsData = attemptsDoc.exists ? attemptsDoc.data() : {};
       const now = Date.now();
-      if (data.lockUntil && data.lockUntil > now) {
+      if (attemptsData.lockUntil && attemptsData.lockUntil > now) {
         res.status(429).json({ error: { message: "too many attempts, try again later" } });
         return;
       }
-      if (data.birthdate !== birthdate) {
-        const failedAttempts = (data.failedAttempts || 0) + 1;
+      const key = patientKey(phoneLast4, birthdate);
+      const patientDoc = await mainDb.collection("patients").doc(key).get();
+      if (!patientDoc.exists) {
+        const failedAttempts = (attemptsData.failedAttempts || 0) + 1;
         const update = { failedAttempts };
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
           update.lockUntil = now + LOCK_MS;
           update.failedAttempts = 0;
         }
-        await ref.set(update, { merge: true });
+        await attemptsRef.set(update, { merge: true });
         res.status(401).json({ error: { message: "invalid credentials" } });
         return;
       }
-      await ref.set({ failedAttempts: 0, lockUntil: null }, { merge: true });
-      const token = await authAdmin.createCustomToken(appId, { role: "patient" });
+      await attemptsRef.set({ failedAttempts: 0, lockUntil: null }, { merge: true });
+      const token = await authAdmin.createCustomToken(key, { role: "patient" });
       res.status(200).json({ token });
     } catch (err) {
       res.status(500).json({ error: { message: String((err && err.message) || err) } });
@@ -103,7 +106,8 @@ exports.patientLogin = onRequest(
   }
 );
 
-// スタッフによる新規患者登録: 病院ID＋生年月日を受け取り、新しい4桁アプリIDを発行する。
+// スタッフによる新規患者登録: 病院ID・生年月日・電話番号下4桁を受け取り、
+// 電話番号下4桁＋生年月日をキーとして患者データ領域を用意する。
 // 呼び出し元がrole=staffのカスタムクレームを持つことを検証してから実行する。
 exports.staffRegisterPatient = onRequest(
   { cors: true, region: "asia-northeast1", memory: "128MiB" },
@@ -133,26 +137,18 @@ exports.staffRegisterPatient = onRequest(
       res.status(400).json({ error: { message: "hospitalId, birthdate and a 4-digit phoneLast4 are required" } });
       return;
     }
-    const appId = phoneLast4;
+    const key = patientKey(phoneLast4, birthdate);
     try {
-      const ref = mainDb.collection("patients").doc(appId);
+      const ref = mainDb.collection("patients").doc(key);
       const existing = await ref.get();
-      if (existing.exists) {
-        if (existing.data().birthdate === birthdate) {
-          // 同じ電話番号下4桁・同じ生年月日 → 既に登録済みの同一患者とみなす
-          res.status(200).json({ appId, alreadyRegistered: true });
-          return;
-        }
-        res.status(409).json({
-          error: { message: "この電話番号下4桁は別の患者さんが既に使用しています。電話番号をご確認ください。" },
-        });
-        return;
+      const alreadyRegistered = existing.exists;
+      if (!alreadyRegistered) {
+        await ref.set({ createdAt: Date.now() });
       }
-      await ref.set({ birthdate, failedAttempts: 0, lockUntil: null, createdAt: Date.now() });
-      await mappingDb.collection("hospitalMap").doc(appId).set({
+      await mappingDb.collection("hospitalMap").doc(key).set({
         hospitalId, createdAt: Date.now(),
-      });
-      res.status(200).json({ appId, alreadyRegistered: false });
+      }, { merge: true });
+      res.status(200).json({ phoneLast4, birthdate, alreadyRegistered });
     } catch (err) {
       res.status(500).json({ error: { message: String((err && err.message) || err) } });
     }

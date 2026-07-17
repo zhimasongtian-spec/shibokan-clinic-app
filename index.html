@@ -657,15 +657,15 @@ function authStatus(msg) { document.getElementById("auth-status").textContent = 
 document.getElementById("auth-patient-login").addEventListener("click", async () => {
   const errEl = document.getElementById("auth-patient-error");
   errEl.style.display = "none";
-  const appId = document.getElementById("auth-appid").value.trim();
+  const phoneLast4 = document.getElementById("auth-appid").value.trim();
   const birthdate = document.getElementById("auth-birthdate").value;
-  if (!/^\d{4}$/.test(appId)) { errEl.textContent = "電話番号の下4桁を数字で入力してください"; errEl.style.display = "block"; return; }
+  if (!/^\d{4}$/.test(phoneLast4)) { errEl.textContent = "電話番号の下4桁を数字で入力してください"; errEl.style.display = "block"; return; }
   if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
   authStatus("確認中...");
   try {
     const res = await fetch(PATIENT_LOGIN_URL, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ appId, birthdate })
+      body: JSON.stringify({ phoneLast4, birthdate })
     });
     const data = await res.json();
     if (!res.ok) throw new Error((data.error && data.error.message) || data.error || "ログインに失敗しました");

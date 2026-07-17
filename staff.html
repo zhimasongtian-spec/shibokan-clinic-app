@@ -135,7 +135,7 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
     document.getElementById("reg-result-label").textContent = data.alreadyRegistered ? "既に登録済みの電話番号下4桁" : "登録した電話番号の下4桁";
-    document.getElementById("reg-result-id").textContent = data.appId;
+    document.getElementById("reg-result-id").textContent = data.phoneLast4;
     document.getElementById("reg-result").style.display = "flex";
     document.getElementById("reg-result-note").classList.remove("hidden");
     document.getElementById("reg-hospital-id").value = "";
