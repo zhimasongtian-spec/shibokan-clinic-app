@@ -671,11 +671,15 @@ document.getElementById("auth-patient-login").addEventListener("click", async ()
       body: JSON.stringify({ phoneLast4, birthdate })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error((data.error && data.error.message) || data.error || "ログインに失敗しました");
+    if (!res.ok) {
+      if (res.status === 401) throw new Error("電話番号の下4桁または生年月日が正しくありません");
+      if (res.status === 429) throw new Error("試行回数が多いため、しばらく時間をおいてから再度お試しください。");
+      throw new Error((data.error && data.error.message) || `ログインに失敗しました（エラー ${res.status}）`);
+    }
     await auth.signInWithCustomToken(data.token);
   } catch (err) {
     authStatus("");
-    errEl.textContent = "電話番号の下4桁または生年月日が正しくありません";
+    errEl.textContent = err.message || "電話番号の下4桁または生年月日が正しくありません";
     errEl.style.display = "block";
   }
 });
