@@ -2,22 +2,34 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // 患者ドキュメント本体は空（存在するかどうかだけがログイン確認に使われる）。
-    // クライアントから直接読み書きさせない。patientLogin/staffRegisterPatient
-    // Cloud Function（Admin SDK・ルールをバイパス）だけがここを操作する。
-    // ドキュメントID自体が「電話番号下4桁_生年月日」のキーになっている。
-    match /patients/{patientKey} {
+    // クライアントから直接読み書きさせない。confirmRegistration/staffRegisterPatient/
+    // staffRelinkPatient Cloud Function（Admin SDK・ルールをバイパス）だけがここを操作する。
+    // ドキュメントIDは研究用ID（対面QR登録時に発行されるランダムUUID）。
+    match /patients/{researchId} {
       allow read, write: if false;
 
       // 実際の記録（体重・食事・運動・検査）はここ。
-      // 本人（uid=patientKey）か、role=staffのスタッフのみアクセス可。
+      // 本人（uid=researchId）か、role=staffのスタッフのみアクセス可。
       match /data/{docId} {
         allow read, write: if request.auth != null &&
-          (request.auth.uid == patientKey || request.auth.token.role == "staff");
+          (request.auth.uid == researchId || request.auth.token.role == "staff");
       }
     }
 
-    // ログイン失敗回数の記録（電話番号下4桁単位）。Cloud Functionのみが操作する。
-    match /loginAttempts/{phoneLast4} {
+    // QRペアリング用のワンタイムトークン。Cloud Functionのみが操作する。
+    match /pendingRegistrations/{token} {
+      allow read, write: if false;
+    }
+
+    // WebAuthn（生体認証）の公開鍵・チャレンジ・ステップアップ記録。
+    // すべてCloud Functionのみが操作する（クライアントから直接触らせない）。
+    match /webauthnCredentials/{uid} {
+      allow read, write: if false;
+    }
+    match /webauthnChallenges/{uid} {
+      allow read, write: if false;
+    }
+    match /webauthnStepUps/{uid} {
       allow read, write: if false;
     }
   }

@@ -1,11 +1,10 @@
 {
-  "name": "firebase-functions-mealproxy",
+  "name": "mapping-functions",
   "private": true,
   "main": "index.js",
   "engines": { "node": "20" },
   "dependencies": {
     "firebase-functions": "^6.0.1",
-    "firebase-admin": "^12.6.0",
-    "@simplewebauthn/server": "^13.0.0"
+    "firebase-admin": "^12.6.0"
   }
 }

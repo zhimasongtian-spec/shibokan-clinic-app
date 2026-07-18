@@ -1,13 +1,12 @@
 {
   "functions": [
     {
-      "source": "firebase-functions",
+      "source": ".",
       "codebase": "default",
       "ignore": ["node_modules", ".git", "firebase-debug.log", "firebase-debug.*.log"]
     }
   ],
   "firestore": [
-    { "database": "(default)", "rules": "firestore.rules" },
-    { "database": "patients", "rules": "firestore.rules" }
+    { "database": "(default)", "rules": "firestore.rules" }
   ]
 }

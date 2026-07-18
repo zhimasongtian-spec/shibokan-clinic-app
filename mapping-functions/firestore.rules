@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 対応表（病院ID＋院内患者番号 ⇔ 研究用ID）。
+    // クライアントからは一切アクセスさせず、issueMapping/lookupMapping
+    // Cloud Function（Admin SDK・ルールをバイパス）だけが操作する。
+    match /mappings/{researchId} {
+      allow read, write: if false;
+    }
+  }
+}

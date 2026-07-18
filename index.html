@@ -252,6 +252,7 @@
     display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;
   }
   .auth-gate.hidden { display: none; }
+  .hidden { display: none !important; }
   .auth-box { max-width: 400px; width: 100%; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 22px; text-align: center; }
   .auth-logo { font-size: 2.6rem; margin-bottom: 4px; }
   .auth-box h2 { font-size: 1.2rem; color: var(--accent-dark); margin-bottom: 8px; }
@@ -272,15 +273,46 @@
   <div class="auth-box">
     <div class="auth-logo">🌿</div>
 
-    <div id="auth-patient-view">
-      <h2>患者ログイン</h2>
-      <p class="muted">お電話番号の下4桁と生年月日を入力してください。</p>
-      <label for="auth-appid">電話番号の下4桁</label>
-      <input type="text" id="auth-appid" placeholder="0000" inputmode="numeric" maxlength="4">
-      <label for="auth-birthdate">生年月日</label>
-      <input type="date" id="auth-birthdate">
-      <button class="btn" id="auth-patient-login">ログイン</button>
-      <p class="muted" id="auth-patient-error" style="color:var(--danger); display:none;"></p>
+    <!-- 未ペアリング: 医師にその場で発行してもらったQRコードをスキャンする -->
+    <div id="auth-scan-view">
+      <h2>はじめに</h2>
+      <p class="muted">受診時に医師から表示されたQRコードをスキャンしてください。</p>
+      <button class="btn" id="auth-scan-start">📷 QRコードをスキャン</button>
+      <div id="qr-reader" style="width:100%; margin-top:14px;"></div>
+      <button class="btn secondary hidden" id="auth-scan-cancel">キャンセル</button>
+      <p class="muted" id="auth-scan-error" style="color:var(--danger); display:none;"></p>
+    </div>
+
+    <!-- QRペアリング直後: PINを設定する -->
+    <div id="auth-pin-setup-view" class="hidden">
+      <h2>PINを設定してください</h2>
+      <p class="muted">次回からはこの4桁PINでログインします。</p>
+      <label for="setup-pin1">4桁PIN</label>
+      <input type="password" id="setup-pin1" placeholder="••••" inputmode="numeric" maxlength="4">
+      <label for="setup-pin2">確認のためもう一度</label>
+      <input type="password" id="setup-pin2" placeholder="••••" inputmode="numeric" maxlength="4">
+      <button class="btn" id="setup-pin-submit">PINを設定する</button>
+      <p class="muted" id="setup-pin-error" style="color:var(--danger); display:none;"></p>
+    </div>
+
+    <!-- ペアリング済み端末の解錠 -->
+    <div id="auth-unlock-view" class="hidden">
+      <h2>🔒 ロック中</h2>
+      <p class="muted" id="unlock-hint">生体認証で解錠しています…</p>
+      <label for="unlock-pin" id="unlock-pin-label" class="hidden">4桁PIN</label>
+      <input type="password" id="unlock-pin" class="hidden" placeholder="••••" inputmode="numeric" maxlength="4">
+      <button class="btn hidden" id="unlock-pin-submit">解錠する</button>
+      <button class="btn-link hidden" id="unlock-webauthn-retry">生体認証をもう一度試す</button>
+      <p class="muted" id="unlock-error" style="color:var(--danger); display:none;"></p>
+      <p class="muted" style="margin-top:16px;">PINを忘れた場合は、次回受診時に医師にお伝えください。</p>
+    </div>
+
+    <!-- 生体認証の任意設定（PIN設定直後） -->
+    <div id="auth-webauthn-offer-view" class="hidden">
+      <h2>🔐 生体認証を設定しますか？</h2>
+      <p class="muted">指紋・顔認証で毎回のPIN入力を省略できます（あとから設定することもできます）。</p>
+      <button class="btn" id="webauthn-offer-yes">設定する</button>
+      <button class="btn secondary" id="webauthn-offer-skip">あとで</button>
     </div>
 
     <p class="muted" id="auth-status"></p>
@@ -627,6 +659,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
 <script>
 "use strict";
 /* ============ Firebase ============ */
@@ -639,9 +673,9 @@ firebase.initializeApp({
   appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
 });
 const auth = firebase.auth();
-// タブ単位でログイン状態を保持する（localStorageで全ページ共通にすると、
-// 同じサイトのstaff.htmlを別タブで開いたときにログイン状態が競合するため）。
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+// QRペアリングは対面で1回だけ行い、以降は端末にセッションを永続化して
+// PIN/生体認証だけで毎日ログインできるようにする。
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 const db = firebase.firestore(firebase.app(), "patients");
 let currentUid = null;
 
@@ -657,35 +691,168 @@ const save = (k, v) => {
   }
 };
 
-/* ============ ログイン（患者: 電話番号下4桁＋生年月日） ============ */
-const PATIENT_LOGIN_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/patientLogin";
+/* ============ ログイン（患者: 対面QRペアリング＋PIN/生体認証） ============ */
+const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
+const CONFIRM_REGISTRATION_URL = `${FN_BASE}/confirmRegistration`;
+const WEBAUTHN_REGISTER_OPTIONS_URL = `${FN_BASE}/webauthnRegisterOptions`;
+const WEBAUTHN_REGISTER_VERIFY_URL = `${FN_BASE}/webauthnRegisterVerify`;
+const WEBAUTHN_AUTH_OPTIONS_URL = `${FN_BASE}/webauthnAuthOptions`;
+const WEBAUTHN_AUTH_VERIFY_URL = `${FN_BASE}/webauthnAuthVerify`;
+
+let justPaired = false; // QRスキャン直後（PIN設定がまだ）
+let unlocked = false;   // 今回のアプリ起動でロック画面を突破済みか
+
 function authStatus(msg) { document.getElementById("auth-status").textContent = msg || ""; }
-document.getElementById("auth-patient-login").addEventListener("click", async () => {
-  const errEl = document.getElementById("auth-patient-error");
-  errEl.style.display = "none";
-  const phoneLast4 = document.getElementById("auth-appid").value.trim();
-  const birthdate = document.getElementById("auth-birthdate").value;
-  if (!/^\d{4}$/.test(phoneLast4)) { errEl.textContent = "電話番号の下4桁を数字で入力してください"; errEl.style.display = "block"; return; }
-  if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
+async function authedFetchPatient(url, body) {
+  const idToken = await auth.currentUser.getIdToken();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "authorization": "Bearer " + idToken },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function showAuthView(name) {
+  const views = { scan: "auth-scan-view", "pin-setup": "auth-pin-setup-view", unlock: "auth-unlock-view", "webauthn-offer": "auth-webauthn-offer-view" };
+  Object.entries(views).forEach(([k, id]) => document.getElementById(id).classList.toggle("hidden", k !== name));
+}
+
+/* --- QRスキャン --- */
+let html5QrCode = null;
+document.getElementById("auth-scan-start").addEventListener("click", startScan);
+document.getElementById("auth-scan-cancel").addEventListener("click", stopScan);
+async function startScan() {
+  document.getElementById("auth-scan-start").classList.add("hidden");
+  document.getElementById("auth-scan-cancel").classList.remove("hidden");
+  document.getElementById("auth-scan-error").style.display = "none";
+  html5QrCode = new Html5Qrcode("qr-reader");
+  try {
+    await html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, onScanSuccess, () => {});
+  } catch (err) {
+    showScanError("カメラを起動できませんでした: " + (err.message || err));
+    await stopScan();
+  }
+}
+async function stopScan() {
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); html5QrCode.clear(); } catch {}
+    html5QrCode = null;
+  }
+  document.getElementById("auth-scan-start").classList.remove("hidden");
+  document.getElementById("auth-scan-cancel").classList.add("hidden");
+}
+function showScanError(msg) {
+  const el = document.getElementById("auth-scan-error");
+  el.textContent = msg; el.style.display = "block";
+}
+async function onScanSuccess(decodedText) {
+  await stopScan();
   authStatus("確認中...");
   try {
-    const res = await fetch(PATIENT_LOGIN_URL, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phoneLast4, birthdate })
+    const res = await fetch(CONFIRM_REGISTRATION_URL, {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token: decodedText }),
     });
     const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 401) throw new Error("電話番号の下4桁または生年月日が正しくありません");
-      if (res.status === 429) throw new Error("試行回数が多いため、しばらく時間をおいてから再度お試しください。");
-      throw new Error((data.error && data.error.message) || `ログインに失敗しました（エラー ${res.status}）`);
-    }
+    if (!res.ok) throw new Error((data.error && data.error.message) || "QRコードの確認に失敗しました");
+    justPaired = true;
     await auth.signInWithCustomToken(data.token);
   } catch (err) {
     authStatus("");
-    errEl.textContent = err.message || "電話番号の下4桁または生年月日が正しくありません";
+    showScanError(err.message || String(err));
+  }
+}
+
+/* --- PIN設定（QRペアリング直後） --- */
+document.getElementById("setup-pin-submit").addEventListener("click", async () => {
+  const p1 = document.getElementById("setup-pin1").value;
+  const p2 = document.getElementById("setup-pin2").value;
+  const errEl = document.getElementById("setup-pin-error");
+  errEl.style.display = "none";
+  if (!/^\d{4}$/.test(p1)) { errEl.textContent = "4桁の数字で入力してください"; errEl.style.display = "block"; return; }
+  if (p1 !== p2) { errEl.textContent = "PINが一致しません"; errEl.style.display = "block"; return; }
+  const hash = await sha256Hex(p1);
+  localStorage.setItem("pinHash_" + currentUid, hash);
+  document.getElementById("setup-pin1").value = "";
+  document.getElementById("setup-pin2").value = "";
+  justPaired = false;
+  showAuthView("webauthn-offer");
+});
+
+/* --- 生体認証の任意設定 --- */
+document.getElementById("webauthn-offer-yes").addEventListener("click", async () => {
+  try {
+    const optRes = await authedFetchPatient(WEBAUTHN_REGISTER_OPTIONS_URL, {});
+    if (!optRes.ok) throw new Error();
+    const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: optRes.data });
+    const verifyRes = await authedFetchPatient(WEBAUTHN_REGISTER_VERIFY_URL, attResp);
+    if (!verifyRes.ok || !verifyRes.data.verified) throw new Error();
+  } catch {
+    // 生体認証が使えない/キャンセルされた場合もPINログインで続行できるので致命的ではない
+  }
+  await finishUnlock();
+});
+document.getElementById("webauthn-offer-skip").addEventListener("click", finishUnlock);
+
+/* --- 端末のロック解除（2回目以降の起動） --- */
+async function showUnlockView() {
+  showAuthView("unlock");
+  document.getElementById("unlock-pin").classList.add("hidden");
+  document.getElementById("unlock-pin-label").classList.add("hidden");
+  document.getElementById("unlock-pin-submit").classList.add("hidden");
+  document.getElementById("unlock-webauthn-retry").classList.add("hidden");
+  document.getElementById("unlock-error").style.display = "none";
+  document.getElementById("unlock-hint").textContent = "生体認証で解錠しています…";
+  const ok = await tryWebauthnUnlock();
+  if (!ok) showPinFallback();
+}
+async function tryWebauthnUnlock() {
+  try {
+    const optRes = await authedFetchPatient(WEBAUTHN_AUTH_OPTIONS_URL, {});
+    if (!optRes.ok) return false;
+    const assertion = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: optRes.data });
+    const verifyRes = await authedFetchPatient(WEBAUTHN_AUTH_VERIFY_URL, assertion);
+    if (verifyRes.ok && verifyRes.data.verified) { await finishUnlock(); return true; }
+    return false;
+  } catch {
+    return false;
+  }
+}
+function showPinFallback() {
+  document.getElementById("unlock-hint").textContent = "PINを入力してください";
+  document.getElementById("unlock-pin").classList.remove("hidden");
+  document.getElementById("unlock-pin-label").classList.remove("hidden");
+  document.getElementById("unlock-pin-submit").classList.remove("hidden");
+  document.getElementById("unlock-webauthn-retry").classList.remove("hidden");
+}
+document.getElementById("unlock-webauthn-retry").addEventListener("click", tryWebauthnUnlock);
+document.getElementById("unlock-pin-submit").addEventListener("click", async () => {
+  const pin = document.getElementById("unlock-pin").value;
+  const errEl = document.getElementById("unlock-error");
+  errEl.style.display = "none";
+  const hash = await sha256Hex(pin);
+  const stored = localStorage.getItem("pinHash_" + currentUid);
+  if (stored && hash === stored) {
+    document.getElementById("unlock-pin").value = "";
+    await finishUnlock();
+  } else {
+    errEl.textContent = "PINが正しくありません";
     errEl.style.display = "block";
   }
 });
+async function finishUnlock() {
+  unlocked = true;
+  const gate = document.getElementById("auth-gate");
+  authStatus("読み込み中...");
+  await pullFromFirestore(currentUid);
+  authStatus("");
+  gate.classList.add("hidden");
+  renderHome();
+}
 async function pullFromFirestore(appId) {
   for (const k of Object.values(K)) {
     try {
@@ -706,25 +873,30 @@ async function pullFromFirestore(appId) {
 auth.onAuthStateChanged(async user => {
   const gate = document.getElementById("auth-gate");
   if (!user) {
-    currentUid = null;
+    currentUid = null; unlocked = false; justPaired = false;
     gate.classList.remove("hidden");
+    showAuthView("scan");
     return;
   }
-  authStatus("読み込み中...");
+  authStatus("確認中...");
   const tokenResult = await user.getIdTokenResult(true);
   const role = tokenResult.claims.role;
-  if (role === "patient") {
-    currentUid = user.uid;
-    await pullFromFirestore(user.uid);
-    authStatus("");
-    gate.classList.add("hidden");
-    renderHome();
-  } else {
+  if (role !== "patient") {
     // role=patient以外（正規の登録経路を通っていない、またはスタッフアカウント）は
     // この患者用アプリでは利用できないのでサインアウトさせる
     currentUid = null;
     await auth.signOut();
     authStatus("このアカウントは利用できません。");
+    return;
+  }
+  authStatus("");
+  currentUid = user.uid;
+  if (justPaired) {
+    showAuthView("pin-setup");
+    return;
+  }
+  if (!unlocked) {
+    await showUnlockView();
   }
 });
 

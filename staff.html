@@ -18,7 +18,7 @@
     background: var(--bg); color: var(--ink); line-height: 1.65;
     min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;
   }
-  .box { max-width: 400px; width: 100%; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 22px; text-align: center; }
+  .box { max-width: 420px; width: 100%; background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px 22px; text-align: center; }
   .logo { font-size: 2.6rem; margin-bottom: 4px; }
   .box h2 { font-size: 1.2rem; color: var(--accent-dark); margin-bottom: 8px; }
   .box label { display: block; text-align: left; font-size: .84rem; font-weight: 600; margin: 11px 0 4px; }
@@ -40,7 +40,19 @@
     cursor: pointer; font-family: inherit; padding: 6px 2px; margin-top: 12px;
   }
   .error { color: var(--danger); font-size: .84rem; margin-top: 8px; display: none; }
-  .hidden { display: none; }
+  .hidden { display: none !important; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 6px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fbfdfc; color: var(--sub); font-weight: 700; font-size: .9rem; cursor: pointer; font-family: inherit;
+  }
+  .tab-btn.active { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+  .qr-wrap { margin-top: 16px; padding: 16px; background: var(--accent-soft); border-radius: 12px; }
+  .qr-wrap canvas { margin: 0 auto; display: block; }
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(36,49,42,.4); display: flex;
+    align-items: center; justify-content: center; padding: 20px; z-index: 10;
+  }
 </style>
 </head>
 <body>
@@ -59,22 +71,58 @@
 
 <div class="box hidden" id="panel-view">
   <div class="logo">🌿</div>
-  <h2>新規患者登録</h2>
-  <p class="muted">病院ID・生年月日・電話番号の下4桁を入力してください。</p>
-  <label for="reg-hospital-id">病院ID</label>
-  <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
-  <label for="reg-birthdate">生年月日</label>
-  <input type="date" id="reg-birthdate">
-  <label for="reg-phone-last4">電話番号の下4桁</label>
-  <input type="text" id="reg-phone-last4" placeholder="0000" inputmode="numeric" maxlength="4">
-  <button class="btn" id="reg-submit">登録する</button>
+  <h2>患者の連携</h2>
+
+  <div class="tabs">
+    <button type="button" class="tab-btn active" id="tab-register">新規患者登録</button>
+    <button type="button" class="tab-btn" id="tab-relink">既存患者の再連携</button>
+  </div>
+
+  <div id="form-register">
+    <p class="muted">病院ID・院内患者番号を入力し、その場でQRコードを患者さんにスキャンしてもらってください。</p>
+    <label for="reg-hospital-id">病院ID</label>
+    <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
+    <label for="reg-hospital-patient-no">院内患者番号</label>
+    <input type="text" id="reg-hospital-patient-no" placeholder="カルテ番号・診察券番号など">
+    <button class="btn" id="reg-submit">研究用IDを発行してQR表示</button>
+  </div>
+
+  <div id="form-relink" class="hidden">
+    <p class="muted">機種変更・PIN紛失などで患者さんが再連携する場合。既存の研究用IDに再接続します。</p>
+    <label for="relink-hospital-id">病院ID</label>
+    <input type="text" id="relink-hospital-id" placeholder="病院の患者ID">
+    <label for="relink-hospital-patient-no">院内患者番号</label>
+    <input type="text" id="relink-hospital-patient-no" placeholder="カルテ番号・診察券番号など">
+    <button class="btn" id="relink-submit">再連携QRを発行</button>
+  </div>
+
   <p class="error" id="reg-error"></p>
-  <p class="muted hidden" id="reg-result-note" style="color:var(--accent-dark); font-weight:700; font-size:1rem;"></p>
-  <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
+
+  <div class="qr-wrap hidden" id="qr-result">
+    <p class="muted" style="margin-bottom:10px;">患者さんのアプリでこのQRコードをスキャンしてもらってください（10分間有効）</p>
+    <canvas id="qr-canvas"></canvas>
+  </div>
+
+  <button type="button" class="btn secondary" id="webauthn-setup-btn" style="margin-top:20px;">🔐 このデバイスで生体認証を有効にする</button>
+  <button type="button" class="btn secondary" id="logout-btn">ログアウト</button>
+</div>
+
+<div class="modal-backdrop hidden" id="stepup-modal">
+  <div class="box" style="text-align:left;">
+    <h2 style="text-align:center;">🔒 本人確認</h2>
+    <p class="muted" style="text-align:center;">患者登録・再連携の前に、パスワードの再入力をお願いします。</p>
+    <label for="stepup-pass">パスワード</label>
+    <input type="password" id="stepup-pass" autocomplete="current-password">
+    <button class="btn" id="stepup-submit">確認して続行</button>
+    <button class="btn-link" id="stepup-cancel" style="display:block; margin: 8px auto 0;">キャンセル</button>
+    <p class="error" id="stepup-error"></p>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
 "use strict";
 firebase.initializeApp({
@@ -86,12 +134,29 @@ firebase.initializeApp({
   appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
 });
 const auth = firebase.auth();
-// タブ単位でログイン状態を保持する（localStorageで全ページ共通にすると、
-// 同じサイトのindex.htmlを別タブで開いたときにログイン状態が競合するため）。
-auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
-const STAFF_REGISTER_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/staffRegisterPatient";
+// 医師は日常的に開くたびメール再入力させたくないので、端末に永続化する。
+// 重要操作（患者登録・再連携）の直前だけ別途ステップアップ認証を要求する。
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
+const STAFF_REGISTER_URL = `${FN_BASE}/staffRegisterPatient`;
+const STAFF_RELINK_URL = `${FN_BASE}/staffRelinkPatient`;
+const WEBAUTHN_REGISTER_OPTIONS_URL = `${FN_BASE}/webauthnRegisterOptions`;
+const WEBAUTHN_REGISTER_VERIFY_URL = `${FN_BASE}/webauthnRegisterVerify`;
+const WEBAUTHN_AUTH_OPTIONS_URL = `${FN_BASE}/webauthnAuthOptions`;
+const WEBAUTHN_AUTH_VERIFY_URL = `${FN_BASE}/webauthnAuthVerify`;
 
 function setStatus(msg) { document.getElementById("status").textContent = msg || ""; }
+async function authedFetch(url, body) {
+  const idToken = await auth.currentUser.getIdToken();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", "authorization": "Bearer " + idToken },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, status: res.status, data };
+}
 
 document.getElementById("staff-login").addEventListener("click", async () => {
   const errEl = document.getElementById("login-error");
@@ -109,33 +174,131 @@ document.getElementById("staff-login").addEventListener("click", async () => {
   }
 });
 
+// タブ切り替え
+document.getElementById("tab-register").addEventListener("click", () => switchTab("register"));
+document.getElementById("tab-relink").addEventListener("click", () => switchTab("relink"));
+function switchTab(which) {
+  document.getElementById("tab-register").classList.toggle("active", which === "register");
+  document.getElementById("tab-relink").classList.toggle("active", which === "relink");
+  document.getElementById("form-register").classList.toggle("hidden", which !== "register");
+  document.getElementById("form-relink").classList.toggle("hidden", which !== "relink");
+  document.getElementById("qr-result").classList.add("hidden");
+  document.getElementById("reg-error").style.display = "none";
+}
+
+// ------- ステップアップ認証 -------
+// まずWebAuthn（生体認証）を試す。使えなければパスワード再入力モーダルにフォールバック。
+function ensureStepUp() {
+  return new Promise(async (resolve) => {
+    try {
+      const optRes = await authedFetch(WEBAUTHN_AUTH_OPTIONS_URL, {});
+      if (optRes.ok) {
+        const assertion = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: optRes.data });
+        const verifyRes = await authedFetch(WEBAUTHN_AUTH_VERIFY_URL, assertion);
+        if (verifyRes.ok && verifyRes.data.verified) { resolve(true); return; }
+      }
+    } catch {
+      // 生体認証キャンセル・失敗時はパスワード再入力にフォールバック
+    }
+    showPasswordStepUp(resolve);
+  });
+}
+
+function showPasswordStepUp(resolve) {
+  const modal = document.getElementById("stepup-modal");
+  const errEl = document.getElementById("stepup-error");
+  const passInput = document.getElementById("stepup-pass");
+  errEl.style.display = "none";
+  passInput.value = "";
+  modal.classList.remove("hidden");
+
+  const cleanup = () => {
+    modal.classList.add("hidden");
+    submitBtn.removeEventListener("click", onSubmit);
+    cancelBtn.removeEventListener("click", onCancel);
+  };
+  const onCancel = () => { cleanup(); resolve(false); };
+  const onSubmit = async () => {
+    const pass = passInput.value;
+    if (!pass) return;
+    try {
+      const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
+      await auth.currentUser.reauthenticateWithCredential(cred);
+      cleanup();
+      resolve(true);
+    } catch {
+      errEl.textContent = "パスワードが正しくありません";
+      errEl.style.display = "block";
+    }
+  };
+  const submitBtn = document.getElementById("stepup-submit");
+  const cancelBtn = document.getElementById("stepup-cancel");
+  submitBtn.addEventListener("click", onSubmit);
+  cancelBtn.addEventListener("click", onCancel);
+}
+
+function showQr(token) {
+  const wrap = document.getElementById("qr-result");
+  wrap.classList.remove("hidden");
+  QRCode.toCanvas(document.getElementById("qr-canvas"), token, { width: 240 });
+}
+
 document.getElementById("reg-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
-  document.getElementById("reg-result-note").classList.add("hidden");
+  document.getElementById("qr-result").classList.add("hidden");
   const hospitalId = document.getElementById("reg-hospital-id").value.trim();
-  const birthdate = document.getElementById("reg-birthdate").value;
-  const phoneLast4 = document.getElementById("reg-phone-last4").value.trim();
+  const hospitalPatientNo = document.getElementById("reg-hospital-patient-no").value.trim();
   if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
-  if (!birthdate) { errEl.textContent = "生年月日を入力してください"; errEl.style.display = "block"; return; }
-  if (!/^\d{4}$/.test(phoneLast4)) { errEl.textContent = "電話番号の下4桁を数字で入力してください"; errEl.style.display = "block"; return; }
+  if (!hospitalPatientNo) { errEl.textContent = "院内患者番号を入力してください"; errEl.style.display = "block"; return; }
+
+  const stepped = await ensureStepUp();
+  if (!stepped) return;
+
+  const { ok, data } = await authedFetch(STAFF_REGISTER_URL, { hospitalId, hospitalPatientNo });
+  if (!ok) {
+    errEl.textContent = "登録に失敗しました: " + ((data.error && data.error.message) || "");
+    errEl.style.display = "block";
+    return;
+  }
+  showQr(data.token);
+  document.getElementById("reg-hospital-id").value = "";
+  document.getElementById("reg-hospital-patient-no").value = "";
+});
+
+document.getElementById("relink-submit").addEventListener("click", async () => {
+  const errEl = document.getElementById("reg-error");
+  errEl.style.display = "none";
+  document.getElementById("qr-result").classList.add("hidden");
+  const hospitalId = document.getElementById("relink-hospital-id").value.trim();
+  const hospitalPatientNo = document.getElementById("relink-hospital-patient-no").value.trim();
+  if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
+  if (!hospitalPatientNo) { errEl.textContent = "院内患者番号を入力してください"; errEl.style.display = "block"; return; }
+
+  const stepped = await ensureStepUp();
+  if (!stepped) return;
+
+  const { ok, data } = await authedFetch(STAFF_RELINK_URL, { hospitalId, hospitalPatientNo });
+  if (!ok) {
+    errEl.textContent = "再連携に失敗しました: " + ((data.error && data.error.message) || "");
+    errEl.style.display = "block";
+    return;
+  }
+  showQr(data.token);
+});
+
+document.getElementById("webauthn-setup-btn").addEventListener("click", async () => {
+  const errEl = document.getElementById("reg-error");
+  errEl.style.display = "none";
   try {
-    const idToken = await auth.currentUser.getIdToken();
-    const res = await fetch(STAFF_REGISTER_URL, {
-      method: "POST",
-      headers: { "content-type": "application/json", "authorization": "Bearer " + idToken },
-      body: JSON.stringify({ hospitalId, birthdate, phoneLast4 })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error((data.error && data.error.message) || "登録に失敗しました");
-    const noteEl = document.getElementById("reg-result-note");
-    noteEl.textContent = data.alreadyRegistered ? "✓ この患者さんは既に登録済みです" : "✓ 登録できました";
-    noteEl.classList.remove("hidden");
-    document.getElementById("reg-hospital-id").value = "";
-    document.getElementById("reg-birthdate").value = "";
-    document.getElementById("reg-phone-last4").value = "";
+    const optRes = await authedFetch(WEBAUTHN_REGISTER_OPTIONS_URL, {});
+    if (!optRes.ok) throw new Error((optRes.data.error && optRes.data.error.message) || "failed");
+    const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: optRes.data });
+    const verifyRes = await authedFetch(WEBAUTHN_REGISTER_VERIFY_URL, attResp);
+    if (!verifyRes.ok || !verifyRes.data.verified) throw new Error("verification failed");
+    alert("生体認証を設定しました。次回以降の重要操作はこのデバイスの生体認証で確認できます。");
   } catch (err) {
-    errEl.textContent = "登録に失敗しました: " + (err.message || err);
+    errEl.textContent = "生体認証の設定に失敗しました: " + (err.message || err);
     errEl.style.display = "block";
   }
 });
