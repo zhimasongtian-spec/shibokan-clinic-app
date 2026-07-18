@@ -367,6 +367,9 @@
         <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
       </div>
       <h3>血液検査</h3>
+      <input type="file" id="labs-photo-input" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn secondary small" id="labs-photo-btn">📷 採血結果を撮影して読み取る</button>
+      <div id="labs-analyze-area"></div>
       <div class="row3">
         <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
         <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
@@ -1218,6 +1221,117 @@ function renderMedsAnalyzeResult(thumb, meds) {
     medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${text}` : text;
     area.innerHTML = "";
     toast("内服薬を追加しました");
+  });
+}
+
+/* ---- 採血結果の写真読み取り (AI) ---- */
+document.getElementById("labs-photo-btn").addEventListener("click", () => {
+  document.getElementById("labs-photo-input").click();
+});
+document.getElementById("labs-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await loadImageFile(file);
+    const aiImage = imgToDataUrl(img, 900, 0.8);
+    const thumb = imgToDataUrl(img, 220, 0.6);
+    analyzeLabsPhoto(aiImage, thumb);
+  } catch {
+    toast("画像を読み込めませんでした");
+  }
+});
+const LABS_FIELDS = [
+  { key: "ast", label: "AST(GOT)", unit: "U/L", target: "v-ast" },
+  { key: "alt", label: "ALT(GPT)", unit: "U/L", target: "v-alt" },
+  { key: "ggtp", label: "γGTP", unit: "U/L", target: "v-ggtp" },
+  { key: "plt", label: "血小板数", unit: "万/µL", target: "v-plt" },
+  { key: "ldl", label: "LDL-C", unit: "mg/dL", target: "v-ldl" },
+  { key: "tg", label: "中性脂肪", unit: "mg/dL", target: "v-tg" },
+  { key: "hba1c", label: "HbA1c", unit: "%", target: "v-hba1c" },
+];
+async function analyzeLabsPhoto(aiImage, thumb) {
+  const area = document.getElementById("labs-analyze-area");
+  const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
+  const proxyReady = MEAL_PROXY_URL && !MEAL_PROXY_URL.includes("REPLACE-WITH-YOUR-PROXY-URL");
+  if (!apiKey && !proxyReady) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="採血結果">
+      <div class="analyze-error">AIによる自動読み取りには「⚙️設定」でGoogle Gemini APIキーの登録が必要です。登録後にもう一度撮影するか、下に直接入力してください。</div>
+    </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="採血結果">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この写真は病院で発行された血液検査結果の用紙です。次の項目の数値を読み取ってください。単位に注意し、指定の単位に揃えてください（血小板数は「万/µL」。検査表に10^3/µLや10^4/µLで書かれている場合はそのまま数値を使い、10^9/Lで書かれている場合は10で割って万/µLに変換してください）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"ast\":数値またはnull,\"alt\":数値またはnull,\"ggtp\":数値またはnull,\"plt\":数値またはnull,\"ldl\":数値またはnull,\"tg\":数値またはnull,\"hba1c\":数値またはnull}";
+  try {
+    const res = apiKey
+      ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        })
+      : await fetch(MEAL_PROXY_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ image: base64, prompt: promptText })
+        });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
+    const text = (data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) || "";
+    const jsonStr = extractFirstJsonObject(text.replace(/```json|```/g, "").trim());
+    const parsed = JSON.parse(jsonStr);
+    const values = {};
+    let found = 0;
+    LABS_FIELDS.forEach(f => {
+      const n = Number(parsed[f.key]);
+      if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
+    });
+    if (found === 0) throw new Error("検査値を認識できませんでした");
+    renderLabsAnalyzeResult(thumb, values);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="採血結果">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下のフォームに直接入力してください。</div>
+    </div>`;
+  }
+}
+function renderLabsAnalyzeResult(thumb, values) {
+  const area = document.getElementById("labs-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="採血結果">
+    <p class="muted">🔍 AIの読み取り結果（反映前に確認・修正できます。空欄の項目は反映されません）</p>
+    <div id="labs-analyze-rows"></div>
+    <div class="row2" style="margin-top:8px;">
+      <button class="btn small secondary" id="labs-analyze-cancel">取消</button>
+      <button class="btn small" id="labs-analyze-confirm">この内容を反映</button>
+    </div>
+  </div>`;
+  const rowsEl = document.getElementById("labs-analyze-rows");
+  rowsEl.innerHTML = LABS_FIELDS.map(f => `
+    <div class="row2" style="align-items:center; margin-bottom:6px;">
+      <label style="margin:0;">${f.label} <span class="unit-note">${f.unit}</span></label>
+      <input type="number" step="any" data-key="${f.key}" value="${values[f.key] != null ? values[f.key] : ""}">
+    </div>`).join("");
+  document.getElementById("labs-analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
+  document.getElementById("labs-analyze-confirm").addEventListener("click", () => {
+    let applied = 0;
+    rowsEl.querySelectorAll("input").forEach(inp => {
+      if (inp.value === "") return;
+      const field = LABS_FIELDS.find(f => f.key === inp.dataset.key);
+      document.getElementById(field.target).value = inp.value;
+      applied++;
+    });
+    updateFibLine();
+    area.innerHTML = "";
+    toast(applied > 0 ? `${applied}件を反映しました` : "反映する項目がありませんでした");
   });
 }
 
