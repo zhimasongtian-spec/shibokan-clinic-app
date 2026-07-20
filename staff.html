@@ -79,20 +79,16 @@
   </div>
 
   <div id="form-register">
-    <p class="muted">病院ID・院内患者番号を入力し、その場でQRコードを患者さんにスキャンしてもらってください。</p>
-    <label for="reg-hospital-id">病院ID</label>
-    <input type="text" id="reg-hospital-id" placeholder="病院の患者ID">
-    <label for="reg-hospital-patient-no">院内患者番号</label>
-    <input type="text" id="reg-hospital-patient-no" placeholder="カルテ番号・診察券番号など">
+    <p class="muted">カルテIDを入力し、その場でQRコードを患者さんにスキャンしてもらってください。</p>
+    <label for="reg-chart-id">カルテID</label>
+    <input type="text" id="reg-chart-id" placeholder="カルテ番号・診察券番号など">
     <button class="btn" id="reg-submit">研究用IDを発行してQR表示</button>
   </div>
 
   <div id="form-relink" class="hidden">
     <p class="muted">機種変更・PIN紛失などで患者さんが再連携する場合。既存の研究用IDに再接続します。</p>
-    <label for="relink-hospital-id">病院ID</label>
-    <input type="text" id="relink-hospital-id" placeholder="病院の患者ID">
-    <label for="relink-hospital-patient-no">院内患者番号</label>
-    <input type="text" id="relink-hospital-patient-no" placeholder="カルテ番号・診察券番号など">
+    <label for="relink-chart-id">カルテID</label>
+    <input type="text" id="relink-chart-id" placeholder="カルテ番号・診察券番号など">
     <button class="btn" id="relink-submit">再連携QRを発行</button>
   </div>
 
@@ -145,6 +141,9 @@ const WEBAUTHN_REGISTER_OPTIONS_URL = `${FN_BASE}/webauthnRegisterOptions`;
 const WEBAUTHN_REGISTER_VERIFY_URL = `${FN_BASE}/webauthnRegisterVerify`;
 const WEBAUTHN_AUTH_OPTIONS_URL = `${FN_BASE}/webauthnAuthOptions`;
 const WEBAUTHN_AUTH_VERIFY_URL = `${FN_BASE}/webauthnAuthVerify`;
+// この病院専用アプリのため病院IDは固定値。対応表のスキーマ自体は
+// hospitalId/hospitalPatientNoのままなので、Cloud Functions側の変更は不要。
+const HOSPITAL_ID = "kagawa-univ-hospital";
 
 function setStatus(msg) { document.getElementById("status").textContent = msg || ""; }
 async function authedFetch(url, body) {
@@ -247,38 +246,33 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
   document.getElementById("qr-result").classList.add("hidden");
-  const hospitalId = document.getElementById("reg-hospital-id").value.trim();
-  const hospitalPatientNo = document.getElementById("reg-hospital-patient-no").value.trim();
-  if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
-  if (!hospitalPatientNo) { errEl.textContent = "院内患者番号を入力してください"; errEl.style.display = "block"; return; }
+  const chartId = document.getElementById("reg-chart-id").value.trim();
+  if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
 
   const stepped = await ensureStepUp();
   if (!stepped) return;
 
-  const { ok, data } = await authedFetch(STAFF_REGISTER_URL, { hospitalId, hospitalPatientNo });
+  const { ok, data } = await authedFetch(STAFF_REGISTER_URL, { hospitalId: HOSPITAL_ID, hospitalPatientNo: chartId });
   if (!ok) {
     errEl.textContent = "登録に失敗しました: " + ((data.error && data.error.message) || "");
     errEl.style.display = "block";
     return;
   }
   showQr(data.token);
-  document.getElementById("reg-hospital-id").value = "";
-  document.getElementById("reg-hospital-patient-no").value = "";
+  document.getElementById("reg-chart-id").value = "";
 });
 
 document.getElementById("relink-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
   errEl.style.display = "none";
   document.getElementById("qr-result").classList.add("hidden");
-  const hospitalId = document.getElementById("relink-hospital-id").value.trim();
-  const hospitalPatientNo = document.getElementById("relink-hospital-patient-no").value.trim();
-  if (!hospitalId) { errEl.textContent = "病院IDを入力してください"; errEl.style.display = "block"; return; }
-  if (!hospitalPatientNo) { errEl.textContent = "院内患者番号を入力してください"; errEl.style.display = "block"; return; }
+  const chartId = document.getElementById("relink-chart-id").value.trim();
+  if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
 
   const stepped = await ensureStepUp();
   if (!stepped) return;
 
-  const { ok, data } = await authedFetch(STAFF_RELINK_URL, { hospitalId, hospitalPatientNo });
+  const { ok, data } = await authedFetch(STAFF_RELINK_URL, { hospitalId: HOSPITAL_ID, hospitalPatientNo: chartId });
   if (!ok) {
     errEl.textContent = "再連携に失敗しました: " + ((data.error && data.error.message) || "");
     errEl.style.display = "block";
