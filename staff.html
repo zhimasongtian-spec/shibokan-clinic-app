@@ -96,7 +96,7 @@
 
   <div class="qr-wrap hidden" id="qr-result">
     <p class="muted" style="margin-bottom:10px;">患者さんのアプリでこのQRコードをスキャンしてもらってください（10分間有効）</p>
-    <canvas id="qr-canvas"></canvas>
+    <img id="qr-canvas" alt="QRコード" style="max-width:100%;">
   </div>
 
   <button type="button" class="btn secondary" id="webauthn-setup-btn" style="margin-top:20px;">🔐 このデバイスで生体認証を有効にする</button>
@@ -118,7 +118,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 "use strict";
 firebase.initializeApp({
@@ -239,7 +239,10 @@ function showPasswordStepUp(resolve) {
 function showQr(token) {
   const wrap = document.getElementById("qr-result");
   wrap.classList.remove("hidden");
-  QRCode.toCanvas(document.getElementById("qr-canvas"), token, { width: 240 });
+  const qr = qrcode(0, "M");
+  qr.addData(token);
+  qr.make();
+  document.getElementById("qr-canvas").src = qr.createDataURL(6, 8);
 }
 
 document.getElementById("reg-submit").addEventListener("click", async () => {
