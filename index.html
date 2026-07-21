@@ -854,7 +854,7 @@ async function finishUnlock() {
   renderHome();
 }
 async function pullFromFirestore(appId) {
-  for (const k of Object.values(K)) {
+  await Promise.all(Object.values(K).map(async k => {
     try {
       const doc = await db.collection("patients").doc(appId).collection("data").doc(k).get();
       if (doc.exists) {
@@ -868,7 +868,7 @@ async function pullFromFirestore(appId) {
     } catch (err) {
       console.error("sync pull failed", k, err);
     }
-  }
+  }));
 }
 auth.onAuthStateChanged(async user => {
   const gate = document.getElementById("auth-gate");
