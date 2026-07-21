@@ -99,17 +99,18 @@
     <img id="qr-canvas" alt="QRコード" style="max-width:100%;">
   </div>
 
-  <button type="button" class="btn secondary" id="webauthn-setup-btn" style="margin-top:20px;">🔐 このデバイスで生体認証を有効にする</button>
-  <button type="button" class="btn secondary" id="logout-btn">ログアウト</button>
+  <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
 </div>
 
 <div class="modal-backdrop hidden" id="stepup-modal">
   <div class="box" style="text-align:left;">
     <h2 style="text-align:center;">🔒 本人確認</h2>
-    <p class="muted" style="text-align:center;">患者登録・再連携の前に、パスワードの再入力をお願いします。</p>
+    <p class="muted" style="text-align:center;">共有端末でも操作した本人が正しく記録されるよう、患者登録・再連携の前には毎回ログインし直していただきます。</p>
+    <label for="stepup-email">メールアドレス</label>
+    <input type="email" id="stepup-email" autocomplete="username">
     <label for="stepup-pass">パスワード</label>
     <input type="password" id="stepup-pass" autocomplete="current-password">
-    <button class="btn" id="stepup-submit">確認して続行</button>
+    <button class="btn" id="stepup-submit">ログインして続行</button>
     <button class="btn-link" id="stepup-cancel" style="display:block; margin: 8px auto 0;">キャンセル</button>
     <p class="error" id="stepup-error"></p>
   </div>
@@ -117,7 +118,6 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-<script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 "use strict";
@@ -131,16 +131,14 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 // 医師は日常的に開くたびメール再入力させたくないので、端末に永続化する。
-// 重要操作（患者登録・再連携）の直前だけ別途ステップアップ認証を要求する。
+// ただし複数人が同じ端末を共有する可能性があるため、患者登録・再連携の
+// 直前は必ず（今ログイン中の人に関係なく）メール＋パスワードでログインし
+// 直させ、操作した本人が正しく記録されるようにする。
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
 const STAFF_REGISTER_URL = `${FN_BASE}/staffRegisterPatient`;
 const STAFF_RELINK_URL = `${FN_BASE}/staffRelinkPatient`;
-const WEBAUTHN_REGISTER_OPTIONS_URL = `${FN_BASE}/webauthnRegisterOptions`;
-const WEBAUTHN_REGISTER_VERIFY_URL = `${FN_BASE}/webauthnRegisterVerify`;
-const WEBAUTHN_AUTH_OPTIONS_URL = `${FN_BASE}/webauthnAuthOptions`;
-const WEBAUTHN_AUTH_VERIFY_URL = `${FN_BASE}/webauthnAuthVerify`;
 // この病院専用アプリのため病院IDは固定値。対応表のスキーマ自体は
 // hospitalId/hospitalPatientNoのままなので、Cloud Functions側の変更は不要。
 const HOSPITAL_ID = "kagawa-univ-hospital";
@@ -186,28 +184,20 @@ function switchTab(which) {
 }
 
 // ------- ステップアップ認証 -------
-// まずWebAuthn（生体認証）を試す。使えなければパスワード再入力モーダルにフォールバック。
+// 共有端末で複数人が使う可能性があるため、患者登録・再連携の直前は
+// 「今ログイン中の人」に関係なく、必ずメール＋パスワードで改めてログイン
+// し直させる。これにより誰が操作したかが正しく記録される。
 function ensureStepUp() {
-  return new Promise(async (resolve) => {
-    try {
-      const optRes = await authedFetch(WEBAUTHN_AUTH_OPTIONS_URL, {});
-      if (optRes.ok) {
-        const assertion = await SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: optRes.data });
-        const verifyRes = await authedFetch(WEBAUTHN_AUTH_VERIFY_URL, assertion);
-        if (verifyRes.ok && verifyRes.data.verified) { resolve(true); return; }
-      }
-    } catch {
-      // 生体認証キャンセル・失敗時はパスワード再入力にフォールバック
-    }
-    showPasswordStepUp(resolve);
-  });
+  return new Promise((resolve) => showReloginModal(resolve));
 }
 
-function showPasswordStepUp(resolve) {
+function showReloginModal(resolve) {
   const modal = document.getElementById("stepup-modal");
   const errEl = document.getElementById("stepup-error");
+  const emailInput = document.getElementById("stepup-email");
   const passInput = document.getElementById("stepup-pass");
   errEl.style.display = "none";
+  emailInput.value = "";
   passInput.value = "";
   modal.classList.remove("hidden");
 
@@ -218,15 +208,21 @@ function showPasswordStepUp(resolve) {
   };
   const onCancel = () => { cleanup(); resolve(false); };
   const onSubmit = async () => {
+    const email = emailInput.value.trim();
     const pass = passInput.value;
-    if (!pass) return;
+    if (!email || !pass) return;
     try {
-      const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
-      await auth.currentUser.reauthenticateWithCredential(cred);
+      await auth.signOut();
+      await auth.signInWithEmailAndPassword(email, pass);
+      const tokenResult = await auth.currentUser.getIdTokenResult(true);
+      if (tokenResult.claims.role !== "staff") {
+        await auth.signOut();
+        throw new Error("not staff");
+      }
       cleanup();
       resolve(true);
     } catch {
-      errEl.textContent = "パスワードが正しくありません";
+      errEl.textContent = "メールアドレスまたはパスワードが正しくありません";
       errEl.style.display = "block";
     }
   };
@@ -282,22 +278,6 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
     return;
   }
   showQr(data.token);
-});
-
-document.getElementById("webauthn-setup-btn").addEventListener("click", async () => {
-  const errEl = document.getElementById("reg-error");
-  errEl.style.display = "none";
-  try {
-    const optRes = await authedFetch(WEBAUTHN_REGISTER_OPTIONS_URL, {});
-    if (!optRes.ok) throw new Error((optRes.data.error && optRes.data.error.message) || "failed");
-    const attResp = await SimpleWebAuthnBrowser.startRegistration({ optionsJSON: optRes.data });
-    const verifyRes = await authedFetch(WEBAUTHN_REGISTER_VERIFY_URL, attResp);
-    if (!verifyRes.ok || !verifyRes.data.verified) throw new Error("verification failed");
-    alert("生体認証を設定しました。次回以降の重要操作はこのデバイスの生体認証で確認できます。");
-  } catch (err) {
-    errEl.textContent = "生体認証の設定に失敗しました: " + (err.message || err);
-    errEl.style.display = "block";
-  }
 });
 
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
