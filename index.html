@@ -593,11 +593,12 @@
     <div class="card">
       <h2>👤 基本情報</h2>
       <div class="row2">
-        <div><label>年齢</label><input type="number" id="p-age" min="10" max="120"></div>
+        <div><label>生年月日</label><input type="date" id="p-birthdate"></div>
         <div><label>性別</label>
           <select id="p-sex"><option value="">選択</option><option value="男性">男性</option><option value="女性">女性</option></select>
         </div>
       </div>
+      <p class="muted" id="age-view" style="margin-top:4px;"></p>
       <div class="row2">
         <div><label>身長 <span class="unit-note">cm</span></label><input type="number" id="p-height" step="0.1" min="100" max="230"></div>
         <div><label>開始時体重 <span class="unit-note">kg</span></label><input type="number" id="p-start-weight" step="0.1" min="20" max="300"></div>
@@ -907,6 +908,14 @@ function todayStr(offset = 0) {
 }
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
+function ageAtDate(birthdate, dateStr) {
+  if (!birthdate || !dateStr) return null;
+  const [by, bm, bd] = birthdate.split("-").map(Number);
+  const [dy, dm, dd] = dateStr.split("-").map(Number);
+  let age = dy - by;
+  if (dm < bm || (dm === bm && dd < bd)) age--;
+  return age >= 0 ? age : null;
+}
 function toast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg; t.classList.add("show");
@@ -1764,10 +1773,11 @@ function fib4Class(f, age) {
   if (f <= 2.67) return { cls: "mid", label: "肝臓が固くなりかけている可能性があります。" };
   return { cls: "high", label: "肝臓が硬くなっている可能性が高い状態です。" };
 }
-["v-ast", "v-alt", "v-plt"].forEach(id =>
+["v-ast", "v-alt", "v-plt", "v-date"].forEach(id =>
   document.getElementById(id).addEventListener("input", updateFibLine));
 function updateFibLine() {
-  const age = Number(load(K.profile).age) || null;
+  const visitDate = document.getElementById("v-date").value || todayStr();
+  const age = ageAtDate(load(K.profile).birthdate, visitDate);
   const f = calcFib4(age,
     Number(document.getElementById("v-ast").value),
     Number(document.getElementById("v-alt").value),
@@ -1775,7 +1785,7 @@ function updateFibLine() {
   const el = document.getElementById("v-fib-line");
   if (f == null) {
     el.className = "fib-line";
-    el.textContent = age ? "" : "※ FIB-4の自動計算には「設定」で年齢の入力が必要です";
+    el.textContent = age ? "" : "※ FIB-4の自動計算には「設定」で生年月日の入力が必要です";
     if (!age && (document.getElementById("v-ast").value || document.getElementById("v-alt").value)) el.className = "fib-line mid";
     return;
   }
@@ -1840,7 +1850,7 @@ document.getElementById("v-save").addEventListener("click", () => {
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
     meds: document.getElementById("v-meds").value.trim() || null,
   };
-  rec.fib4 = calcFib4(Number(p.age), rec.ast, rec.alt, rec.plt);
+  rec.fib4 = calcFib4(ageAtDate(p.birthdate, date), rec.ast, rec.alt, rec.plt);
   const visits = load(K.visits);
   visits[date] = rec;
   save(K.visits, visits);
@@ -1985,14 +1995,20 @@ function renderChart() {
 function renderSettings() {
   const p = load(K.profile);
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
-  setv("p-age", p.age); document.getElementById("p-sex").value = p.sex || "";
+  setv("p-birthdate", p.birthdate); document.getElementById("p-sex").value = p.sex || "";
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
   setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
   setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
   document.getElementById("account-phone").textContent =
     auth.currentUser ? `ログイン中: ${auth.currentUser.phoneNumber}` : "ログインしていません";
-  updateBmiView(); updateGoalSuggest();
+  updateAgeView(); updateBmiView(); updateGoalSuggest();
 }
+function updateAgeView() {
+  const age = ageAtDate(document.getElementById("p-birthdate").value, todayStr());
+  const el = document.getElementById("age-view");
+  el.textContent = age != null ? `現在の年齢: ${age}歳` : "生年月日を入力すると年齢が自動計算されます";
+}
+document.getElementById("p-birthdate").addEventListener("input", updateAgeView);
 document.getElementById("logout-btn").addEventListener("click", () => {
   if (confirm("ログアウトしますか？")) auth.signOut();
 });
@@ -2022,7 +2038,7 @@ function updateGoalSuggest() {
 document.getElementById("p-save").addEventListener("click", () => {
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
   const p = {
-    age: num("p-age"), sex: document.getElementById("p-sex").value || null,
+    birthdate: document.getElementById("p-birthdate").value || null, sex: document.getElementById("p-sex").value || null,
     height: num("p-height"), startWeight: num("p-start-weight"),
     goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 150,
     goalKcal: num("p-goal-kcal"), goalSteps: num("p-goal-steps") ?? 8000,
