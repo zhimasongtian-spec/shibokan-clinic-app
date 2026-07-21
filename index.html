@@ -351,10 +351,6 @@
       </div>
     </div>
 
-    <div class="card">
-      <h2>🩺 肝機能の状態（FIB-4）</h2>
-      <div id="home-fib-line"></div>
-    </div>
   </section>
 
   <!-- ================= 記録（体重） ================= -->
@@ -2055,28 +2051,7 @@ function weightProgress() {
   const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
   return { start, goal, cur, pct };
 }
-function latestFib4() {
-  const visits = load(K.visits);
-  const dates = Object.keys(visits).sort().reverse();
-  for (const d of dates) if (visits[d].fib4 != null) return { value: visits[d].fib4, date: d };
-  return null;
-}
 function renderHome() {
-  // FIB-4
-  const fibInfo = latestFib4();
-  const fibEl = document.getElementById("home-fib-line");
-  if (fibInfo) {
-    const f = fibInfo.value;
-    const age = Number(load(K.profile).age) || null;
-    const { cls, label } = fib4Class(f, age);
-    fibEl.className = "fib-line " + cls;
-    fibEl.style.marginTop = "0";
-    fibEl.innerHTML = `FIB-4 index: <strong>${f.toFixed(2)}</strong> — ${label}<br><span style="font-size:.72rem; opacity:.75;">${fmtDateFull(fibInfo.date)} 時点</span>`;
-  } else {
-    fibEl.className = "fib-line info";
-    fibEl.textContent = "「記録」タブで血液検査データ（AST・ALT・血小板数）を登録するとFIB-4指数が表示されます。";
-  }
-
   // ring
   const wp = weightProgress();
   const ring = document.getElementById("ring-fg");
