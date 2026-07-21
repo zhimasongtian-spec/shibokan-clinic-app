@@ -80,16 +80,20 @@
 
   <div id="form-register">
     <p class="muted">カルテIDを入力し、その場でQRコードを患者さんにスキャンしてもらってください。</p>
-    <label for="reg-chart-id">カルテID</label>
-    <input type="text" id="reg-chart-id" placeholder="カルテ番号・診察券番号など">
-    <button class="btn" id="reg-submit">研究用IDを発行してQR表示</button>
+    <div id="reg-fields">
+      <label for="reg-chart-id">カルテID</label>
+      <input type="text" id="reg-chart-id" placeholder="カルテ番号・診察券番号など">
+      <button class="btn" id="reg-submit">研究用IDを発行してQR表示</button>
+    </div>
   </div>
 
   <div id="form-relink" class="hidden">
     <p class="muted">機種変更・PIN紛失などで患者さんが再連携する場合。既存の研究用IDに再接続します。</p>
-    <label for="relink-chart-id">カルテID</label>
-    <input type="text" id="relink-chart-id" placeholder="カルテ番号・診察券番号など">
-    <button class="btn" id="relink-submit">再連携QRを発行</button>
+    <div id="relink-fields">
+      <label for="relink-chart-id">カルテID</label>
+      <input type="text" id="relink-chart-id" placeholder="カルテ番号・診察券番号など">
+      <button class="btn" id="relink-submit">再連携QRを発行</button>
+    </div>
   </div>
 
   <p class="error" id="reg-error"></p>
@@ -97,7 +101,6 @@
   <div class="qr-wrap hidden" id="qr-result">
     <p class="muted" style="margin-bottom:10px;">患者さんのアプリでこのQRコードをスキャンしてもらってください（10分間有効）</p>
     <img id="qr-canvas" alt="QRコード" style="max-width:100%;">
-    <button type="button" class="btn secondary" id="qr-next-btn" style="margin-top:14px;">続けて別の患者を登録する</button>
   </div>
 
   <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
@@ -183,6 +186,9 @@ function switchTab(which) {
   document.getElementById("form-relink").classList.toggle("hidden", which !== "relink");
   document.getElementById("qr-result").classList.add("hidden");
   document.getElementById("reg-error").style.display = "none";
+  // QR発行後に隠した入力欄を、タブを選び直したタイミングで再表示する
+  document.getElementById("reg-fields").classList.remove("hidden");
+  document.getElementById("relink-fields").classList.remove("hidden");
 }
 
 // ------- ステップアップ認証 -------
@@ -258,22 +264,16 @@ function showReloginModal(resolve) {
   switchBtn.addEventListener("click", onSwitch);
 }
 
-function showQr(token) {
+function showQr(token, fieldsIdToHide) {
   const wrap = document.getElementById("qr-result");
   wrap.classList.remove("hidden");
   const qr = qrcode(0, "M");
   qr.addData(token);
   qr.make();
   document.getElementById("qr-canvas").src = qr.createDataURL(6, 8);
+  // QR発行後は入力欄・ボタンを隠す。次の患者を登録する時はタブを選び直せば戻る。
+  document.getElementById(fieldsIdToHide).classList.add("hidden");
 }
-
-document.getElementById("qr-next-btn").addEventListener("click", () => {
-  document.getElementById("qr-result").classList.add("hidden");
-  const activeInput = document.getElementById("form-register").classList.contains("hidden")
-    ? document.getElementById("relink-chart-id")
-    : document.getElementById("reg-chart-id");
-  activeInput.focus();
-});
 
 document.getElementById("reg-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
@@ -291,7 +291,7 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
     errEl.style.display = "block";
     return;
   }
-  showQr(data.token);
+  showQr(data.token, "reg-fields");
   document.getElementById("reg-chart-id").value = "";
 });
 
@@ -311,7 +311,7 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
     errEl.style.display = "block";
     return;
   }
-  showQr(data.token);
+  showQr(data.token, "relink-fields");
 });
 
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
