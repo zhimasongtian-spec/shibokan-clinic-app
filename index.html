@@ -66,12 +66,12 @@
   .muted { color: var(--sub); font-size: .84rem; }
 
   label { display: block; font-size: .84rem; font-weight: 600; margin: 11px 0 4px; }
-  input[type=number], input[type=date], input[type=text], input[type=password], input[type=email], select, textarea {
+  input[type=number], input[type=date], input[type=text], input[type=password], input[type=email], input[type=tel], select, textarea {
     width: 100%; min-width: 0; max-width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 1.05rem; font-family: inherit; background: #fbfdfc; color: var(--ink);
     box-sizing: border-box;
   }
-  input[type=number], input[type=date], input[type=text], input[type=password], input[type=email], select {
+  input[type=number], input[type=date], input[type=text], input[type=password], input[type=email], input[type=tel], select {
     height: 46px;
   }
   input[type=date] {
@@ -81,6 +81,7 @@
   .pin-input {
     text-align: center; font-size: 2rem !important; letter-spacing: .5em;
     padding-top: 14px !important; padding-bottom: 14px !important;
+    -webkit-text-security: disc; text-security: disc;
   }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); border-color: transparent; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -297,9 +298,9 @@
       <h2>PINを設定してください</h2>
       <p class="muted">次回からはこの4桁PINでログインします。</p>
       <label for="setup-pin1">4桁PIN</label>
-      <input type="password" id="setup-pin1" class="pin-input" placeholder="••••" inputmode="numeric" maxlength="4">
+      <input type="tel" id="setup-pin1" class="pin-input" placeholder="••••" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="4">
       <label for="setup-pin2">確認のためもう一度</label>
-      <input type="password" id="setup-pin2" class="pin-input" placeholder="••••" inputmode="numeric" maxlength="4">
+      <input type="tel" id="setup-pin2" class="pin-input" placeholder="••••" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="4">
       <button class="btn" id="setup-pin-submit">PINを設定する</button>
       <p class="muted" id="setup-pin-error" style="color:var(--danger); display:none;"></p>
     </div>
@@ -309,7 +310,7 @@
       <h2>🔒 ロック中</h2>
       <p class="muted" id="unlock-hint">生体認証で解錠しています…</p>
       <label for="unlock-pin" id="unlock-pin-label" class="hidden">4桁PIN</label>
-      <input type="password" id="unlock-pin" class="hidden pin-input" placeholder="••••" inputmode="numeric" maxlength="4">
+      <input type="tel" id="unlock-pin" class="hidden pin-input" placeholder="••••" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="4">
       <button class="btn hidden" id="unlock-pin-submit">解錠する</button>
       <button class="btn-link hidden" id="unlock-webauthn-retry">生体認証をもう一度試す</button>
       <p class="muted" id="unlock-error" style="color:var(--danger); display:none;"></p>
