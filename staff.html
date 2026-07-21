@@ -97,6 +97,7 @@
   <div class="qr-wrap hidden" id="qr-result">
     <p class="muted" style="margin-bottom:10px;">患者さんのアプリでこのQRコードをスキャンしてもらってください（10分間有効）</p>
     <img id="qr-canvas" alt="QRコード" style="max-width:100%;">
+    <button type="button" class="btn secondary" id="qr-next-btn" style="margin-top:14px;">続けて別の患者を登録する</button>
   </div>
 
   <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
@@ -265,6 +266,14 @@ function showQr(token) {
   qr.make();
   document.getElementById("qr-canvas").src = qr.createDataURL(6, 8);
 }
+
+document.getElementById("qr-next-btn").addEventListener("click", () => {
+  document.getElementById("qr-result").classList.add("hidden");
+  const activeInput = document.getElementById("form-register").classList.contains("hidden")
+    ? document.getElementById("relink-chart-id")
+    : document.getElementById("reg-chart-id");
+  activeInput.focus();
+});
 
 document.getElementById("reg-submit").addEventListener("click", async () => {
   const errEl = document.getElementById("reg-error");
