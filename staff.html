@@ -105,13 +105,14 @@
 <div class="modal-backdrop hidden" id="stepup-modal">
   <div class="box" style="text-align:left;">
     <h2 style="text-align:center;">🔒 本人確認</h2>
-    <p class="muted" style="text-align:center;">共有端末でも操作した本人が正しく記録されるよう、患者登録・再連携の前には毎回ログインし直していただきます。</p>
-    <label for="stepup-email">メールアドレス</label>
-    <input type="email" id="stepup-email" autocomplete="username">
+    <p class="muted" style="text-align:center;" id="stepup-current-user"></p>
+    <label for="stepup-email" id="stepup-email-label" class="hidden">メールアドレス</label>
+    <input type="email" id="stepup-email" autocomplete="username" class="hidden">
     <label for="stepup-pass">パスワード</label>
     <input type="password" id="stepup-pass" autocomplete="current-password">
     <button class="btn" id="stepup-submit">ログインして続行</button>
-    <button class="btn-link" id="stepup-cancel" style="display:block; margin: 8px auto 0;">キャンセル</button>
+    <button class="btn-link" id="stepup-switch-user" style="display:block; margin: 8px auto 0;">別のスタッフとしてログイン</button>
+    <button class="btn-link" id="stepup-cancel" style="display:block; margin: 4px auto 0;">キャンセル</button>
     <p class="error" id="stepup-error"></p>
   </div>
 </div>
@@ -131,9 +132,9 @@ firebase.initializeApp({
 });
 const auth = firebase.auth();
 // 医師は日常的に開くたびメール再入力させたくないので、端末に永続化する。
-// ただし複数人が同じ端末を共有する可能性があるため、患者登録・再連携の
-// 直前は必ず（今ログイン中の人に関係なく）メール＋パスワードでログインし
-// 直させ、操作した本人が正しく記録されるようにする。
+// 患者登録・再連携の直前は必ずパスワード確認を求め、操作した本人を記録する。
+// 同じ端末を別のスタッフが使う場合は、その場でメール＋パスワードに切り替えて
+// ログインし直せる（stepup-modal参照）。
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
@@ -184,9 +185,10 @@ function switchTab(which) {
 }
 
 // ------- ステップアップ認証 -------
-// 共有端末で複数人が使う可能性があるため、患者登録・再連携の直前は
-// 「今ログイン中の人」に関係なく、必ずメール＋パスワードで改めてログイン
-// し直させる。これにより誰が操作したかが正しく記録される。
+// 共有端末で複数人が使う可能性があるため、患者登録・再連携の直前は必ず
+// 本人確認を求める。通常は今ログイン中の人がパスワードだけ入力すればよいが、
+// 「別のスタッフとしてログイン」を選べば、今のセッションに関係なく
+// メール＋パスワードで改めてログインし直せる。
 function ensureStepUp() {
   return new Promise((resolve) => showReloginModal(resolve));
 }
@@ -194,26 +196,50 @@ function ensureStepUp() {
 function showReloginModal(resolve) {
   const modal = document.getElementById("stepup-modal");
   const errEl = document.getElementById("stepup-error");
+  const currentUserEl = document.getElementById("stepup-current-user");
+  const emailLabel = document.getElementById("stepup-email-label");
   const emailInput = document.getElementById("stepup-email");
   const passInput = document.getElementById("stepup-pass");
+  const submitBtn = document.getElementById("stepup-submit");
+  const cancelBtn = document.getElementById("stepup-cancel");
+  const switchBtn = document.getElementById("stepup-switch-user");
   errEl.style.display = "none";
   emailInput.value = "";
   passInput.value = "";
+  let switchMode = false;
+  setSwitchMode(false);
   modal.classList.remove("hidden");
+
+  function setSwitchMode(on) {
+    switchMode = on;
+    emailLabel.classList.toggle("hidden", !on);
+    emailInput.classList.toggle("hidden", !on);
+    currentUserEl.textContent = on
+      ? "別のスタッフとしてログインします。メールアドレスとパスワードを入力してください。"
+      : `${auth.currentUser.email} としてパスワードを入力してください。`;
+    switchBtn.style.display = on ? "none" : "block";
+  }
 
   const cleanup = () => {
     modal.classList.add("hidden");
     submitBtn.removeEventListener("click", onSubmit);
     cancelBtn.removeEventListener("click", onCancel);
+    switchBtn.removeEventListener("click", onSwitch);
   };
   const onCancel = () => { cleanup(); resolve(false); };
+  const onSwitch = () => { errEl.style.display = "none"; setSwitchMode(true); };
   const onSubmit = async () => {
-    const email = emailInput.value.trim();
     const pass = passInput.value;
-    if (!email || !pass) return;
+    if (!pass) return;
+    if (switchMode && !emailInput.value.trim()) return;
     try {
-      await auth.signOut();
-      await auth.signInWithEmailAndPassword(email, pass);
+      if (switchMode) {
+        await auth.signOut();
+        await auth.signInWithEmailAndPassword(emailInput.value.trim(), pass);
+      } else {
+        const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, pass);
+        await auth.currentUser.reauthenticateWithCredential(cred);
+      }
       const tokenResult = await auth.currentUser.getIdTokenResult(true);
       if (tokenResult.claims.role !== "staff") {
         await auth.signOut();
@@ -226,10 +252,9 @@ function showReloginModal(resolve) {
       errEl.style.display = "block";
     }
   };
-  const submitBtn = document.getElementById("stepup-submit");
-  const cancelBtn = document.getElementById("stepup-cancel");
   submitBtn.addEventListener("click", onSubmit);
   cancelBtn.addEventListener("click", onCancel);
+  switchBtn.addEventListener("click", onSwitch);
 }
 
 function showQr(token) {
