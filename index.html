@@ -193,6 +193,8 @@
     border-radius: 50%; animation: spin .7s linear infinite; display: inline-block;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fieldFlash { 0% { background: var(--accent-soft); border-color: var(--accent); } 100% { background: #fbfdfc; border-color: var(--line); } }
+  .field-flash { animation: fieldFlash 1.6s ease; }
   .analyze-item-row {
     display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line);
   }
@@ -927,6 +929,12 @@ function toast(msg) {
   t.textContent = msg; t.classList.add("show");
   clearTimeout(toast._tm); toast._tm = setTimeout(() => t.classList.remove("show"), 2200);
 }
+function flashField(el) {
+  el.classList.remove("field-flash");
+  void el.offsetWidth;
+  el.classList.add("field-flash");
+  el.addEventListener("animationend", () => el.classList.remove("field-flash"), { once: true });
+}
 function cheer(em, tx) {
   const c = document.getElementById("cheer");
   document.getElementById("cheer-em").textContent = em;
@@ -1381,7 +1389,7 @@ async function analyzeMedsPhoto(aiImage, thumb) {
     const parsed = JSON.parse(jsonStr);
     const meds = String(parsed.meds || "").trim();
     if (!meds) throw new Error("薬剤情報を認識できませんでした");
-    renderMedsAnalyzeResult(thumb, meds);
+    applyMedsAnalyzeResult(thumb, meds);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="処方箋">
@@ -1389,26 +1397,16 @@ async function analyzeMedsPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-function renderMedsAnalyzeResult(thumb, meds) {
+function applyMedsAnalyzeResult(thumb, meds) {
   const area = document.getElementById("meds-analyze-area");
+  const medsEl = document.getElementById("v-meds");
+  medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${meds}` : meds;
+  flashField(medsEl);
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="処方箋">
-    <p class="muted">🔍 AIの読み取り結果（追加前に修正できます）</p>
-    <textarea id="meds-analyze-text" rows="4">${meds.replace(/</g, "&lt;")}</textarea>
-    <div class="row2" style="margin-top:8px;">
-      <button class="btn small secondary" id="meds-analyze-cancel">取消</button>
-      <button class="btn small" id="meds-analyze-confirm">この内容を追加</button>
-    </div>
+    <p class="muted">✅ 読み取った内容を内服薬欄に追加しました。内容を確認し、必要に応じて下で修正してください。</p>
   </div>`;
-  document.getElementById("meds-analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
-  document.getElementById("meds-analyze-confirm").addEventListener("click", () => {
-    const text = document.getElementById("meds-analyze-text").value.trim();
-    if (!text) { toast("追加する内容がありません"); return; }
-    const medsEl = document.getElementById("v-meds");
-    medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${text}` : text;
-    area.innerHTML = "";
-    toast("内服薬を追加しました");
-  });
+  toast("内服薬を追加しました");
 }
 
 /* ---- 採血結果の写真読み取り (AI) ---- */
@@ -1482,7 +1480,7 @@ async function analyzeLabsPhoto(aiImage, thumb) {
       if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
     });
     if (found === 0) throw new Error("検査値を認識できませんでした");
-    renderLabsAnalyzeResult(thumb, values);
+    applyLabsAnalyzeResult(thumb, values);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="採血結果">
@@ -1490,36 +1488,22 @@ async function analyzeLabsPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-function renderLabsAnalyzeResult(thumb, values) {
+function applyLabsAnalyzeResult(thumb, values) {
   const area = document.getElementById("labs-analyze-area");
+  const appliedLabels = [];
+  LABS_FIELDS.forEach(f => {
+    if (values[f.key] == null) return;
+    const el = document.getElementById(f.target);
+    el.value = values[f.key];
+    flashField(el);
+    appliedLabels.push(f.label);
+  });
+  updateFibLine();
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="採血結果">
-    <p class="muted">🔍 AIの読み取り結果（反映前に確認・修正できます。空欄の項目は反映されません）</p>
-    <div id="labs-analyze-rows"></div>
-    <div class="row2" style="margin-top:8px;">
-      <button class="btn small secondary" id="labs-analyze-cancel">取消</button>
-      <button class="btn small" id="labs-analyze-confirm">この内容を反映</button>
-    </div>
+    <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
   </div>`;
-  const rowsEl = document.getElementById("labs-analyze-rows");
-  rowsEl.innerHTML = LABS_FIELDS.map(f => `
-    <div class="row2" style="align-items:center; margin-bottom:6px;">
-      <label style="margin:0;">${f.label} <span class="unit-note">${f.unit}</span></label>
-      <input type="number" step="any" data-key="${f.key}" value="${values[f.key] != null ? values[f.key] : ""}">
-    </div>`).join("");
-  document.getElementById("labs-analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
-  document.getElementById("labs-analyze-confirm").addEventListener("click", () => {
-    let applied = 0;
-    rowsEl.querySelectorAll("input").forEach(inp => {
-      if (inp.value === "") return;
-      const field = LABS_FIELDS.find(f => f.key === inp.dataset.key);
-      document.getElementById(field.target).value = inp.value;
-      applied++;
-    });
-    updateFibLine();
-    area.innerHTML = "";
-    toast(applied > 0 ? `${applied}件を反映しました` : "反映する項目がありませんでした");
-  });
+  toast(`${appliedLabels.length}件を反映しました`);
 }
 
 /* ============ 運動 ============ */
