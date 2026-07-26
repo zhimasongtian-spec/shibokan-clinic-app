@@ -334,6 +334,14 @@
 <main>
   <!-- ================= ホーム ================= -->
   <section class="page active" id="page-home">
+    <div class="card hidden" id="doctor-message-card">
+      <h2>📋 先生からのメッセージ</h2>
+      <p id="doctor-comment" style="font-weight:700;"></p>
+      <p class="muted" id="doctor-eval-date" style="font-size:.8rem;"></p>
+      <p id="doctor-goal-summary" style="font-size:.85rem; margin-top:8px;"></p>
+      <p id="doctor-next-visit" style="font-size:.85rem; margin-top:4px;"></p>
+    </div>
+
     <div class="card">
       <h2>✅ 今日の記録チェック</h2>
       <div class="check-list" id="today-checklist"></div>
@@ -689,7 +697,7 @@ const db = firebase.firestore(firebase.app(), "patients");
 let currentUid = null;
 
 /* ============ storage keys ============ */
-const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1" };
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1" };
 const load = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
 const save = (k, v) => {
   localStorage.setItem(k, JSON.stringify(v));
@@ -2061,7 +2069,33 @@ function weightProgress() {
   const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
   return { start, goal, cur, pct };
 }
+function latestEval() {
+  const all = load(K.eval);
+  const dates = Object.keys(all).sort().reverse();
+  return dates.length ? all[dates[0]] : null;
+}
+function renderDoctorMessage() {
+  const ev = latestEval();
+  const card = document.getElementById("doctor-message-card");
+  if (!ev) { card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+  document.getElementById("doctor-comment").textContent = ev.doctorComment || "";
+  document.getElementById("doctor-eval-date").textContent = ev.visitDate ? `（前回来院 ${fmtDate(ev.visitDate)}より）` : "";
+  const goalParts = [];
+  if (ev.goalWeight != null) goalParts.push(`体重目標 ${ev.goalWeight}kg`);
+  if (ev.goalExPerWeek != null) goalParts.push(`運動 週${ev.goalExPerWeek}回×${ev.goalExMinutes || "?"}分`);
+  if (ev.goalMealNote) goalParts.push(ev.goalMealNote);
+  document.getElementById("doctor-goal-summary").textContent = goalParts.join(" ／ ");
+  if (ev.nextVisitDate) {
+    const days = Math.round((new Date(ev.nextVisitDate) - new Date(todayStr())) / 86400000);
+    document.getElementById("doctor-next-visit").textContent =
+      days >= 0 ? `次回来院まで あと${days}日（${fmtDate(ev.nextVisitDate)}）` : `次回来院予定日 ${fmtDate(ev.nextVisitDate)}`;
+  } else {
+    document.getElementById("doctor-next-visit").textContent = "";
+  }
+}
 function renderHome() {
+  renderDoctorMessage();
   // ring
   const wp = weightProgress();
   const ring = document.getElementById("ring-fg");

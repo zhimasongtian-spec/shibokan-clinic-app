@@ -53,6 +53,27 @@
     position: fixed; inset: 0; background: rgba(36,49,42,.4); display: flex;
     align-items: center; justify-content: center; padding: 20px; z-index: 10;
   }
+  .box.wide { max-width: 640px; text-align: left; }
+  .box.wide h2 { text-align: center; }
+  .box.wide h3 { font-size: .95rem; color: var(--accent-dark); margin: 16px 0 8px; }
+  .row3 { display: flex; gap: 8px; }
+  .row3 > div { flex: 1; min-width: 0; }
+  .row3 label { margin: 11px 0 4px; }
+  .summary-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    border-bottom: 1px solid var(--line); font-size: .86rem;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .seg-interval { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .seg-interval button {
+    flex: 1; min-width: 70px; padding: 8px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fbfdfc; color: var(--sub); font-weight: 700; font-size: .82rem; cursor: pointer; font-family: inherit;
+  }
+  .seg-interval button.on { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+  .back-link {
+    background: none; border: none; color: var(--sub); font-size: .84rem;
+    cursor: pointer; font-family: inherit; padding: 4px 0; margin-bottom: 6px;
+  }
 </style>
 </head>
 <body>
@@ -76,6 +97,7 @@
   <div class="tabs">
     <button type="button" class="tab-btn active" id="tab-register">新規患者登録</button>
     <button type="button" class="tab-btn" id="tab-relink">既存患者の再連携</button>
+    <button type="button" class="tab-btn" id="tab-open">患者を開く・評価</button>
   </div>
 
   <div id="form-register">
@@ -96,6 +118,15 @@
     </div>
   </div>
 
+  <div id="form-open" class="hidden">
+    <p class="muted">診察する患者さんのカルテIDを入力してください。開くたびに検索します（一覧は表示しません）。</p>
+    <div id="open-fields">
+      <label for="open-chart-id">カルテID</label>
+      <input type="text" id="open-chart-id" placeholder="カルテ番号・診察券番号など">
+      <button class="btn" id="open-submit">患者を開く</button>
+    </div>
+  </div>
+
   <p class="error" id="reg-error"></p>
 
   <div class="qr-wrap hidden" id="qr-result">
@@ -104,6 +135,47 @@
   </div>
 
   <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
+</div>
+
+<div class="box wide hidden" id="patient-detail-view">
+  <button type="button" class="back-link" id="patient-detail-back">← 患者の連携画面に戻る</button>
+  <h2>患者の評価</h2>
+  <p class="muted" id="pd-status"></p>
+
+  <div id="pd-content" class="hidden">
+    <h3>頑張り度</h3>
+    <div id="pd-summary"></div>
+
+    <h3>検査値（患者が記録した最新の来院データ）</h3>
+    <div id="pd-labs"></div>
+
+    <h3>評価・次の目標を入力</h3>
+    <label for="pd-visit-date">来院日</label>
+    <input type="date" id="pd-visit-date">
+    <div class="row3">
+      <div><label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label><input type="number" id="pd-goal-weight" step="0.1" min="20" max="300"></div>
+      <div><label for="pd-goal-ex-per-week">運動目標 <span class="unit-note">回/週</span></label><input type="number" id="pd-goal-ex-per-week" min="0" max="14"></div>
+      <div><label for="pd-goal-ex-min">1回あたり <span class="unit-note">分</span></label><input type="number" id="pd-goal-ex-min" min="0" max="300" step="5"></div>
+    </div>
+    <label for="pd-goal-meal">食事目標</label>
+    <textarea id="pd-goal-meal" rows="2" placeholder="例: 地中海食継続・アルコール週2回以内"></textarea>
+    <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
+    <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
+    <label>次回来院</label>
+    <div class="seg-interval" id="pd-interval-seg">
+      <button type="button" data-interval="1m">1ヶ月</button>
+      <button type="button" data-interval="2m">2ヶ月</button>
+      <button type="button" data-interval="3m">3ヶ月</button>
+      <button type="button" data-interval="custom">日付指定</button>
+    </div>
+    <div id="pd-custom-date-wrap" class="hidden">
+      <label for="pd-custom-date">次回来院日</label>
+      <input type="date" id="pd-custom-date">
+    </div>
+    <button class="btn" id="pd-save" style="margin-top:14px;">評価を保存</button>
+    <p class="error" id="pd-error"></p>
+    <p class="muted" id="pd-saved-msg" style="display:none;">保存しました</p>
+  </div>
 </div>
 
 <div class="modal-backdrop hidden" id="stepup-modal">
@@ -123,6 +195,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script>
 "use strict";
@@ -135,6 +208,9 @@ firebase.initializeApp({
   appId: "1:884218065527:web:cd036aa8269ecb7fac8c72",
 });
 const auth = firebase.auth();
+// 患者データ本体（体重・食事・運動・検査・評価）が入るFirestore（databaseId "patients"）。
+// index.html（患者アプリ）と同じデータベースを、role=staffの権限で読み書きする。
+const db = firebase.firestore(firebase.app(), "patients");
 // 医師は日常的に開くたびメール再入力させたくないので、端末に永続化する。
 // 患者登録・再連携の直前は必ずパスワード確認を求め、操作した本人を記録する。
 // 同じ端末を別のスタッフが使う場合は、その場でメール＋パスワードに切り替えて
@@ -144,6 +220,9 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
 const STAFF_REGISTER_URL = `${FN_BASE}/staffRegisterPatient`;
 const STAFF_RELINK_URL = `${FN_BASE}/staffRelinkPatient`;
+const STAFF_OPEN_PATIENT_URL = `${FN_BASE}/staffOpenPatient`;
+// index.htmlと同じdocIdキー（患者データは1種類ごとに1ドキュメントへ全履歴をvalueとして保存する方式）。
+const DK = { daily: "nafld-daily-v1", visits: "nafld-visits-v1", eval: "nafld-eval-v1" };
 // この病院専用アプリのため病院IDは固定値。対応表のスキーマ自体は
 // hospitalId/hospitalPatientNoのままなので、Cloud Functions側の変更は不要。
 const HOSPITAL_ID = "kagawa-univ-hospital";
@@ -179,16 +258,20 @@ document.getElementById("staff-login").addEventListener("click", async () => {
 // タブ切り替え
 document.getElementById("tab-register").addEventListener("click", () => switchTab("register"));
 document.getElementById("tab-relink").addEventListener("click", () => switchTab("relink"));
+document.getElementById("tab-open").addEventListener("click", () => switchTab("open"));
 function switchTab(which) {
   document.getElementById("tab-register").classList.toggle("active", which === "register");
   document.getElementById("tab-relink").classList.toggle("active", which === "relink");
+  document.getElementById("tab-open").classList.toggle("active", which === "open");
   document.getElementById("form-register").classList.toggle("hidden", which !== "register");
   document.getElementById("form-relink").classList.toggle("hidden", which !== "relink");
+  document.getElementById("form-open").classList.toggle("hidden", which !== "open");
   document.getElementById("qr-result").classList.add("hidden");
   document.getElementById("reg-error").style.display = "none";
   // QR発行後に隠した入力欄を、タブを選び直したタイミングで再表示する
   document.getElementById("reg-fields").classList.remove("hidden");
   document.getElementById("relink-fields").classList.remove("hidden");
+  document.getElementById("open-fields").classList.remove("hidden");
 }
 
 // ------- ステップアップ認証 -------
@@ -312,6 +395,192 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
     return;
   }
   showQr(data.token, "relink-fields");
+});
+
+// ------- 患者を開く・評価 -------
+// 開いた患者の研究用IDはこの変数にのみ保持し、ブラウザに永続化しない。
+// 画面を閉じる／次の患者を検索し直すと空にする。
+let openResearchId = null;
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
+function addMonths(dateStr, n) {
+  const [y, m, day] = dateStr.split("-").map(Number);
+  const target = new Date(y, m - 1 + n, 1);
+  const daysInTarget = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(day, daysInTarget));
+  return target.getFullYear() + "-" + String(target.getMonth() + 1).padStart(2, "0") + "-" + String(target.getDate()).padStart(2, "0");
+}
+
+async function fetchPatientDoc(researchId, key) {
+  const doc = await db.collection("patients").doc(researchId).collection("data").doc(key).get();
+  return doc.exists ? (doc.data().value || {}) : {};
+}
+
+document.getElementById("open-submit").addEventListener("click", async () => {
+  const errEl = document.getElementById("reg-error");
+  errEl.style.display = "none";
+  const chartId = document.getElementById("open-chart-id").value.trim();
+  if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
+
+  const stepped = await ensureStepUp();
+  if (!stepped) return;
+
+  const { ok, data } = await authedFetch(STAFF_OPEN_PATIENT_URL, { hospitalId: HOSPITAL_ID, hospitalPatientNo: chartId });
+  if (!ok) {
+    errEl.textContent = "患者を開けませんでした: " + ((data.error && data.error.message) || "");
+    errEl.style.display = "block";
+    return;
+  }
+  openResearchId = data.researchId;
+  document.getElementById("open-chart-id").value = "";
+  document.getElementById("panel-view").classList.add("hidden");
+  document.getElementById("patient-detail-view").classList.remove("hidden");
+  await loadPatientDetail();
+});
+
+document.getElementById("patient-detail-back").addEventListener("click", () => {
+  openResearchId = null; // 画面を離れたら研究用IDを忘れる
+  document.getElementById("patient-detail-view").classList.add("hidden");
+  document.getElementById("pd-content").classList.add("hidden");
+  document.getElementById("panel-view").classList.remove("hidden");
+});
+
+async function loadPatientDetail() {
+  const statusEl = document.getElementById("pd-status");
+  document.getElementById("pd-content").classList.add("hidden");
+  statusEl.textContent = "読み込み中...";
+  try {
+    const [daily, visits, evals] = await Promise.all([
+      fetchPatientDoc(openResearchId, DK.daily),
+      fetchPatientDoc(openResearchId, DK.visits),
+      fetchPatientDoc(openResearchId, DK.eval),
+    ]);
+    renderPatientSummary(daily, evals);
+    renderPatientLabs(visits);
+    prefillEvalForm(evals);
+    statusEl.textContent = "";
+    document.getElementById("pd-content").classList.remove("hidden");
+  } catch (err) {
+    statusEl.textContent = "読み込みに失敗しました: " + (err.message || err);
+  }
+}
+
+function renderPatientSummary(daily, evals) {
+  const evalDates = Object.keys(evals).sort();
+  const sinceDate = evalDates.length ? evals[evalDates[evalDates.length - 1]].visitDate : null;
+  const dates = Object.keys(daily).sort();
+  const inRange = sinceDate ? dates.filter(d => d > sinceDate) : dates;
+  const totalDays = sinceDate
+    ? Math.max(1, Math.round((new Date(todayStr()) - new Date(sinceDate)) / 86400000))
+    : dates.length;
+
+  const weightDays = inRange.filter(d => daily[d].weight != null);
+  const mealDays = inRange.filter(d => daily[d].meals && daily[d].meals.length);
+  const exDays = inRange.filter(d => (daily[d].exercises && daily[d].exercises.length) || daily[d].steps != null);
+  const firstW = weightDays.length ? daily[weightDays[0]].weight : null;
+  const lastW = weightDays.length ? daily[weightDays[weightDays.length - 1]].weight : null;
+
+  const rows = [];
+  rows.push(`<div class="summary-row"><span>集計期間</span><span>${sinceDate ? fmtDate(sinceDate) + " 〜 本日" : "全期間"}</span></div>`);
+  if (firstW != null && lastW != null) {
+    const diff = Math.round((lastW - firstW) * 10) / 10;
+    rows.push(`<div class="summary-row"><span>体重</span><span>${firstW}kg → ${lastW}kg（${diff >= 0 ? "+" : ""}${diff}kg）</span></div>`);
+  }
+  rows.push(`<div class="summary-row"><span>体重記録率</span><span>${weightDays.length}/${totalDays}日</span></div>`);
+  rows.push(`<div class="summary-row"><span>食事記録率</span><span>${mealDays.length}/${totalDays}日</span></div>`);
+  rows.push(`<div class="summary-row"><span>運動記録率</span><span>${exDays.length}/${totalDays}日</span></div>`);
+  document.getElementById("pd-summary").innerHTML = rows.join("");
+}
+
+function renderPatientLabs(visits) {
+  const dates = Object.keys(visits).sort();
+  const el = document.getElementById("pd-labs");
+  if (dates.length === 0) { el.innerHTML = `<p class="muted">来院データがまだありません</p>`; return; }
+  const latest = visits[dates[dates.length - 1]];
+  const prev = dates.length > 1 ? visits[dates[dates.length - 2]] : null;
+  const fmt = (key, unit) => {
+    const cur = latest[key];
+    if (cur == null) return "—";
+    return prev && prev[key] != null ? `${prev[key]}→${cur}${unit}` : `${cur}${unit}`;
+  };
+  const rows = [
+    ["来院日", fmtDate(dates[dates.length - 1])],
+    ["AST/ALT", `${fmt("ast", "")} / ${fmt("alt", "")} U/L`],
+    ["γGTP", fmt("ggtp", " U/L")],
+    ["TG/LDL", `${fmt("tg", "")} / ${fmt("ldl", "")} mg/dL`],
+    ["HbA1c", fmt("hba1c", "%")],
+    ["肝硬度(kPa)", fmt("kpa", "")],
+  ];
+  document.getElementById("pd-labs").innerHTML = rows
+    .map(([label, val]) => `<div class="summary-row"><span>${label}</span><span>${val}</span></div>`).join("");
+}
+
+let pdInterval = null;
+document.getElementById("pd-interval-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#pd-interval-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  pdInterval = b.dataset.interval;
+  document.getElementById("pd-custom-date-wrap").classList.toggle("hidden", pdInterval !== "custom");
+});
+
+function prefillEvalForm(evals) {
+  const dates = Object.keys(evals).sort();
+  const latest = dates.length ? evals[dates[dates.length - 1]] : null;
+  document.getElementById("pd-visit-date").value = todayStr();
+  document.getElementById("pd-goal-weight").value = latest && latest.goalWeight != null ? latest.goalWeight : "";
+  document.getElementById("pd-goal-ex-per-week").value = latest && latest.goalExPerWeek != null ? latest.goalExPerWeek : "";
+  document.getElementById("pd-goal-ex-min").value = latest && latest.goalExMinutes != null ? latest.goalExMinutes : "";
+  document.getElementById("pd-goal-meal").value = "";
+  document.getElementById("pd-comment").value = "";
+  document.querySelectorAll("#pd-interval-seg button").forEach(x => x.classList.remove("on"));
+  pdInterval = null;
+  document.getElementById("pd-custom-date-wrap").classList.add("hidden");
+  document.getElementById("pd-custom-date").value = "";
+  document.getElementById("pd-saved-msg").style.display = "none";
+}
+
+document.getElementById("pd-save").addEventListener("click", async () => {
+  const errEl = document.getElementById("pd-error");
+  errEl.style.display = "none";
+  document.getElementById("pd-saved-msg").style.display = "none";
+  const visitDate = document.getElementById("pd-visit-date").value || todayStr();
+  if (!pdInterval) { errEl.textContent = "次回来院を選択してください"; errEl.style.display = "block"; return; }
+  const nextVisitDate = pdInterval === "custom"
+    ? document.getElementById("pd-custom-date").value
+    : addMonths(visitDate, Number(pdInterval[0]));
+  if (!nextVisitDate) { errEl.textContent = "次回来院日を入力してください"; errEl.style.display = "block"; return; }
+
+  const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+  const entry = {
+    type: "eval",
+    visitDate,
+    goalWeight: num("pd-goal-weight"),
+    goalExPerWeek: num("pd-goal-ex-per-week"),
+    goalExMinutes: num("pd-goal-ex-min"),
+    goalMealNote: document.getElementById("pd-goal-meal").value.trim(),
+    doctorComment: document.getElementById("pd-comment").value.trim(),
+    nextVisitInterval: pdInterval,
+    nextVisitDate,
+    createdBy: auth.currentUser.uid,
+    createdAt: Date.now(),
+  };
+
+  try {
+    const evals = await fetchPatientDoc(openResearchId, DK.eval);
+    evals[visitDate] = entry;
+    await db.collection("patients").doc(openResearchId).collection("data").doc(DK.eval)
+      .set({ value: evals, updatedAt: Date.now() });
+    document.getElementById("pd-saved-msg").style.display = "block";
+    await loadPatientDetail();
+  } catch (err) {
+    errEl.textContent = "保存に失敗しました: " + (err.message || err);
+    errEl.style.display = "block";
+  }
 });
 
 document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());

@@ -157,6 +157,35 @@ exports.staffRegisterPatient = onRequest(
   }
 );
 
+// スタッフが診察中に患者データを開く: {hospitalId, hospitalPatientNo} から
+// 研究用IDだけを解決して返す（氏名・カルテIDそのものは返さない）。
+// QRトークンは発行しない点がstaffRegisterPatient/staffRelinkPatientと異なる。
+// 返された研究用IDはstaff.html側でメモリ上にのみ保持し、ブラウザに永続化しない。
+exports.staffOpenPatient = onRequest(
+  { secrets: [MAPPING_API_KEY, MAPPING_BASE_URL], cors: true, region: "asia-northeast1", memory: "128MiB" },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: { message: "Method Not Allowed" } });
+      return;
+    }
+    const decoded = await requireAuth(req, res);
+    if (!decoded) return;
+    if (!(await requireRecentStaffStepUp(decoded, res))) return;
+
+    const { hospitalId, hospitalPatientNo } = req.body || {};
+    if (!hospitalId || !hospitalPatientNo) {
+      res.status(400).json({ error: { message: "hospitalId and hospitalPatientNo are required" } });
+      return;
+    }
+    try {
+      const { researchId } = await callMappingFunction("lookupMapping", { hospitalId, hospitalPatientNo });
+      res.status(200).json({ researchId });
+    } catch {
+      res.status(404).json({ error: { message: "この院内患者番号の患者は見つかりませんでした" } });
+    }
+  }
+);
+
 // スタッフによる既存患者の再連携:
 // 院内患者番号から対応表を検索して既存の研究用IDを取得し、その研究用IDに
 // 紐づく新しいワンタイムトークンを発行する（新しい研究用IDは発行しない）。
