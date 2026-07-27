@@ -75,6 +75,10 @@
     background: none; border: none; color: var(--sub); font-size: .84rem;
     cursor: pointer; font-family: inherit; padding: 4px 0; margin-bottom: 6px;
   }
+  .demo-badge {
+    display: inline-block; background: #fff3d6; color: #8a6100; font-weight: 700;
+    font-size: .76rem; padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
+  }
 </style>
 </head>
 <body>
@@ -89,6 +93,8 @@
   <button class="btn" id="staff-login">ログイン</button>
   <p class="error" id="login-error"></p>
   <button type="button" class="btn-link" id="forgot-pw-link" style="display:block; margin: 4px auto 0;">初めての方・パスワードを忘れた方はこちら</button>
+  <button type="button" class="btn secondary" id="guest-login-btn" style="margin-top:14px;">👀 ゲストログイン（デモ）</button>
+  <p class="muted" style="font-size:.76rem; margin-top:6px;">実際の患者データにはアクセスしません。操作感を見学するためのモードです。</p>
   <p class="muted" id="status"></p>
 </div>
 
@@ -107,6 +113,7 @@
 
 <div class="box hidden" id="panel-view">
   <div class="logo">🌿</div>
+  <p class="demo-badge hidden" id="panel-demo-badge">👀 デモモード（実データにはアクセスしません）</p>
   <h2>患者の連携</h2>
 
   <div class="tabs">
@@ -155,6 +162,7 @@
 
 <div class="box wide hidden" id="patient-detail-view">
   <button type="button" class="back-link" id="patient-detail-back">← 患者の連携画面に戻る</button>
+  <p class="demo-badge hidden" id="detail-demo-badge">👀 デモモード（実データにはアクセスしません）</p>
   <h2>患者の評価</h2>
   <p class="muted" id="pd-status"></p>
 
@@ -424,6 +432,12 @@ document.getElementById("reg-submit").addEventListener("click", async () => {
   const chartId = document.getElementById("reg-chart-id").value.trim();
   if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
 
+  if (demoMode) {
+    errEl.textContent = "デモモードでは実際の患者登録はできません";
+    errEl.style.display = "block";
+    return;
+  }
+
   const stepped = await ensureStepUp();
   if (!stepped) return;
 
@@ -444,6 +458,12 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
   const chartId = document.getElementById("relink-chart-id").value.trim();
   if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
 
+  if (demoMode) {
+    errEl.textContent = "デモモードでは実際の再連携はできません";
+    errEl.style.display = "block";
+    return;
+  }
+
   const stepped = await ensureStepUp();
   if (!stepped) return;
 
@@ -455,6 +475,56 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
   }
   showQr(data.token, "relink-fields");
 });
+
+// ------- ゲストログイン（デモモード） -------
+// 実際のFirebase Authにはログインせず、実データにも一切アクセスしない。
+// 画面の操作感だけを、ダミーデータで確認してもらうためのモード。
+let demoMode = false;
+let demoStore = null; // { [DK.daily]: {...}, [DK.visits]: {...}, [DK.eval]: {...} }
+
+function buildDemoStore() {
+  return {
+    [DK.daily]: {
+      "2026-05-02": { weight: 92.0, meals: [{ kcal: 600 }], exercises: [{ min: 30 }] },
+      "2026-06-01": { weight: 90.5, meals: [{ kcal: 580 }], exercises: [{ min: 20 }] },
+      "2026-06-15": { weight: 89.0, meals: [{ kcal: 550 }], exercises: [] },
+      "2026-07-01": { weight: 88.8, meals: [{ kcal: 560 }], exercises: [{ min: 25 }] },
+      "2026-07-20": { weight: 88.5, meals: [{ kcal: 520 }], exercises: [{ min: 20 }] },
+    },
+    [DK.visits]: {
+      "2026-05-01": { ast: 42, alt: 35, ggtp: 55, tg: 185, ldl: 130, hba1c: 6.1, kpa: 8.2 },
+      "2026-07-20": { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1 },
+    },
+    [DK.eval]: {
+      "2026-05-01": {
+        type: "eval", visitDate: "2026-05-01", goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
+        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
+        nextVisitInterval: "3m", nextVisitDate: "2026-07-27",
+      },
+    },
+  };
+}
+
+function enterDemoMode() {
+  demoMode = true;
+  demoStore = buildDemoStore();
+  document.getElementById("login-view").classList.add("hidden");
+  document.getElementById("panel-view").classList.remove("hidden");
+  document.getElementById("panel-demo-badge").classList.remove("hidden");
+  document.getElementById("detail-demo-badge").classList.remove("hidden");
+  switchTab("register");
+}
+function exitDemoMode() {
+  demoMode = false;
+  demoStore = null;
+  openResearchId = null;
+  document.getElementById("panel-demo-badge").classList.add("hidden");
+  document.getElementById("detail-demo-badge").classList.add("hidden");
+  document.getElementById("patient-detail-view").classList.add("hidden");
+  document.getElementById("panel-view").classList.add("hidden");
+  document.getElementById("login-view").classList.remove("hidden");
+}
+document.getElementById("guest-login-btn").addEventListener("click", enterDemoMode);
 
 // ------- 患者を開く・評価 -------
 // 開いた患者の研究用IDはこの変数にのみ保持し、ブラウザに永続化しない。
@@ -475,6 +545,7 @@ function addMonths(dateStr, n) {
 }
 
 async function fetchPatientDoc(researchId, key) {
+  if (demoMode) return JSON.parse(JSON.stringify(demoStore[key] || {}));
   const doc = await db.collection("patients").doc(researchId).collection("data").doc(key).get();
   return doc.exists ? (doc.data().value || {}) : {};
 }
@@ -484,6 +555,15 @@ document.getElementById("open-submit").addEventListener("click", async () => {
   errEl.style.display = "none";
   const chartId = document.getElementById("open-chart-id").value.trim();
   if (!chartId) { errEl.textContent = "カルテIDを入力してください"; errEl.style.display = "block"; return; }
+
+  if (demoMode) {
+    openResearchId = "demo-patient";
+    document.getElementById("open-chart-id").value = "";
+    document.getElementById("panel-view").classList.add("hidden");
+    document.getElementById("patient-detail-view").classList.remove("hidden");
+    await loadPatientDetail();
+    return;
+  }
 
   const stepped = await ensureStepUp();
   if (!stepped) return;
@@ -625,15 +705,19 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     doctorComment: document.getElementById("pd-comment").value.trim(),
     nextVisitInterval: pdInterval,
     nextVisitDate,
-    createdBy: auth.currentUser.uid,
+    createdBy: demoMode ? "demo" : auth.currentUser.uid,
     createdAt: Date.now(),
   };
 
   try {
-    const evals = await fetchPatientDoc(openResearchId, DK.eval);
-    evals[visitDate] = entry;
-    await db.collection("patients").doc(openResearchId).collection("data").doc(DK.eval)
-      .set({ value: evals, updatedAt: Date.now() });
+    if (demoMode) {
+      demoStore[DK.eval][visitDate] = entry;
+    } else {
+      const evals = await fetchPatientDoc(openResearchId, DK.eval);
+      evals[visitDate] = entry;
+      await db.collection("patients").doc(openResearchId).collection("data").doc(DK.eval)
+        .set({ value: evals, updatedAt: Date.now() });
+    }
     document.getElementById("pd-saved-msg").style.display = "block";
     await loadPatientDetail();
   } catch (err) {
@@ -653,9 +737,16 @@ function resetChangePwModal() {
   document.getElementById("changepw-success").style.display = "none";
 }
 document.getElementById("changepw-btn").addEventListener("click", () => {
+  if (demoMode) { toastLike("デモモードではパスワード変更はできません"); return; }
   resetChangePwModal();
   document.getElementById("changepw-modal").classList.remove("hidden");
 });
+function toastLike(msg) {
+  const errEl = document.getElementById("reg-error");
+  errEl.textContent = msg;
+  errEl.style.display = "block";
+  setTimeout(() => { errEl.style.display = "none"; }, 2500);
+}
 document.getElementById("changepw-cancel").addEventListener("click", () => {
   document.getElementById("changepw-modal").classList.add("hidden");
 });
@@ -685,7 +776,10 @@ document.getElementById("changepw-submit").addEventListener("click", async () =>
   }
 });
 
-document.getElementById("logout-btn").addEventListener("click", () => auth.signOut());
+document.getElementById("logout-btn").addEventListener("click", () => {
+  if (demoMode) { exitDemoMode(); return; }
+  auth.signOut();
+});
 
 auth.onAuthStateChanged(async user => {
   const loginView = document.getElementById("login-view");
