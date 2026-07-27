@@ -43,8 +43,9 @@
   .hidden { display: none !important; }
   .tabs { display: flex; gap: 8px; margin-bottom: 6px; }
   .tab-btn {
-    flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line);
-    background: #fbfdfc; color: var(--sub); font-weight: 700; font-size: .9rem; cursor: pointer; font-family: inherit;
+    flex: 1; padding: 10px 4px; border-radius: 10px; border: 1.5px solid var(--line);
+    background: #fbfdfc; color: var(--sub); font-weight: 700; font-size: .82rem; cursor: pointer; font-family: inherit;
+    white-space: nowrap;
   }
   .tab-btn.active { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
   .qr-wrap { margin-top: 16px; padding: 16px; background: var(--accent-soft); border-radius: 12px; }
@@ -109,9 +110,9 @@
   <h2>患者の連携</h2>
 
   <div class="tabs">
-    <button type="button" class="tab-btn active" id="tab-register">新規患者登録</button>
-    <button type="button" class="tab-btn" id="tab-relink">既存患者の再連携</button>
-    <button type="button" class="tab-btn" id="tab-open">患者を開く・評価</button>
+    <button type="button" class="tab-btn active" id="tab-register">新規登録</button>
+    <button type="button" class="tab-btn" id="tab-relink">再連携</button>
+    <button type="button" class="tab-btn" id="tab-open">患者を開く</button>
   </div>
 
   <div id="form-register">
@@ -133,7 +134,7 @@
   </div>
 
   <div id="form-open" class="hidden">
-    <p class="muted">診察する患者さんのカルテIDを入力してください。開くたびに検索します（一覧は表示しません）。</p>
+    <p class="muted">診察する患者さんのカルテIDを入力してください。</p>
     <div id="open-fields">
       <label for="open-chart-id">カルテID</label>
       <input type="text" id="open-chart-id" placeholder="カルテ番号・診察券番号など">
