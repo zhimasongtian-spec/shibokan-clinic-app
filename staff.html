@@ -87,7 +87,21 @@
   <input type="password" id="staff-pass" autocomplete="current-password">
   <button class="btn" id="staff-login">ログイン</button>
   <p class="error" id="login-error"></p>
+  <button type="button" class="btn-link" id="forgot-pw-link" style="display:block; margin: 4px auto 0;">初めての方・パスワードを忘れた方はこちら</button>
   <p class="muted" id="status"></p>
+</div>
+
+<div class="modal-backdrop hidden" id="forgot-pw-modal">
+  <div class="box" style="text-align:left;">
+    <h2 style="text-align:center;">📧 パスワード設定メールを送る</h2>
+    <p class="muted">登録済みのメールアドレスを入力してください。パスワードを設定（または再設定）するためのリンクが届きます。</p>
+    <label for="forgot-pw-email">メールアドレス</label>
+    <input type="email" id="forgot-pw-email" autocomplete="username">
+    <button class="btn" id="forgot-pw-submit">メールを送る</button>
+    <button class="btn-link" id="forgot-pw-cancel" style="display:block; margin: 8px auto 0;">キャンセル</button>
+    <p class="error" id="forgot-pw-error"></p>
+    <p class="muted" id="forgot-pw-success" style="display:none;">メールを送信しました。届いたメール内のリンクからパスワードを設定してください。</p>
+  </div>
 </div>
 
 <div class="box hidden" id="panel-view">
@@ -134,7 +148,8 @@
     <img id="qr-canvas" alt="QRコード" style="max-width:100%;">
   </div>
 
-  <button type="button" class="btn secondary" id="logout-btn" style="margin-top:20px;">ログアウト</button>
+  <button type="button" class="btn secondary" id="changepw-btn" style="margin-top:20px;">パスワードを変更</button>
+  <button type="button" class="btn secondary" id="logout-btn" style="margin-top:10px;">ログアウト</button>
 </div>
 
 <div class="box wide hidden" id="patient-detail-view">
@@ -175,6 +190,22 @@
     <button class="btn" id="pd-save" style="margin-top:14px;">評価を保存</button>
     <p class="error" id="pd-error"></p>
     <p class="muted" id="pd-saved-msg" style="display:none;">保存しました</p>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="changepw-modal">
+  <div class="box" style="text-align:left;">
+    <h2 style="text-align:center;">🔑 パスワードを変更</h2>
+    <label for="changepw-current">現在のパスワード</label>
+    <input type="password" id="changepw-current" autocomplete="current-password">
+    <label for="changepw-new">新しいパスワード（6文字以上）</label>
+    <input type="password" id="changepw-new" autocomplete="new-password">
+    <label for="changepw-new2">新しいパスワード（確認）</label>
+    <input type="password" id="changepw-new2" autocomplete="new-password">
+    <button class="btn" id="changepw-submit">変更する</button>
+    <button class="btn-link" id="changepw-cancel" style="display:block; margin: 8px auto 0;">キャンセル</button>
+    <p class="error" id="changepw-error"></p>
+    <p class="muted" id="changepw-success" style="display:none;">パスワードを変更しました</p>
   </div>
 </div>
 
@@ -251,6 +282,33 @@ document.getElementById("staff-login").addEventListener("click", async () => {
   } catch (err) {
     setStatus("");
     errEl.textContent = "メールアドレスまたはパスワードが正しくありません";
+    errEl.style.display = "block";
+  }
+});
+
+// ------- 初回パスワード設定・パスワード再設定 -------
+document.getElementById("forgot-pw-link").addEventListener("click", () => {
+  document.getElementById("forgot-pw-email").value = "";
+  document.getElementById("forgot-pw-error").style.display = "none";
+  document.getElementById("forgot-pw-success").style.display = "none";
+  document.getElementById("forgot-pw-modal").classList.remove("hidden");
+});
+document.getElementById("forgot-pw-cancel").addEventListener("click", () => {
+  document.getElementById("forgot-pw-modal").classList.add("hidden");
+});
+document.getElementById("forgot-pw-submit").addEventListener("click", async () => {
+  const errEl = document.getElementById("forgot-pw-error");
+  errEl.style.display = "none";
+  const email = document.getElementById("forgot-pw-email").value.trim();
+  if (!email) { errEl.textContent = "メールアドレスを入力してください"; errEl.style.display = "block"; return; }
+  try {
+    // アカウントが存在しない場合もFirebaseは同じ成功扱いを返す（メールアドレスの
+    // 存在有無が外部から分からないようにするための仕様）。実際に届くのは
+    // 開発担当者が事前にアカウントを作成したメールアドレス宛てのみ。
+    await auth.sendPasswordResetEmail(email);
+    document.getElementById("forgot-pw-success").style.display = "block";
+  } catch (err) {
+    errEl.textContent = "送信に失敗しました: " + (err.message || err);
     errEl.style.display = "block";
   }
 });
@@ -579,6 +637,49 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     await loadPatientDetail();
   } catch (err) {
     errEl.textContent = "保存に失敗しました: " + (err.message || err);
+    errEl.style.display = "block";
+  }
+});
+
+// ------- パスワード変更 -------
+// 開発担当者が最初に仮パスワードを設定した後、医師本人だけが知る
+// パスワードに変更できるようにする（Firebase Authenticationの標準機能）。
+function resetChangePwModal() {
+  document.getElementById("changepw-current").value = "";
+  document.getElementById("changepw-new").value = "";
+  document.getElementById("changepw-new2").value = "";
+  document.getElementById("changepw-error").style.display = "none";
+  document.getElementById("changepw-success").style.display = "none";
+}
+document.getElementById("changepw-btn").addEventListener("click", () => {
+  resetChangePwModal();
+  document.getElementById("changepw-modal").classList.remove("hidden");
+});
+document.getElementById("changepw-cancel").addEventListener("click", () => {
+  document.getElementById("changepw-modal").classList.add("hidden");
+});
+document.getElementById("changepw-submit").addEventListener("click", async () => {
+  const errEl = document.getElementById("changepw-error");
+  errEl.style.display = "none";
+  const current = document.getElementById("changepw-current").value;
+  const next = document.getElementById("changepw-new").value;
+  const next2 = document.getElementById("changepw-new2").value;
+  if (!current || !next) { errEl.textContent = "すべて入力してください"; errEl.style.display = "block"; return; }
+  if (next.length < 6) { errEl.textContent = "新しいパスワードは6文字以上にしてください"; errEl.style.display = "block"; return; }
+  if (next !== next2) { errEl.textContent = "新しいパスワードが一致しません"; errEl.style.display = "block"; return; }
+  try {
+    // 本人確認のため、現在のパスワードで再認証してから変更する
+    const cred = firebase.auth.EmailAuthProvider.credential(auth.currentUser.email, current);
+    await auth.currentUser.reauthenticateWithCredential(cred);
+    await auth.currentUser.updatePassword(next);
+    document.getElementById("changepw-success").style.display = "block";
+    document.getElementById("changepw-current").value = "";
+    document.getElementById("changepw-new").value = "";
+    document.getElementById("changepw-new2").value = "";
+  } catch (err) {
+    errEl.textContent = err.code === "auth/wrong-password" || err.code === "auth/invalid-credential"
+      ? "現在のパスワードが正しくありません"
+      : "変更に失敗しました: " + (err.message || err);
     errEl.style.display = "block";
   }
 });
