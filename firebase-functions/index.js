@@ -14,7 +14,7 @@ const {
 
 initializeApp();
 // 患者の健康データ（体重・食事・運動・検査）が入るFirestore（databaseId "patients"）。
-// ドキュメントIDは研究用ID（対面QR登録時にProject Bの対応表と一緒に発行されるランダムUUID）。
+// ドキュメントIDはかん活ID（対面QR登録時にProject Bの対応表と一緒に発行されるランダムUUID）。
 const mainDb = getFirestore("patients");
 const authAdmin = getAuth();
 
@@ -123,7 +123,7 @@ const REGISTRATION_TOKEN_TTL_MS = 10 * 60 * 1000;
 
 // スタッフによる新規患者登録:
 // {hospitalId, hospitalPatientNo} を受け取り、対応表専用プロジェクトに新しい
-// 研究用IDを発行してもらい、患者データ領域を用意し、QRコード化する
+// かん活IDを発行してもらい、患者データ領域を用意し、QRコード化する
 // ワンタイムトークンを返す。重要操作なのでステップアップ認証を要求する。
 exports.staffRegisterPatient = onRequest(
   { secrets: [MAPPING_API_KEY, MAPPING_BASE_URL], cors: true, region: "asia-northeast1", memory: "128MiB" },
@@ -158,9 +158,9 @@ exports.staffRegisterPatient = onRequest(
 );
 
 // スタッフが診察中に患者データを開く: {hospitalId, hospitalPatientNo} から
-// 研究用IDだけを解決して返す（氏名・カルテIDそのものは返さない）。
+// かん活IDだけを解決して返す（氏名・カルテIDそのものは返さない）。
 // QRトークンは発行しない点がstaffRegisterPatient/staffRelinkPatientと異なる。
-// 返された研究用IDはstaff.html側でメモリ上にのみ保持し、ブラウザに永続化しない。
+// 返されたかん活IDはstaff.html側でメモリ上にのみ保持し、ブラウザに永続化しない。
 exports.staffOpenPatient = onRequest(
   { secrets: [MAPPING_API_KEY, MAPPING_BASE_URL], cors: true, region: "asia-northeast1", memory: "128MiB" },
   async (req, res) => {
@@ -187,8 +187,8 @@ exports.staffOpenPatient = onRequest(
 );
 
 // スタッフによる既存患者の再連携:
-// 院内患者番号から対応表を検索して既存の研究用IDを取得し、その研究用IDに
-// 紐づく新しいワンタイムトークンを発行する（新しい研究用IDは発行しない）。
+// 院内患者番号から対応表を検索して既存のかん活IDを取得し、そのかん活IDに
+// 紐づく新しいワンタイムトークンを発行する（新しいかん活IDは発行しない）。
 // 旧端末のセッションは無効化する。
 exports.staffRelinkPatient = onRequest(
   { secrets: [MAPPING_API_KEY, MAPPING_BASE_URL], cors: true, region: "asia-northeast1", memory: "128MiB" },
@@ -228,7 +228,7 @@ exports.staffRelinkPatient = onRequest(
 );
 
 // 患者アプリがQRコードをスキャンした後に呼ぶ: ワンタイムトークンを検証し、
-// 研究用ID（uid）でサインインするためのカスタムトークンを返す。
+// かん活ID（uid）でサインインするためのカスタムトークンを返す。
 exports.confirmRegistration = onRequest(
   { cors: true, region: "asia-northeast1", memory: "128MiB" },
   async (req, res) => {

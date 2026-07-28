@@ -23,7 +23,7 @@ function checkKey(req, res) {
   return true;
 }
 
-// 病院ID＋院内患者番号 から新しい研究用IDを発行し、対応表に登録する。
+// 病院ID＋院内患者番号 から新しいかん活IDを発行し、対応表に登録する。
 // Project AのstaffRegisterPatientからのみ呼ばれる（クライアントから直接は呼べない）。
 exports.issueMapping = onRequest(
   { secrets: [MAPPING_API_KEY], cors: false, region: "asia-northeast1", memory: "128MiB" },
@@ -53,7 +53,7 @@ exports.issueMapping = onRequest(
   }
 );
 
-// 病院ID＋院内患者番号から既存の研究用IDを検索する（再連携用）。
+// 病院ID＋院内患者番号から既存のかん活IDを検索する（再連携用）。
 exports.lookupMapping = onRequest(
   { secrets: [MAPPING_API_KEY], cors: false, region: "asia-northeast1", memory: "128MiB" },
   async (req, res) => {

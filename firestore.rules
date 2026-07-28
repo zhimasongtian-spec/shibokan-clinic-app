@@ -4,7 +4,7 @@ service cloud.firestore {
     // 患者ドキュメント本体は空（存在するかどうかだけがログイン確認に使われる）。
     // クライアントから直接読み書きさせない。confirmRegistration/staffRegisterPatient/
     // staffRelinkPatient Cloud Function（Admin SDK・ルールをバイパス）だけがここを操作する。
-    // ドキュメントIDは研究用ID（対面QR登録時に発行されるランダムUUID）。
+    // ドキュメントIDはかん活ID（対面QR登録時に発行されるランダムUUID）。
     match /patients/{researchId} {
       allow read, write: if false;
 
