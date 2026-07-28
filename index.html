@@ -179,6 +179,7 @@
     font-size: .7rem; background: var(--accent-soft); color: var(--accent-dark);
     border-radius: 8px; padding: 1px 8px; flex-shrink: 0;
   }
+  .item-row .tm { font-size: .78rem; color: var(--sub); white-space: nowrap; flex-shrink: 0; }
   .item-row .nm { flex: 1; }
   .item-row .kc { font-weight: 700; white-space: nowrap; }
   .item-row .del { color: var(--danger); cursor: pointer; border: none; background: none; font-size: 1.05rem; padding: 4px 8px; }
@@ -495,8 +496,10 @@
     </div>
     <div class="card">
       <h2>🍽 食事の記録</h2>
-      <label for="meal-date">日付</label>
-      <input type="date" id="meal-date">
+      <div class="row2">
+        <div><label for="meal-date">日付</label><input type="date" id="meal-date"></div>
+        <div><label for="meal-time">時刻</label><input type="time" id="meal-time"></div>
+      </div>
       <div style="display:flex; align-items:center; justify-content:space-between; margin-top:10px;">
         <label style="margin:0;">よく食べるもの（タップで追加）</label>
         <button type="button" class="btn-link" id="food-edit-toggle">編集</button>
@@ -724,6 +727,7 @@ function startGuestMode() {
   document.getElementById("auth-gate").classList.add("hidden");
   document.getElementById("guest-banner").classList.remove("hidden");
   document.getElementById("meal-date").value = todayStr();
+  document.getElementById("meal-time").value = nowTimeStr();
   document.getElementById("ex-date").value = todayStr();
   document.getElementById("v-date").value = todayStr();
   renderHome();
@@ -953,6 +957,10 @@ function todayStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+function nowTimeStr() {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
@@ -1119,12 +1127,15 @@ document.getElementById("meal-add").addEventListener("click", () => {
 });
 function addMeal(name, kcal, photo = null) {
   const date = document.getElementById("meal-date").value || todayStr();
+  const time = document.getElementById("meal-time").value || null;
   const rec = getDaily(date);
   const entry = { name, kcal };
+  if (time) entry.time = time;
   if (photo) entry.photo = photo;
   rec.meals.push(entry);
   try { setDaily(date, rec); }
   catch (err) { entry.photo = null; rec.meals[rec.meals.length - 1] = entry; setDaily(date, rec); toast("保存容量の都合で写真なしで保存しました"); }
+  document.getElementById("meal-time").value = nowTimeStr();
   renderMealPage();
   cheer("🍽", "記録しました！えらい！");
 }
@@ -1137,9 +1148,12 @@ function renderMealPage() {
   if (rec.meals.length === 0) {
     list.innerHTML = '<p class="empty-note">この日の食事はまだ記録されていません</p>';
   } else {
-    list.innerHTML = rec.meals.map((m, i) => `
+    const ordered = rec.meals.map((m, i) => ({ m, i }))
+      .sort((a, b) => (a.m.time || "99:99").localeCompare(b.m.time || "99:99"));
+    list.innerHTML = ordered.map(({ m, i }) => `
       <div class="item-row">
         ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
+        ${m.time ? `<span class="tm">${m.time}</span>` : ""}
         <span class="nm">${m.name}</span>
         <span class="kc">${m.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
@@ -2216,6 +2230,7 @@ document.getElementById("reset-btn").addEventListener("click", () => {
 
 /* ============ init ============ */
 document.getElementById("meal-date").value = todayStr();
+document.getElementById("meal-time").value = nowTimeStr();
 document.getElementById("ex-date").value = todayStr();
 document.getElementById("v-date").value = todayStr();
 renderHome();
