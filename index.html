@@ -293,6 +293,8 @@
       <div id="qr-reader" style="width:100%; margin-top:14px;"></div>
       <button class="btn secondary hidden" id="auth-scan-cancel">キャンセル</button>
       <p class="muted" id="auth-scan-error" style="color:var(--danger); display:none;"></p>
+      <button class="btn-link" id="auth-guest-start" style="margin-top:14px;">ゲストとして試す</button>
+      <p class="muted" style="font-size:.76rem; margin-top:4px;">※体験用モードです。データはこの端末にのみ保存され、病院とは共有されません。</p>
     </div>
 
     <!-- QRペアリング直後: PINを設定する -->
@@ -334,6 +336,10 @@
 <main>
   <!-- ================= ホーム ================= -->
   <section class="page active" id="page-home">
+    <div class="card hidden" id="guest-banner" style="background: var(--warn-soft);">
+      <p style="font-size:.85rem; font-weight:700; color: var(--warn);">🧪 ゲストモードで利用中</p>
+      <p class="muted" style="font-size:.8rem; margin-top:4px;">入力したデータはこの端末にのみ保存され、病院とは共有されません。機種変更やブラウザのデータ削除で失われるのでご注意ください。</p>
+    </div>
     <div class="card hidden" id="doctor-message-card">
       <h2>📋 先生からのメッセージ</h2>
       <p id="doctor-comment" style="font-weight:700;"></p>
@@ -645,6 +651,7 @@
       <h2>ログイン状態</h2>
       <p class="muted" id="account-phone"></p>
       <button class="btn secondary" id="logout-btn">ログアウト</button>
+      <button class="btn secondary hidden" id="guest-exit-btn">ゲストモードを終了する</button>
     </div>
   </section>
 </main>
@@ -695,18 +702,38 @@ const auth = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 const db = firebase.firestore(firebase.app(), "patients");
 let currentUid = null;
+let guestMode = false;
 
 /* ============ storage keys ============ */
 const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1" };
-const load = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch { return {}; } };
+const storageKey = k => guestMode ? "guest-" + k : k;
+const load = k => { try { return JSON.parse(localStorage.getItem(storageKey(k))) || {}; } catch { return {}; } };
 const save = (k, v) => {
-  localStorage.setItem(k, JSON.stringify(v));
-  if (currentUid) {
+  localStorage.setItem(storageKey(k), JSON.stringify(v));
+  if (currentUid && !guestMode) {
     db.collection("patients").doc(currentUid).collection("data").doc(k)
       .set({ value: v, updatedAt: Date.now() })
       .catch(err => console.error("sync push failed", k, err));
   }
 };
+function startGuestMode() {
+  guestMode = true;
+  document.getElementById("auth-gate").classList.add("hidden");
+  document.getElementById("guest-banner").classList.remove("hidden");
+  document.getElementById("meal-date").value = todayStr();
+  document.getElementById("ex-date").value = todayStr();
+  document.getElementById("v-date").value = todayStr();
+  renderHome();
+  renderSettings();
+}
+document.getElementById("auth-guest-start").addEventListener("click", startGuestMode);
+document.getElementById("guest-exit-btn").addEventListener("click", () => {
+  if (!confirm("ゲストモードを終了します。この端末に保存したゲストデータは残ります。よろしいですか？")) return;
+  guestMode = false;
+  document.getElementById("guest-banner").classList.add("hidden");
+  document.getElementById("auth-gate").classList.remove("hidden");
+  showAuthView("scan");
+});
 
 /* ============ ログイン（患者: 対面QRペアリング＋PIN/生体認証） ============ */
 const FN_BASE = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net";
@@ -891,6 +918,7 @@ auth.onAuthStateChanged(async user => {
   const gate = document.getElementById("auth-gate");
   if (!user) {
     currentUid = null; unlocked = false; justPaired = false;
+    if (guestMode) return;
     gate.classList.remove("hidden");
     showAuthView("scan");
     return;
@@ -1997,8 +2025,11 @@ function renderSettings() {
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
   setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
   setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
-  document.getElementById("account-phone").textContent =
-    auth.currentUser ? `ログイン中: ${auth.currentUser.phoneNumber}` : "ログインしていません";
+  document.getElementById("account-phone").textContent = guestMode
+    ? "🧪 ゲストモードで利用中（データはこの端末のみ）"
+    : (auth.currentUser ? `ログイン中: ${auth.currentUser.phoneNumber}` : "ログインしていません");
+  document.getElementById("logout-btn").classList.toggle("hidden", guestMode);
+  document.getElementById("guest-exit-btn").classList.toggle("hidden", !guestMode);
   updateAgeView(); updateBmiView(); updateGoalSuggest();
 }
 function updateAgeView() {
@@ -2173,7 +2204,7 @@ document.getElementById("export-btn").addEventListener("click", () => {
 });
 document.getElementById("reset-btn").addEventListener("click", () => {
   if (confirm("すべての記録（プロフィール・日々の記録・来院データ）を削除します。よろしいですか？")) {
-    Object.values(K).forEach(k => localStorage.removeItem(k));
+    Object.values(K).forEach(k => localStorage.removeItem(storageKey(k)));
     toast("削除しました"); renderHome(); renderSettings();
   }
 });
