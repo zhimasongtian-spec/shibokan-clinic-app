@@ -614,6 +614,9 @@
   <section class="page" id="page-settings">
     <div class="card">
       <h2>👤 基本情報</h2>
+      <label for="p-nickname">ニックネーム</label>
+      <input type="text" id="p-nickname" maxlength="20" placeholder="例: たろう">
+      <p class="muted" style="font-size:.78rem; margin-top:2px;">レポートの呼びかけ表示に使われます（本名でなくても構いません）</p>
       <div class="row2">
         <div><label>生年月日</label><input type="date" id="p-birthdate"></div>
         <div><label>性別</label>
@@ -2021,6 +2024,7 @@ function renderChart() {
 function renderSettings() {
   const p = load(K.profile);
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
+  setv("p-nickname", p.nickname);
   setv("p-birthdate", p.birthdate); document.getElementById("p-sex").value = p.sex || "";
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
   setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
@@ -2067,6 +2071,7 @@ function updateGoalSuggest() {
 document.getElementById("p-save").addEventListener("click", () => {
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
   const p = {
+    nickname: document.getElementById("p-nickname").value.trim() || null,
     birthdate: document.getElementById("p-birthdate").value || null, sex: document.getElementById("p-sex").value || null,
     height: num("p-height"), startWeight: num("p-start-weight"),
     goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 150,

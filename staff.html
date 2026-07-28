@@ -79,6 +79,114 @@
     display: inline-block; background: #fff3d6; color: #8a6100; font-weight: 700;
     font-size: .76rem; padding: 3px 10px; border-radius: 999px; margin-bottom: 10px;
   }
+
+  /* ---- 患者の評価: 頑張り度カード ---- */
+  .pd-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .pd-toolbar-right { display: flex; align-items: center; gap: 14px; }
+  .print-btn { margin: 0; }
+  .pd-profile-line { font-weight: 700; color: var(--accent-dark); margin-top: 2px; }
+  .pd-period-line { margin-bottom: 4px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 4px; }
+  .stat-card { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; }
+  .stat-label { font-size: .78rem; color: var(--sub); font-weight: 700; }
+  .stat-value { font-size: 1.15rem; font-weight: 800; color: var(--accent-dark); margin-top: 2px; }
+  .stat-unit { font-size: .74rem; font-weight: 600; color: var(--sub); }
+  .stat-delta { font-size: .82rem; font-weight: 700; margin-left: 4px; }
+  .stat-delta.good { color: var(--accent-dark); }
+  .stat-delta.bad { color: var(--danger); }
+  .stat-bar { height: 7px; border-radius: 999px; background: #dfeae4; margin-top: 6px; overflow: hidden; }
+  .stat-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
+  .stat-note { font-size: .72rem; color: var(--sub); margin-top: 4px; }
+
+  /* ---- 検査値テーブル ---- */
+  .lab-card-date { font-size: .8rem; color: var(--sub); margin-bottom: 6px; }
+  table.lab-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+  table.lab-table th { text-align: left; font-size: .74rem; color: var(--sub); padding: 4px 4px 6px; border-bottom: 1px solid var(--line); }
+  table.lab-table td { padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  table.lab-table td.val { font-weight: 700; text-align: right; }
+  table.lab-table tr:last-child td { border-bottom: none; }
+  .trend-chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .trend-chip.good { background: var(--accent-soft); color: var(--accent-dark); }
+  .trend-chip.bad { background: var(--danger-soft); color: var(--danger); }
+  .trend-chip.flat { background: #eef1ef; color: var(--sub); }
+
+  /* ---- 栄養・運動アドバイス ---- */
+  .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .advice-block { border-radius: 12px; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--accent-soft); }
+  .advice-block.exercise { border-left-color: #3b6fb0; background: #e7eefa; }
+  .advice-title { font-weight: 700; font-size: .88rem; margin-bottom: 6px; }
+  .advice-block ul { margin: 0; padding-left: 18px; font-size: .82rem; line-height: 1.6; }
+  .advice-block li + li { margin-top: 4px; }
+
+  /* ---- 推移グラフ ---- */
+  .graph-picker { margin: 10px 0 6px; }
+  .graph-picker-group { margin-bottom: 10px; }
+  .graph-picker-group-label { font-size: .76rem; color: var(--sub); font-weight: 700; margin-bottom: 5px; }
+  .graph-picker-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .graph-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px;
+    font-size: .8rem; font-weight: 600; color: var(--sub); cursor: pointer; background: #fbfdfc;
+  }
+  .graph-chip.on { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+  .graph-chip input { accent-color: var(--accent); }
+  .chart-card { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+  .chart-title { font-weight: 700; font-size: .88rem; margin-bottom: 2px; }
+  .chart-svg { width: 100%; height: auto; display: block; }
+  .chart-axis { stroke: var(--line); stroke-width: 1; }
+  .chart-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-dot { fill: var(--accent); }
+  .chart-value-label { font-size: 11px; font-weight: 700; fill: var(--accent-dark); }
+  .chart-value-label.muted { font-weight: 600; fill: var(--sub); }
+  .chart-axis-label { font-size: 10px; fill: var(--sub); }
+  .chart-empty { font-size: .8rem; color: var(--sub); padding: 20px 0; text-align: center; }
+
+  /* ---- 印刷レイアウト ---- */
+  .print-only { display: none; }
+  .pd-print-header { text-align: center; margin-bottom: 12px; }
+  .pd-print-title { font-size: 1.4rem; font-weight: 800; color: var(--accent-dark); }
+  .pd-print-lead { font-size: .84rem; color: var(--sub); margin-top: 4px; }
+  .pd-print-meta { font-size: .84rem; color: var(--sub); display: flex; justify-content: center; gap: 18px; margin-top: 4px; }
+  @media print {
+    html { font-size: 82%; }
+    body { background: #fff; padding: 0; display: block; line-height: 1.35; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .box.wide#patient-detail-view, .box.wide#patient-graph-view {
+      max-width: none; width: 100%; box-shadow: none; border-radius: 0; padding: 0;
+    }
+    .chart-card { padding: 6px 8px; margin-bottom: 6px; break-inside: avoid; }
+    .chart-title { font-size: .78rem; }
+    h3 { margin: 10px 0 6px; font-size: .92rem; break-after: avoid; }
+    .pd-print-header { margin-bottom: 6px; }
+    .pd-print-title { font-size: 1.15rem; }
+    .pd-print-lead { margin-top: 2px; }
+    .pd-print-meta { margin-top: 2px; }
+    .pd-profile-line { margin-top: 0; }
+    .pd-period-line { margin-bottom: 2px; }
+
+    .stat-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 0; }
+    .stat-card { padding: 6px 8px; border-radius: 8px; }
+    .stat-label { font-size: .68rem; }
+    .stat-value { font-size: .92rem; margin-top: 0; }
+    .stat-note { font-size: .64rem; margin-top: 2px; }
+    .stat-bar { height: 4px; margin-top: 3px; }
+
+    .lab-card-date { font-size: .7rem; margin-bottom: 3px; }
+    table.lab-table { font-size: .74rem; }
+    table.lab-table th { padding: 2px 4px 3px; }
+    table.lab-table td { padding: 3px 4px; }
+    .trend-chip { font-size: .64rem; padding: 1px 6px; }
+
+    .advice-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .advice-block { padding: 6px 8px; border-radius: 8px; }
+    .advice-title { font-size: .76rem; margin-bottom: 3px; }
+    .advice-block ul { font-size: .68rem; line-height: 1.35; padding-left: 14px; }
+    .advice-block li + li { margin-top: 2px; }
+
+    .stat-card, .advice-block, table.lab-table { break-inside: avoid; }
+    @page { size: A4; margin: 10mm; }
+  }
 </style>
 </head>
 <body>
@@ -127,12 +235,12 @@
     <div id="reg-fields">
       <label for="reg-chart-id">カルテID</label>
       <input type="text" id="reg-chart-id" placeholder="カルテ番号・診察券番号など">
-      <button class="btn" id="reg-submit">研究用IDを発行してQR表示</button>
+      <button class="btn" id="reg-submit">かん活IDを発行してQR表示</button>
     </div>
   </div>
 
   <div id="form-relink" class="hidden">
-    <p class="muted">機種変更・PIN紛失などで患者さんが再連携する場合。既存の研究用IDに再接続します。</p>
+    <p class="muted">機種変更・PIN紛失などで患者さんが再連携する場合。既存のかん活IDに再接続します。</p>
     <div id="relink-fields">
       <label for="relink-chart-id">カルテID</label>
       <input type="text" id="relink-chart-id" placeholder="カルテ番号・診察券番号など">
@@ -161,45 +269,90 @@
 </div>
 
 <div class="box wide hidden" id="patient-detail-view">
-  <button type="button" class="back-link" id="patient-detail-back">← 患者の連携画面に戻る</button>
-  <p class="demo-badge hidden" id="detail-demo-badge">👀 デモモード（実データにはアクセスしません）</p>
-  <h2>患者の評価</h2>
+  <div class="pd-toolbar no-print">
+    <button type="button" class="back-link" id="patient-detail-back">← 患者の連携画面に戻る</button>
+    <div class="pd-toolbar-right">
+      <button type="button" class="btn-link" id="pd-graph-btn">📈 グラフで見る</button>
+      <button type="button" class="btn-link print-btn" id="pd-print-btn">🖨️ この評価をA4で印刷</button>
+    </div>
+  </div>
+  <p class="demo-badge hidden no-print" id="detail-demo-badge">👀 デモモード（実データにはアクセスしません）</p>
+
+  <div class="print-only pd-print-header">
+    <div class="pd-print-title">🌿 かん活レポート</div>
+    <p class="pd-print-lead" id="pd-print-lead">いつも記録ありがとうございます！ここまでの頑張りをまとめました。</p>
+    <div class="pd-print-meta"><span id="pd-print-date"></span></div>
+  </div>
+
+  <h2 class="no-print">かん活レポート</h2>
+  <p class="muted no-print" id="pd-greeting"></p>
   <p class="muted" id="pd-status"></p>
 
   <div id="pd-content" class="hidden">
-    <h3>頑張り度</h3>
+    <p class="pd-profile-line" id="pd-profile-line"></p>
+    <p class="muted pd-period-line" id="pd-period-line"></p>
+
+    <h3>🏅 ここまでのがんばり</h3>
     <div id="pd-summary"></div>
 
-    <h3>検査値（患者が記録した最新の来院データ）</h3>
+    <h3>🩺 からだの変化（検査値）</h3>
     <div id="pd-labs"></div>
 
-    <h3>評価・次の目標を入力</h3>
-    <label for="pd-visit-date">来院日</label>
-    <input type="date" id="pd-visit-date">
-    <div class="row3">
-      <div><label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label><input type="number" id="pd-goal-weight" step="0.1" min="20" max="300"></div>
-      <div><label for="pd-goal-ex-per-week">運動目標 <span class="unit-note">回/週</span></label><input type="number" id="pd-goal-ex-per-week" min="0" max="14"></div>
-      <div><label for="pd-goal-ex-min">1回あたり <span class="unit-note">分</span></label><input type="number" id="pd-goal-ex-min" min="0" max="300" step="5"></div>
+    <h3>💡 次に頑張りたいこと</h3>
+    <div id="pd-advice"></div>
+
+    <h3 class="print-only">📌 前回の目標とコメント</h3>
+    <div id="pd-plan-print" class="print-only"></div>
+
+    <div class="no-print">
+      <h3>評価・次の目標を入力</h3>
+      <label for="pd-visit-date">来院日</label>
+      <input type="date" id="pd-visit-date">
+      <div class="row3">
+        <div><label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label><input type="number" id="pd-goal-weight" step="0.1" min="20" max="300"></div>
+        <div><label for="pd-goal-ex-per-week">運動目標 <span class="unit-note">回/週</span></label><input type="number" id="pd-goal-ex-per-week" min="0" max="14"></div>
+        <div><label for="pd-goal-ex-min">1回あたり <span class="unit-note">分</span></label><input type="number" id="pd-goal-ex-min" min="0" max="300" step="5"></div>
+      </div>
+      <label for="pd-goal-meal">食事目標</label>
+      <textarea id="pd-goal-meal" rows="2" placeholder="例: 地中海食継続・アルコール週2回以内"></textarea>
+      <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
+      <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
+      <label>次回来院</label>
+      <div class="seg-interval" id="pd-interval-seg">
+        <button type="button" data-interval="1m">1ヶ月</button>
+        <button type="button" data-interval="2m">2ヶ月</button>
+        <button type="button" data-interval="3m">3ヶ月</button>
+        <button type="button" data-interval="custom">日付指定</button>
+      </div>
+      <div id="pd-custom-date-wrap" class="hidden">
+        <label for="pd-custom-date">次回来院日</label>
+        <input type="date" id="pd-custom-date">
+      </div>
+      <button class="btn" id="pd-save" style="margin-top:14px;">評価を保存</button>
+      <p class="error" id="pd-error"></p>
+      <p class="muted" id="pd-saved-msg" style="display:none;">保存しました</p>
     </div>
-    <label for="pd-goal-meal">食事目標</label>
-    <textarea id="pd-goal-meal" rows="2" placeholder="例: 地中海食継続・アルコール週2回以内"></textarea>
-    <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
-    <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
-    <label>次回来院</label>
-    <div class="seg-interval" id="pd-interval-seg">
-      <button type="button" data-interval="1m">1ヶ月</button>
-      <button type="button" data-interval="2m">2ヶ月</button>
-      <button type="button" data-interval="3m">3ヶ月</button>
-      <button type="button" data-interval="custom">日付指定</button>
-    </div>
-    <div id="pd-custom-date-wrap" class="hidden">
-      <label for="pd-custom-date">次回来院日</label>
-      <input type="date" id="pd-custom-date">
-    </div>
-    <button class="btn" id="pd-save" style="margin-top:14px;">評価を保存</button>
-    <p class="error" id="pd-error"></p>
-    <p class="muted" id="pd-saved-msg" style="display:none;">保存しました</p>
   </div>
+</div>
+
+<div class="box wide hidden" id="patient-graph-view">
+  <div class="pd-toolbar no-print">
+    <button type="button" class="back-link" id="patient-graph-back">← 患者の評価に戻る</button>
+    <button type="button" class="btn-link print-btn" id="graph-print-btn">🖨️ グラフをA4で印刷</button>
+  </div>
+
+  <div class="print-only pd-print-header">
+    <div class="pd-print-title">🌿 かん活 推移グラフ</div>
+    <div class="pd-print-meta"><span id="graph-print-date"></span></div>
+  </div>
+
+  <h2 class="no-print">推移グラフ</h2>
+  <p class="muted no-print">比較したい項目を選んでください（時期の重なりを見比べられます）。</p>
+
+  <div class="graph-picker no-print" id="graph-picker"></div>
+
+  <div id="graph-list"></div>
+  <p class="muted print-only" id="graph-print-note" style="font-size:.7rem; margin-top:6px;"></p>
 </div>
 
 <div class="modal-backdrop hidden" id="changepw-modal">
@@ -262,7 +415,7 @@ const STAFF_REGISTER_URL = `${FN_BASE}/staffRegisterPatient`;
 const STAFF_RELINK_URL = `${FN_BASE}/staffRelinkPatient`;
 const STAFF_OPEN_PATIENT_URL = `${FN_BASE}/staffOpenPatient`;
 // index.htmlと同じdocIdキー（患者データは1種類ごとに1ドキュメントへ全履歴をvalueとして保存する方式）。
-const DK = { daily: "nafld-daily-v1", visits: "nafld-visits-v1", eval: "nafld-eval-v1" };
+const DK = { daily: "nafld-daily-v1", visits: "nafld-visits-v1", eval: "nafld-eval-v1", profile: "nafld-profile-v1" };
 // この病院専用アプリのため病院IDは固定値。対応表のスキーマ自体は
 // hospitalId/hospitalPatientNoのままなので、Cloud Functions側の変更は不要。
 const HOSPITAL_ID = "kagawa-univ-hospital";
@@ -485,11 +638,12 @@ let demoStore = null; // { [DK.daily]: {...}, [DK.visits]: {...}, [DK.eval]: {..
 function buildDemoStore() {
   return {
     [DK.daily]: {
-      "2026-05-02": { weight: 92.0, meals: [{ kcal: 600 }], exercises: [{ min: 30 }] },
-      "2026-06-01": { weight: 90.5, meals: [{ kcal: 580 }], exercises: [{ min: 20 }] },
-      "2026-06-15": { weight: 89.0, meals: [{ kcal: 550 }], exercises: [] },
-      "2026-07-01": { weight: 88.8, meals: [{ kcal: 560 }], exercises: [{ min: 25 }] },
-      "2026-07-20": { weight: 88.5, meals: [{ kcal: 520 }], exercises: [{ min: 20 }] },
+      "2026-05-02": { weight: 92.0, steps: 6200, meals: [{ kcal: 700 }, { kcal: 620 }, { kcal: 680 }], exercises: [{ min: 30 }] },
+      "2026-05-14": { weight: 91.2, steps: 7100, meals: [{ kcal: 650 }, { kcal: 600 }, { kcal: 640 }], exercises: [{ min: 20 }] },
+      "2026-06-01": { weight: 90.5, steps: 8300, meals: [{ kcal: 580 }, { kcal: 560 }, { kcal: 600 }], exercises: [{ min: 20 }] },
+      "2026-06-15": { weight: 89.0, steps: 9100, meals: [{ kcal: 550 }, { kcal: 520 }, { kcal: 580 }], exercises: [] },
+      "2026-07-01": { weight: 88.8, steps: 8600, meals: [{ kcal: 560 }, { kcal: 540 }, { kcal: 600 }], exercises: [{ min: 25 }] },
+      "2026-07-20": { weight: 88.5, steps: 9400, meals: [{ kcal: 520 }, { kcal: 500 }, { kcal: 560 }], exercises: [{ min: 20 }] },
     },
     [DK.visits]: {
       "2026-05-01": { ast: 42, alt: 35, ggtp: 55, tg: 185, ldl: 130, hba1c: 6.1, kpa: 8.2 },
@@ -497,10 +651,19 @@ function buildDemoStore() {
     },
     [DK.eval]: {
       "2026-05-01": {
-        type: "eval", visitDate: "2026-05-01", goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
-        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
-        nextVisitInterval: "3m", nextVisitDate: "2026-07-27",
+        type: "eval", visitDate: "2026-05-01", goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
+        goalMealNote: "間食を控える・野菜から食べる", doctorComment: "かん活スタートです。まずは無理なく続けましょう",
+        nextVisitInterval: "1m", nextVisitDate: "2026-06-10",
       },
+      "2026-06-10": {
+        type: "eval", visitDate: "2026-06-10", goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
+        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
+        nextVisitInterval: "1m", nextVisitDate: "2026-07-27",
+      },
+    },
+    [DK.profile]: {
+      sex: "男性", birthdate: "1974-03-12", height: 172,
+      goalWeight: 86, goalKcal: 1800, goalSteps: 8000, goalEx: 150,
     },
   };
 }
@@ -527,7 +690,7 @@ function exitDemoMode() {
 document.getElementById("guest-login-btn").addEventListener("click", enterDemoMode);
 
 // ------- 患者を開く・評価 -------
-// 開いた患者の研究用IDはこの変数にのみ保持し、ブラウザに永続化しない。
+// 開いた患者のかん活IDはこの変数にのみ保持し、ブラウザに永続化しない。
 // 画面を閉じる／次の患者を検索し直すと空にする。
 let openResearchId = null;
 
@@ -581,25 +744,36 @@ document.getElementById("open-submit").addEventListener("click", async () => {
   await loadPatientDetail();
 });
 
+document.getElementById("pd-print-btn").addEventListener("click", () => window.print());
+
 document.getElementById("patient-detail-back").addEventListener("click", () => {
-  openResearchId = null; // 画面を離れたら研究用IDを忘れる
+  openResearchId = null; // 画面を離れたらかん活IDを忘れる
+  pdCache = null;
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("pd-content").classList.add("hidden");
   document.getElementById("panel-view").classList.remove("hidden");
 });
+
+// 患者の評価データはグラフ画面に遷移しても再取得しないよう、開いている間だけメモリに保持する。
+let pdCache = null; // { daily, visits, evals, profile }
 
 async function loadPatientDetail() {
   const statusEl = document.getElementById("pd-status");
   document.getElementById("pd-content").classList.add("hidden");
   statusEl.textContent = "読み込み中...";
   try {
-    const [daily, visits, evals] = await Promise.all([
+    const [daily, visits, evals, profile] = await Promise.all([
       fetchPatientDoc(openResearchId, DK.daily),
       fetchPatientDoc(openResearchId, DK.visits),
       fetchPatientDoc(openResearchId, DK.eval),
+      fetchPatientDoc(openResearchId, DK.profile),
     ]);
-    renderPatientSummary(daily, evals);
+    pdCache = { daily, visits, evals, profile };
+    document.getElementById("pd-print-date").textContent = `評価日: ${fmtDate(todayStr())}`;
+    renderPatientSummary(daily, evals, profile);
     renderPatientLabs(visits);
+    renderAdvice(daily, evals, visits, profile);
+    renderPlanPrint(evals);
     prefillEvalForm(evals);
     statusEl.textContent = "";
     document.getElementById("pd-content").classList.remove("hidden");
@@ -608,7 +782,188 @@ async function loadPatientDetail() {
   }
 }
 
-function renderPatientSummary(daily, evals) {
+// ------- 推移グラフ（医師が項目を選んで縦に並べて比較） -------
+const GRAPH_ITEMS = [
+  { key: "weight", group: "からだ", label: "⚖️ 体重", unit: "kg" },
+  { key: "kcal", group: "生活記録（週平均）", label: "🍚 摂取カロリー", unit: "kcal" },
+  { key: "exmin", group: "生活記録（週平均）", label: "🚶 運動時間", unit: "分/週" },
+  { key: "steps", group: "生活記録（週平均）", label: "👣 歩数", unit: "歩" },
+  { key: "ast", group: "採血結果", label: "AST", unit: "U/L" },
+  { key: "alt", group: "採血結果", label: "ALT", unit: "U/L" },
+  { key: "ggtp", group: "採血結果", label: "γGTP", unit: "U/L" },
+  { key: "tg", group: "採血結果", label: "TG", unit: "mg/dL" },
+  { key: "ldl", group: "採血結果", label: "LDL", unit: "mg/dL" },
+  { key: "hba1c", group: "採血結果", label: "HbA1c", unit: "%" },
+  { key: "kpa", group: "採血結果", label: "肝硬度(kPa)", unit: "kPa" },
+];
+const GRAPH_DEFAULT_KEYS = ["weight", "exmin", "alt"];
+let graphSelected = new Set(GRAPH_DEFAULT_KEYS);
+
+document.getElementById("pd-graph-btn").addEventListener("click", () => {
+  document.getElementById("patient-detail-view").classList.add("hidden");
+  document.getElementById("patient-graph-view").classList.remove("hidden");
+  document.getElementById("graph-print-date").textContent = `作成日: ${fmtDate(todayStr())}`;
+  renderGraphPicker();
+  renderGraphs();
+});
+
+document.getElementById("patient-graph-back").addEventListener("click", () => {
+  document.getElementById("patient-graph-view").classList.add("hidden");
+  document.getElementById("patient-detail-view").classList.remove("hidden");
+});
+
+document.getElementById("graph-print-btn").addEventListener("click", () => window.print());
+
+function renderGraphPicker() {
+  const groups = [...new Set(GRAPH_ITEMS.map(it => it.group))];
+  document.getElementById("graph-picker").innerHTML = groups.map(g => `
+    <div class="graph-picker-group">
+      <div class="graph-picker-group-label">${g}</div>
+      <div class="graph-picker-chips">
+        ${GRAPH_ITEMS.filter(it => it.group === g).map(it => `
+          <label class="graph-chip ${graphSelected.has(it.key) ? "on" : ""}">
+            <input type="checkbox" data-key="${it.key}" ${graphSelected.has(it.key) ? "checked" : ""}>
+            ${it.label}
+          </label>`).join("")}
+      </div>
+    </div>`).join("");
+  document.querySelectorAll("#graph-picker input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      if (cb.checked) graphSelected.add(cb.dataset.key); else graphSelected.delete(cb.dataset.key);
+      cb.closest(".graph-chip").classList.toggle("on", cb.checked);
+      renderGraphs();
+    });
+  });
+}
+
+// 日次記録をISO週（月曜始まり）ごとに平均する。記録がまばらな食事・運動を見やすくするため。
+function weeklyAverage(dateValuePairs) {
+  const buckets = {};
+  for (const [d, v] of dateValuePairs) {
+    const dt = new Date(d + "T00:00:00");
+    const day = (dt.getDay() + 6) % 7; // 月曜=0
+    dt.setDate(dt.getDate() - day);
+    const wk = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+    (buckets[wk] = buckets[wk] || []).push(v);
+  }
+  return Object.keys(buckets).sort().map(wk => ({
+    date: wk, value: Math.round(buckets[wk].reduce((s, x) => s + x, 0) / buckets[wk].length),
+  }));
+}
+
+function buildSeries(key, daily, visits) {
+  const dates = Object.keys(daily).sort();
+  if (key === "weight") {
+    return dates.filter(d => daily[d].weight != null).map(d => ({ date: d, value: daily[d].weight }));
+  }
+  if (key === "kcal") {
+    const pairs = dates.filter(d => daily[d].meals && daily[d].meals.length)
+      .map(d => [d, daily[d].meals.reduce((s, m) => s + (m.kcal || 0), 0)]);
+    return weeklyAverage(pairs);
+  }
+  if (key === "exmin") {
+    const pairs = dates.filter(d => daily[d].exercises && daily[d].exercises.length)
+      .map(d => [d, daily[d].exercises.reduce((s, e) => s + (e.min || 0), 0)]);
+    return weeklyAverage(pairs);
+  }
+  if (key === "steps") {
+    const pairs = dates.filter(d => daily[d].steps != null).map(d => [d, daily[d].steps]);
+    return weeklyAverage(pairs);
+  }
+  // 採血結果は来院日ごと
+  const visitDates = Object.keys(visits).sort();
+  return visitDates.filter(d => visits[d][key] != null).map(d => ({ date: d, value: visits[d][key] }));
+}
+
+// 折れ線グラフをインラインSVGで描く（外部ライブラリなし。印刷にもそのまま使える）。
+// minTs/maxTsは全グラフ共通の時間軸（呼び出し側で選択項目全体から算出）。
+// 日付の実際の間隔に比例してx座標を決めるので、縦に並べたグラフ同士で
+// 「同じ時期に何が起きていたか」を正しく見比べられる。
+function lineChartSvg(series, unit, minTs, maxTs) {
+  const W = 640, H = 120, padL = 36, padT = 14, padB = 22;
+  const innerW = W - padL - 14, innerX = padL;
+  if (series.length === 0) {
+    return `<div class="chart-empty">記録がまだありません</div>`;
+  }
+  const values = series.map(p => p.value);
+  let min = Math.min(...values), max = Math.max(...values);
+  if (min === max) { min -= 1; max += 1; }
+  const pad = (max - min) * 0.15;
+  min -= pad; max += pad;
+  const span = Math.max(1, maxTs - minTs);
+  const tsOf = d => new Date(d + "T00:00:00").getTime();
+  const x = d => innerX + innerW * ((tsOf(d) - minTs) / span);
+  const y = v => padT + (H - padT - padB) * (1 - (v - min) / (max - min));
+  const pts = series.map(p => `${x(p.date)},${y(p.value)}`).join(" ");
+  const last = series[series.length - 1];
+  const first = series[0];
+  const dateLabel = d => { const [y2, m, dd] = d.split("-"); return `${Number(m)}/${Number(dd)}`; };
+  return `
+    <svg viewBox="0 0 ${W} ${H}" class="chart-svg" preserveAspectRatio="xMidYMid meet">
+      <line x1="${innerX}" y1="${H - padB}" x2="${innerX + innerW}" y2="${H - padB}" class="chart-axis"/>
+      <polyline points="${pts}" class="chart-line"/>
+      ${series.map(p => `<circle cx="${x(p.date)}" cy="${y(p.value)}" r="3" class="chart-dot"/>`).join("")}
+      <text x="${x(last.date)}" y="${y(last.value) - 8}" class="chart-value-label" text-anchor="end">${last.value}${unit}</text>
+      ${series.length > 1 ? `<text x="${x(first.date)}" y="${y(first.value) - 8}" class="chart-value-label muted" text-anchor="start">${first.value}${unit}</text>` : ""}
+      <text x="${innerX}" y="${H - 6}" class="chart-axis-label">${dateLabel(new Date(minTs).toISOString().slice(0, 10))}</text>
+      <text x="${innerX + innerW}" y="${H - 6}" class="chart-axis-label" text-anchor="end">${dateLabel(new Date(maxTs).toISOString().slice(0, 10))}</text>
+    </svg>`;
+}
+
+function renderGraphs() {
+  const { daily, visits } = pdCache || { daily: {}, visits: {} };
+  const items = GRAPH_ITEMS.filter(it => graphSelected.has(it.key));
+  if (items.length === 0) {
+    document.getElementById("graph-list").innerHTML = `<p class="muted">上から項目を選んでください</p>`;
+    document.getElementById("graph-print-note").textContent = "";
+    return;
+  }
+  const seriesByKey = {};
+  let minTs = Infinity, maxTs = -Infinity;
+  items.forEach(it => {
+    const series = buildSeries(it.key, daily, visits);
+    seriesByKey[it.key] = series;
+    series.forEach(p => {
+      const t = new Date(p.date + "T00:00:00").getTime();
+      if (t < minTs) minTs = t;
+      if (t > maxTs) maxTs = t;
+    });
+  });
+  if (!isFinite(minTs)) { minTs = maxTs = Date.now(); }
+  if (minTs === maxTs) { minTs -= 86400000; maxTs += 86400000; }
+
+  document.getElementById("graph-list").innerHTML = items.map(it => `
+      <div class="chart-card">
+        <div class="chart-title">${it.label}</div>
+        ${lineChartSvg(seriesByKey[it.key], it.unit, minTs, maxTs)}
+      </div>`).join("");
+  document.getElementById("graph-print-note").textContent =
+    "※ 摂取カロリー・運動時間・歩数は週平均、体重・採血結果は記録日ごとの値です。すべてのグラフで横軸（期間）を揃えています。";
+}
+
+function calcAge(birthdate, onDate) {
+  if (!birthdate) return null;
+  const [by, bm, bd] = birthdate.split("-").map(Number);
+  const [ey, em, ed] = onDate.split("-").map(Number);
+  let age = ey - by;
+  if (em < bm || (em === bm && ed < bd)) age--;
+  return age;
+}
+
+function pct(n, d) { return d > 0 ? Math.round((n / d) * 100) : 0; }
+
+function statCard(label, valueHtml, note, ratio) {
+  const p = Math.max(0, Math.min(100, ratio == null ? 0 : ratio));
+  const barHtml = ratio == null ? "" : `<div class="stat-bar"><div class="stat-bar-fill" style="width:${p}%"></div></div>`;
+  return `<div class="stat-card">
+      <div class="stat-label">${label}</div>
+      <div class="stat-value">${valueHtml}</div>
+      ${barHtml}
+      ${note ? `<div class="stat-note">${note}</div>` : ""}
+    </div>`;
+}
+
+function renderPatientSummary(daily, evals, profile) {
   const evalDates = Object.keys(evals).sort();
   const sinceDate = evalDates.length ? evals[evalDates[evalDates.length - 1]].visitDate : null;
   const dates = Object.keys(daily).sort();
@@ -623,16 +978,65 @@ function renderPatientSummary(daily, evals) {
   const firstW = weightDays.length ? daily[weightDays[0]].weight : null;
   const lastW = weightDays.length ? daily[weightDays[weightDays.length - 1]].weight : null;
 
-  const rows = [];
-  rows.push(`<div class="summary-row"><span>集計期間</span><span>${sinceDate ? fmtDate(sinceDate) + " 〜 本日" : "全期間"}</span></div>`);
-  if (firstW != null && lastW != null) {
-    const diff = Math.round((lastW - firstW) * 10) / 10;
-    rows.push(`<div class="summary-row"><span>体重</span><span>${firstW}kg → ${lastW}kg（${diff >= 0 ? "+" : ""}${diff}kg）</span></div>`);
+  // かん活を始めてから（初回記録日〜今日）の通算の変化。前回からの変化とは別に出す。
+  const allWeightDays = dates.filter(d => daily[d].weight != null);
+  const startW = allWeightDays.length ? daily[allWeightDays[0]].weight : null;
+  const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : null;
+  const startDate = allWeightDays.length ? allWeightDays[0] : null;
+
+  // 患者プロフィールカード（年齢・BMIなど、取得できた分だけ）
+  const profileBits = [];
+  const age = calcAge(profile.birthdate, todayStr());
+  if (age != null) profileBits.push(`${age}歳`);
+  if (profile.sex) profileBits.push(profile.sex);
+  if (lastW != null && profile.height) {
+    const bmi = lastW / ((profile.height / 100) ** 2);
+    profileBits.push(`身長 ${profile.height}cm ／ BMI ${bmi.toFixed(1)}`);
   }
-  rows.push(`<div class="summary-row"><span>体重記録率</span><span>${weightDays.length}/${totalDays}日</span></div>`);
-  rows.push(`<div class="summary-row"><span>食事記録率</span><span>${mealDays.length}/${totalDays}日</span></div>`);
-  rows.push(`<div class="summary-row"><span>運動記録率</span><span>${exDays.length}/${totalDays}日</span></div>`);
-  document.getElementById("pd-summary").innerHTML = rows.join("");
+  document.getElementById("pd-profile-line").textContent = profileBits.join("　");
+  document.getElementById("pd-period-line").textContent =
+    `集計期間: ${sinceDate ? fmtDate(sinceDate) + " 〜 本日（" + totalDays + "日間）" : "全期間"}`;
+
+  const greeting = profile.nickname ? `${profile.nickname}さん、いつも記録ありがとうございます！` : "いつも記録ありがとうございます！";
+  document.getElementById("pd-greeting").textContent = greeting;
+  document.getElementById("pd-print-lead").textContent = `${greeting}ここまでの頑張りをまとめました。`;
+
+  const cards = [];
+  const goalW = profile.goalWeight;
+  const goalNote = (w) => {
+    if (goalW == null) return "";
+    const remain = Math.round((w - goalW) * 10) / 10;
+    return remain > 0 ? `目標体重まであと ${remain}kg` : "目標体重を達成 🎉";
+  };
+
+  if (sinceDate && firstW != null && lastW != null) {
+    // 前回診察から今回までの変化（直近の頑張りを見る）
+    const diff = Math.round((lastW - firstW) * 10) / 10;
+    cards.push(statCard("⚖️ 前回からの体重変化",
+      `${lastW}<span class="stat-unit">kg</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span>`,
+      goalNote(lastW) || `前回 ${fmtDate(sinceDate)} 時点 ${firstW}kg から`, null));
+  }
+  if (startW != null && nowW != null) {
+    // かん活を始めてから今日までの通算の変化（続けてきた成果を見る）
+    const diffAll = Math.round((nowW - startW) * 10) / 10;
+    const label = sinceDate ? "🌱 かん活開始からの体重変化" : "⚖️ 体重の変化";
+    cards.push(statCard(label,
+      `${nowW}<span class="stat-unit">kg</span> <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>`,
+      goalNote(nowW) || `${fmtDate(startDate)} 時点 ${startW}kg から`, null));
+  }
+  cards.push(statCard("📅 体重記録率", `${weightDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(weightDays.length, totalDays)}%の日に記録`, pct(weightDays.length, totalDays)));
+  cards.push(statCard("🍚 食事記録率", `${mealDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(mealDays.length, totalDays)}%の日に記録`, pct(mealDays.length, totalDays)));
+  cards.push(statCard("🚶 運動記録率", `${exDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(exDays.length, totalDays)}%の日に記録`, pct(exDays.length, totalDays)));
+  document.getElementById("pd-summary").innerHTML = `<div class="stat-grid">${cards.join("")}</div>`;
+}
+
+// 値が小さいほど良い検査項目（AST/ALT/γGTP/TG/LDL/HbA1c/肝硬度）の前回比バッジ
+function labTrendChip(prev, cur) {
+  if (prev == null || cur == null) return "";
+  const diff = Math.round((cur - prev) * 10) / 10;
+  if (diff < 0) return `<span class="trend-chip good">↓ よくなっています</span>`;
+  if (diff > 0) return `<span class="trend-chip bad">↑ 要注意</span>`;
+  return `<span class="trend-chip flat">→ 変化なし</span>`;
 }
 
 function renderPatientLabs(visits) {
@@ -646,16 +1050,135 @@ function renderPatientLabs(visits) {
     if (cur == null) return "—";
     return prev && prev[key] != null ? `${prev[key]}→${cur}${unit}` : `${cur}${unit}`;
   };
+  const chip = key => prev ? labTrendChip(prev[key], latest[key]) : "";
   const rows = [
-    ["来院日", fmtDate(dates[dates.length - 1])],
-    ["AST/ALT", `${fmt("ast", "")} / ${fmt("alt", "")} U/L`],
-    ["γGTP", fmt("ggtp", " U/L")],
-    ["TG/LDL", `${fmt("tg", "")} / ${fmt("ldl", "")} mg/dL`],
-    ["HbA1c", fmt("hba1c", "%")],
-    ["肝硬度(kPa)", fmt("kpa", "")],
+    ["AST", fmt("ast", " U/L"), chip("ast")],
+    ["ALT", fmt("alt", " U/L"), chip("alt")],
+    ["γGTP", fmt("ggtp", " U/L"), chip("ggtp")],
+    ["TG", fmt("tg", " mg/dL"), chip("tg")],
+    ["LDL", fmt("ldl", " mg/dL"), chip("ldl")],
+    ["HbA1c", fmt("hba1c", "%"), chip("hba1c")],
+    ["肝硬度(kPa)", fmt("kpa", ""), chip("kpa")],
   ];
-  document.getElementById("pd-labs").innerHTML = rows
-    .map(([label, val]) => `<div class="summary-row"><span>${label}</span><span>${val}</span></div>`).join("");
+  document.getElementById("pd-labs").innerHTML =
+    `<div class="lab-card-date">来院日: ${fmtDate(dates[dates.length - 1])}${prev ? `（前回 ${fmtDate(dates[dates.length - 2])} 比）` : ""}</div>
+     <table class="lab-table">
+       <tr><th>項目</th><th>推移</th><th></th></tr>
+       ${rows.map(([label, val, c]) => `<tr><td>${label}</td><td class="val">${val}</td><td>${c}</td></tr>`).join("")}
+     </table>`;
+}
+
+// ------- 栄養・運動アドバイス（ルールベース自動生成） -------
+function renderAdvice(daily, evals, visits, profile) {
+  const evalDates = Object.keys(evals).sort();
+  const sinceDate = evalDates.length ? evals[evalDates[evalDates.length - 1]].visitDate : null;
+  const dates = Object.keys(daily).sort();
+  const inRange = sinceDate ? dates.filter(d => d > sinceDate) : dates;
+  const totalDays = sinceDate
+    ? Math.max(1, Math.round((new Date(todayStr()) - new Date(sinceDate)) / 86400000))
+    : dates.length;
+
+  const mealDays = inRange.filter(d => daily[d].meals && daily[d].meals.length);
+  const exDays = inRange.filter(d => (daily[d].exercises && daily[d].exercises.length) || daily[d].steps != null);
+
+  const nutrition = [];
+  const exercise = [];
+
+  // --- 栄養 ---
+  // 患者の記録頻度は総じて低いため、期間比ではなく最低件数（3件以上）でざっくり判定する
+  if (mealDays.length < 3) {
+    nutrition.push("食事記録が少なく、正確な傾向評価が困難です。まずは食事記録の習慣化を促してください。");
+  } else {
+    const avgKcal = Math.round(mealDays.reduce((s, d) => s + daily[d].meals.reduce((ss, m) => ss + (m.kcal || 0), 0), 0) / mealDays.length);
+    const goalKcal = profile.goalKcal;
+    if (goalKcal) {
+      const diffPct = Math.round(((avgKcal - goalKcal) / goalKcal) * 100);
+      if (diffPct > 10) {
+        nutrition.push(`平均摂取エネルギーは ${avgKcal}kcal/日 で、目標(${goalKcal}kcal)を約${diffPct}%上回っています。間食・飲酒・主食量の見直しを提案してください。`);
+      } else if (diffPct < -15) {
+        nutrition.push(`平均摂取エネルギーは ${avgKcal}kcal/日 で、目標(${goalKcal}kcal)を大きく下回っています。極端な制限は筋肉量低下につながるため、たんぱく質を中心にバランスを確認してください。`);
+      } else {
+        nutrition.push(`平均摂取エネルギーは ${avgKcal}kcal/日 で、目標(${goalKcal}kcal)におおむね沿っています。この調子を維持しましょう。`);
+      }
+    } else {
+      nutrition.push(`平均摂取エネルギーは ${avgKcal}kcal/日 です。目標カロリーが未設定のため、患者さんに設定を促すとより具体的な評価ができます。`);
+    }
+  }
+  const latestVisitDates = Object.keys(visits).sort();
+  if (latestVisitDates.length > 1) {
+    const cur = visits[latestVisitDates[latestVisitDates.length - 1]];
+    const prev = visits[latestVisitDates[latestVisitDates.length - 2]];
+    if (cur.tg != null && prev.tg != null && cur.tg > prev.tg) {
+      nutrition.push("中性脂肪(TG)が前回より上昇しています。糖質・アルコール摂取量の見直しを検討してください。");
+    }
+    if (cur.hba1c != null && prev.hba1c != null && cur.hba1c > prev.hba1c) {
+      nutrition.push("HbA1cが前回より上昇しています。食事の量とタイミング（特に夜間の摂取）を確認してください。");
+    }
+  }
+
+  // --- 運動 ---
+  if (exDays.length < 3) {
+    exercise.push("運動記録が少なく、傾向の把握が困難です。歩数や運動の記録を勧めてください。");
+  } else {
+    const totalExMin = inRange.reduce((s, d) => s + (daily[d].exercises || []).reduce((ss, e) => ss + (e.min || 0), 0), 0);
+    const weeklyMin = Math.round((totalExMin / totalDays) * 7);
+    const goalEx = profile.goalEx || 150;
+    if (weeklyMin >= goalEx) {
+      exercise.push(`週あたりの運動時間は約${weeklyMin}分で、目標(週${goalEx}分)を達成しています。継続を評価し、種目のマンネリ化を防ぐ工夫を提案してください。`);
+    } else if (weeklyMin >= goalEx * 0.5) {
+      exercise.push(`週あたりの運動時間は約${weeklyMin}分で、目標(週${goalEx}分)にはやや届いていません。1回の運動時間を5〜10分延ばすか、頻度を増やす提案が有効です。`);
+    } else {
+      exercise.push(`週あたりの運動時間は約${weeklyMin}分と、目標(週${goalEx}分)を大きく下回っています。まずはウォーキングなど負担の少ない運動から習慣化を提案してください。`);
+    }
+
+    const stepDays = inRange.filter(d => daily[d].steps != null);
+    if (stepDays.length) {
+      const avgSteps = Math.round(stepDays.reduce((s, d) => s + daily[d].steps, 0) / stepDays.length);
+      const goalSteps = profile.goalSteps || 8000;
+      if (avgSteps >= goalSteps) {
+        exercise.push(`平均歩数は${avgSteps.toLocaleString()}歩/日で、目標(${goalSteps.toLocaleString()}歩)を達成しています。`);
+      } else {
+        exercise.push(`平均歩数は${avgSteps.toLocaleString()}歩/日で、目標(${goalSteps.toLocaleString()}歩)まであと約${(goalSteps - avgSteps).toLocaleString()}歩です。通勤・買い物時の歩数を増やす工夫を提案してください。`);
+      }
+    }
+  }
+  if (latestVisitDates.length > 1) {
+    const cur = visits[latestVisitDates[latestVisitDates.length - 1]];
+    const prev = visits[latestVisitDates[latestVisitDates.length - 2]];
+    if (cur.kpa != null && prev.kpa != null && cur.kpa < prev.kpa) {
+      exercise.push("肝硬度(kPa)が前回より改善しています。運動習慣の効果が出ている可能性が高く、継続を後押ししてください。");
+    }
+  }
+
+  document.getElementById("pd-advice").innerHTML = `
+    <div class="advice-grid">
+      <div class="advice-block nutrition">
+        <div class="advice-title">🍚 食事のポイント</div>
+        <ul>${nutrition.map(t => `<li>${t}</li>`).join("")}</ul>
+      </div>
+      <div class="advice-block exercise">
+        <div class="advice-title">🚶 運動のポイント</div>
+        <ul>${exercise.map(t => `<li>${t}</li>`).join("")}</ul>
+      </div>
+    </div>
+    <p class="muted" style="font-size:.74rem; margin-top:8px;">※ これまでの記録をもとに自動で作成したヒントです。くわしくは担当医師にご相談ください。</p>`;
+}
+
+// 印刷時に「評価・次の目標を入力」フォームの代わりに表示する、直近の確定済みプラン
+function renderPlanPrint(evals) {
+  const dates = Object.keys(evals).sort();
+  const el = document.getElementById("pd-plan-print");
+  if (!dates.length) { el.innerHTML = `<p class="muted">これまでに保存された目標はありません</p>`; return; }
+  const latest = evals[dates[dates.length - 1]];
+  const rows = [
+    ["来院日", fmtDate(latest.visitDate)],
+    ["体重目標", latest.goalWeight != null ? `${latest.goalWeight}kg` : "—"],
+    ["運動目標", (latest.goalExPerWeek != null || latest.goalExMinutes != null) ? `週${latest.goalExPerWeek ?? "—"}回 × ${latest.goalExMinutes ?? "—"}分` : "—"],
+    ["食事目標", latest.goalMealNote || "—"],
+    ["コメント", latest.doctorComment || "—"],
+    ["次回来院予定", latest.nextVisitDate ? fmtDate(latest.nextVisitDate) : "—"],
+  ];
+  el.innerHTML = `<table class="lab-table">${rows.map(([l, v]) => `<tr><td style="width:32%">${l}</td><td class="val" style="text-align:left">${v}</td></tr>`).join("")}</table>`;
 }
 
 let pdInterval = null;
