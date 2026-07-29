@@ -635,35 +635,76 @@ document.getElementById("relink-submit").addEventListener("click", async () => {
 let demoMode = false;
 let demoStore = null; // { [DK.daily]: {...}, [DK.visits]: {...}, [DK.eval]: {...} }
 
+function addDays(dateStr, n) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+}
 function buildDemoStore() {
+  // 直近3か月分を「今日」基準で生成する（日付が古くならないよう毎回相対計算）。
+  const today = todayStr();
+  const start = addDays(today, -89);
+  const rnd = (min, max) => Math.random() * (max - min) + min;
+  const round1 = n => Math.round(n * 10) / 10;
+
+  const daily = {};
+  // 実際の患者らしく、毎日ではなく2〜4日に1回くらいのペースで記録する。
+  for (let i = 0, d = start; i <= 89; ) {
+    const progress = i / 89; // 0(開始)〜1(今日)
+    const weight = round1(92.0 - 4.5 * progress + rnd(-0.4, 0.4));
+    const steps = Math.round(6000 + 3200 * progress + rnd(-800, 800));
+    const kcalBase = 2050 - 380 * progress;
+    const meals = [
+      { name: "朝食", kcal: Math.round(kcalBase * 0.28 + rnd(-40, 40)), time: "07:30" },
+      { name: "昼食", kcal: Math.round(kcalBase * 0.34 + rnd(-40, 40)), time: "12:30" },
+      { name: "夕食", kcal: Math.round(kcalBase * 0.38 + rnd(-40, 40)), time: "19:00" },
+    ];
+    const exercises = Math.random() < 0.55 ? [{ min: Math.round(rnd(15, 40)) }] : [];
+    daily[d] = { weight, steps, meals, exercises };
+    const gap = Math.round(rnd(2, 4));
+    i += gap;
+    d = addDays(start, i);
+  }
+  // 直近数日は今日に近いところまで記録がある体で1件足しておく
+  daily[addDays(today, -1)] = daily[addDays(today, -1)] || {
+    weight: round1(87.5 + rnd(-0.3, 0.3)), steps: Math.round(9200 + rnd(-500, 500)),
+    meals: [{ name: "朝食", kcal: 480, time: "07:30" }, { name: "昼食", kcal: 620, time: "12:30" }, { name: "夕食", kcal: 560, time: "19:00" }],
+    exercises: [{ min: 25 }],
+  };
+
+  const visitStart = start;
+  const visitMid = addDays(start, 40);
+  const visitRecent = addDays(today, -9);
+  const evalMid = addDays(start, 40);
+  const evalRecent = addDays(today, -2);
+
   return {
-    [DK.daily]: {
-      "2026-05-02": { weight: 92.0, steps: 6200, meals: [{ kcal: 700 }, { kcal: 620 }, { kcal: 680 }], exercises: [{ min: 30 }] },
-      "2026-05-14": { weight: 91.2, steps: 7100, meals: [{ kcal: 650 }, { kcal: 600 }, { kcal: 640 }], exercises: [{ min: 20 }] },
-      "2026-06-01": { weight: 90.5, steps: 8300, meals: [{ kcal: 580 }, { kcal: 560 }, { kcal: 600 }], exercises: [{ min: 20 }] },
-      "2026-06-15": { weight: 89.0, steps: 9100, meals: [{ kcal: 550 }, { kcal: 520 }, { kcal: 580 }], exercises: [] },
-      "2026-07-01": { weight: 88.8, steps: 8600, meals: [{ kcal: 560 }, { kcal: 540 }, { kcal: 600 }], exercises: [{ min: 25 }] },
-      "2026-07-20": { weight: 88.5, steps: 9400, meals: [{ kcal: 520 }, { kcal: 500 }, { kcal: 560 }], exercises: [{ min: 20 }] },
-    },
+    [DK.daily]: daily,
     [DK.visits]: {
-      "2026-05-01": { ast: 42, alt: 35, ggtp: 55, tg: 185, ldl: 130, hba1c: 6.1, kpa: 8.2 },
-      "2026-07-20": { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1 },
+      [visitStart]: { ast: 42, alt: 35, ggtp: 55, tg: 185, ldl: 130, hba1c: 6.1, kpa: 8.2, plt: 18.5, cap: 285 },
+      [visitMid]: { ast: 34, alt: 28, ggtp: 46, tg: 160, ldl: 122, hba1c: 6.0, kpa: 7.6, plt: 19.2, cap: 260 },
+      [visitRecent]: { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1, plt: 20.1, cap: 232 },
     },
     [DK.eval]: {
-      "2026-05-01": {
-        type: "eval", visitDate: "2026-05-01", goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
+      [visitStart]: {
+        type: "eval", visitDate: visitStart, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
         goalMealNote: "間食を控える・野菜から食べる", doctorComment: "かん活スタートです。まずは無理なく続けましょう",
-        nextVisitInterval: "1m", nextVisitDate: "2026-06-10",
+        nextVisitInterval: "1m", nextVisitDate: evalMid,
       },
-      "2026-06-10": {
-        type: "eval", visitDate: "2026-06-10", goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
+      [evalMid]: {
+        type: "eval", visitDate: visitMid, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
         goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
-        nextVisitInterval: "1m", nextVisitDate: "2026-07-27",
+        nextVisitInterval: "1m", nextVisitDate: evalRecent,
+      },
+      [evalRecent]: {
+        type: "eval", visitDate: visitRecent, goalWeight: 85, goalExPerWeek: 3, goalExMinutes: 30,
+        goalMealNote: "現在の生活リズムを継続", doctorComment: "検査値も体重も順調です。このまま続けましょう",
+        nextVisitInterval: "1m", nextVisitDate: addDays(today, 21),
       },
     },
     [DK.profile]: {
-      sex: "男性", birthdate: "1974-03-12", height: 172,
-      goalWeight: 86, goalKcal: 1800, goalSteps: 8000, goalEx: 150,
+      nickname: "たろう", sex: "男性", birthdate: "1974-03-12", height: 172,
+      goalWeight: 85, goalKcal: 1800, goalSteps: 8000, goalEx: 150,
     },
   };
 }
