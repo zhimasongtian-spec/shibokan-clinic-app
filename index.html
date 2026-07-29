@@ -204,11 +204,22 @@
   .analyze-error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .88rem; }
   .kcal-summary {
     margin-top: 10px; padding: 11px 14px; background: var(--accent-soft); border-radius: 10px;
-    display: flex; justify-content: space-between; align-items: center; font-size: .92rem;
+    font-size: .92rem;
   }
+  .kcal-summary-top { display: flex; justify-content: space-between; align-items: center; }
   .kcal-summary strong { font-size: 1.2rem; color: var(--accent-dark); }
+  .kcal-summary .mood-msg { margin-top: 5px; font-size: .82rem; font-weight: 700; color: var(--accent-dark); }
   .kcal-summary.over { background: var(--warn-soft); }
-  .kcal-summary.over strong { color: var(--warn); }
+  .kcal-summary.over strong, .kcal-summary.over .mood-msg { color: var(--warn); }
+  .kcal-summary.over-hi { background: var(--danger-soft); }
+  .kcal-summary.over-hi strong, .kcal-summary.over-hi .mood-msg { color: var(--danger); }
+
+  /* badges */
+  .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
+  .badge-item { text-align: center; opacity: .32; filter: grayscale(1); }
+  .badge-item.on { opacity: 1; filter: none; }
+  .badge-em { font-size: 2rem; line-height: 1; }
+  .badge-lbl { font-size: .7rem; color: var(--sub); margin-top: 4px; line-height: 1.25; }
 
   .seg { display: flex; gap: 5px; margin: 8px 0; flex-wrap: wrap; }
   .seg button {
@@ -376,6 +387,11 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>🎖️ バッジ <span class="muted" id="badge-count" style="font-size:.8rem; font-weight:400;"></span></h2>
+      <div class="badge-grid" id="badge-shelf"></div>
     </div>
 
   </section>
@@ -711,7 +727,7 @@ let currentUid = null;
 let guestMode = false;
 
 /* ============ storage keys ============ */
-const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1" };
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1", badges: "nafld-badges-v1" };
 const storageKey = k => guestMode ? "guest-" + k : k;
 const load = k => { try { return JSON.parse(localStorage.getItem(storageKey(k))) || {}; } catch { return {}; } };
 const save = (k, v) => {
@@ -1030,6 +1046,7 @@ document.getElementById("rec-save").addEventListener("click", () => {
   toast("体重を保存しました 🌿");
   renderRecordPage();
   cheer("⚖️", "記録しました！えらい！");
+  checkBadges();
 });
 document.getElementById("rec-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
@@ -1138,6 +1155,14 @@ function addMeal(name, kcal, photo = null) {
   document.getElementById("meal-time").value = nowTimeStr();
   renderMealPage();
   cheer("🍽", "記録しました！えらい！");
+  checkBadges();
+}
+function mealMood(total, target) {
+  if (!target || total === 0) return { em: "", cls: "", msg: "" };
+  const ratio = total / target;
+  if (ratio <= 1.0) return { em: "😄", cls: "", msg: "腹八分目、ばっちりです！" };
+  if (ratio <= 1.15) return { em: "😅", cls: "over", msg: "ちょっと多めかも" };
+  return { em: "😮", cls: "over-hi", msg: "食べすぎに注意しましょう" };
 }
 function renderMealPage() {
   const dateEl = document.getElementById("meal-date");
@@ -1165,8 +1190,14 @@ function renderMealPage() {
   const total = rec.meals.reduce((s, m) => s + (m.kcal || 0), 0);
   const target = load(K.profile).goalKcal || null;
   const sumEl = document.getElementById("kcal-summary");
-  sumEl.className = "kcal-summary" + (target && total > target ? " over" : "");
-  sumEl.innerHTML = `<span>この日の合計</span><span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>`;
+  const mood = mealMood(total, target);
+  sumEl.className = "kcal-summary" + (mood.cls ? " " + mood.cls : "");
+  sumEl.innerHTML = `
+    <div class="kcal-summary-top">
+      <span>${mood.em ? mood.em + " " : ""}この日の合計</span>
+      <span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>
+    </div>
+    ${mood.msg ? `<div class="mood-msg">${mood.msg}</div>` : ""}`;
   // history within selected period
   const all = load(K.daily);
   let cutoff = null;
@@ -1591,6 +1622,7 @@ function renderCustomExChips() {
         setDaily(date, rec);
         renderExPage();
         cheer("🏃", "記録しました！えらい！");
+        checkBadges();
       }
     });
     customExChips.appendChild(b);
@@ -1699,6 +1731,7 @@ document.getElementById("ex-add").addEventListener("click", () => {
   const goal = load(K.profile).goalEx || 150;
   if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
   else cheer("🏃", `ナイス運動！今週あと${goal - wk}分`);
+  checkBadges();
 });
 document.getElementById("ex-free-add").addEventListener("click", () => {
   const name = document.getElementById("ex-free-name").value.trim();
@@ -1719,6 +1752,7 @@ document.getElementById("ex-free-add").addEventListener("click", () => {
   const goal = load(K.profile).goalEx || 150;
   if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
   else cheer("🏃", "記録しました！えらい！");
+  checkBadges();
 });
 function weekExerciseMin() {
   const all = load(K.daily); let sum = 0;
@@ -1741,6 +1775,7 @@ document.getElementById("ex-save").addEventListener("click", () => {
   setDaily(date, rec);
   toast("保存しました 🌿");
   renderExPage();
+  checkBadges();
 });
 let exRangeDays = 7;
 document.getElementById("ex-range-seg").addEventListener("click", e => {
@@ -2119,6 +2154,70 @@ function weightProgress() {
   const pct = Math.max(0, Math.min(100, ((start - cur) / (start - goal)) * 100));
   return { start, goal, cur, pct };
 }
+
+/* ============ バッジ ============ */
+const BADGES = [
+  { id: "first", em: "🌱", label: "はじめの一歩" },
+  { id: "streak7", em: "🔥", label: "7日連続記録" },
+  { id: "streak30", em: "🔥", label: "30日連続記録" },
+  { id: "weight1", em: "⚖️", label: "-1kg達成" },
+  { id: "goalweight", em: "🎯", label: "目標体重達成" },
+  { id: "kcal3", em: "🍚", label: "腹八分目3日" },
+];
+function baselineWeight() {
+  const p = load(K.profile);
+  if (p.startWeight != null) return p.startWeight;
+  const all = load(K.daily);
+  const dates = Object.keys(all).sort();
+  for (const d of dates) if (all[d].weight != null) return all[d].weight;
+  return null;
+}
+function checkBadges() {
+  const badges = load(K.badges);
+  if (!badges.earned) badges.earned = {};
+  const all = load(K.daily);
+  const p = load(K.profile);
+  const hasAnyRecord = Object.values(all).some(r => (r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null);
+  const streak = calcStreak();
+  const base = baselineWeight();
+  const cur = latestWeight();
+  const newlyEarned = [];
+  const earn = id => { if (!badges.earned[id]) { badges.earned[id] = todayStr(); newlyEarned.push(id); } };
+
+  if (hasAnyRecord) earn("first");
+  if (streak >= 7) earn("streak7");
+  if (streak >= 30) earn("streak30");
+  if (base != null && cur != null && base - cur >= 1) earn("weight1");
+  if (p.goalWeight != null && cur != null && cur <= p.goalWeight) earn("goalweight");
+  if (p.goalKcal) {
+    let ok = true;
+    for (let i = 0; i < 3; i++) {
+      const r = all[todayStr(-i)];
+      const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
+      if (!r || !r.meals || r.meals.length === 0 || tot > p.goalKcal) { ok = false; break; }
+    }
+    if (ok) earn("kcal3");
+  }
+
+  if (newlyEarned.length) {
+    save(K.badges, badges);
+    const b = BADGES.find(x => x.id === newlyEarned[0]);
+    if (b) cheer("🎖️", `新しいバッジ「${b.label}」獲得！`);
+  }
+  renderBadges();
+}
+function renderBadges() {
+  const el = document.getElementById("badge-shelf");
+  if (!el) return;
+  const earned = load(K.badges).earned || {};
+  const count = BADGES.filter(b => earned[b.id]).length;
+  document.getElementById("badge-count").textContent = `${count}/${BADGES.length}`;
+  el.innerHTML = BADGES.map(b => `
+    <div class="badge-item${earned[b.id] ? " on" : ""}">
+      <div class="badge-em">${b.em}</div>
+      <div class="badge-lbl">${b.label}</div>
+    </div>`).join("");
+}
 function latestEval() {
   const all = load(K.eval);
   const dates = Object.keys(all).sort().reverse();
@@ -2146,6 +2245,7 @@ function renderDoctorMessage() {
 }
 function renderHome() {
   renderDoctorMessage();
+  renderBadges();
   // ring
   const wp = weightProgress();
   const ring = document.getElementById("ring-fg");
