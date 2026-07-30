@@ -750,8 +750,8 @@ function seedGuestDemoData() {
   const round1 = n => Math.round(n * 10) / 10;
 
   const daily = {};
-  for (let i = 89; i >= 0; ) {
-    const progress = (89 - i) / 89; // 0(開始)〜1(今日)
+  for (let i = 90; i >= 0; ) {
+    const progress = (90 - i) / 90; // 0(開始)〜1(今日)
     const d = todayStr(-i);
     const weight = round1(92.0 - 4.5 * progress + rnd(-0.4, 0.4));
     const steps = Math.round(6000 + 3200 * progress + rnd(-800, 800));
@@ -777,7 +777,7 @@ function seedGuestDemoData() {
   };
   const ageAt = d => ageAtDate(profile.birthdate, d);
 
-  const visitStart = todayStr(-89), visitMid = todayStr(-49), visitRecent = todayStr(-9);
+  const visitStart = todayStr(-90), visitMid = todayStr(-49), visitRecent = todayStr(-9);
   const mkVisit = (age, ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap) =>
     ({ ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap, fib4: calcFib4(age, ast, alt, plt) });
   const visits = {
@@ -1062,10 +1062,14 @@ function rangeCutoff(range) {
   return c.toISOString().slice(0, 10);
 }
 function updateRangeSegDisabled(containerId, dates, minCount = 1) {
+  const earliest = dates.length ? dates.reduce((a, b) => a < b ? a : b) : null;
   document.querySelectorAll(`#${containerId} button`).forEach(btn => {
     const cutoff = rangeCutoff(btn.dataset.range);
+    if (!earliest) { btn.disabled = true; return; }
+    // 記録がその期間の分だけ実際に遡れるか（＝全期間と同じ内容にならないか）も確認する
+    const spansBack = !cutoff || earliest <= cutoff;
     const count = cutoff ? dates.filter(d => d >= cutoff).length : dates.length;
-    btn.disabled = count < minCount;
+    btn.disabled = !spansBack || count < minCount;
   });
 }
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
@@ -2151,9 +2155,8 @@ function drawTrendSvg(svg, series, goal, refline, cutoff) {
     el += `<text x="${padL - 6}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#6b7a72">${(Math.round(v * 10) / 10).toLocaleString()}</text>`;
   }
   const first = allPts.reduce((a, b) => a.x < b.x ? a : b), last = allPts.reduce((a, b) => a.x > b.x ? a : b);
-  [first, last].forEach(p => {
-    el += `<text x="${x(p.x)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDate(p.x)}</text>`;
-  });
+  el += `<text x="${x(first.x)}" y="${H - 10}" text-anchor="start" font-size="11" fill="#6b7a72">${fmtDate(first.x)}</text>`;
+  el += `<text x="${x(last.x)}" y="${H - 10}" text-anchor="end" font-size="11" fill="#6b7a72">${fmtDate(last.x)}</text>`;
   const dash = (v, color, lbl) => {
     const gy = y(v);
     el += `<line x1="${padL}" y1="${gy}" x2="${W - padR}" y2="${gy}" stroke="${color}" stroke-width="1.5" stroke-dasharray="6 5"/>`;
