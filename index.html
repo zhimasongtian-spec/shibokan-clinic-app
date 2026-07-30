@@ -392,17 +392,14 @@
     </div>
 
     <div class="card">
-      <h2>📝 記録を続けている日数</h2>
+      <h2>🔥 連続記録・バッジ</h2>
       <p class="muted" style="font-size:.78rem; margin-top:2px;">体重・食事・運動のいずれかを記録した日が対象です</p>
       <div class="streak-box">
         <span style="font-size:1.3rem;">🔥</span>
         <div><span class="num" id="streak-num">0</span><span style="font-size:.75rem;"> 日連続記録中</span></div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>🎖️ バッジ <span class="muted" id="badge-count" style="font-size:.8rem; font-weight:400;"></span></h2>
       <div class="badge-grid" id="badge-shelf"></div>
+      <p class="muted" id="badge-count" style="font-size:.78rem; margin-top:8px; text-align:right;"></p>
     </div>
 
   </section>
@@ -2223,7 +2220,7 @@ function renderBadges() {
   if (!el) return;
   const earned = load(K.badges).earned || {};
   const count = BADGES.filter(b => earned[b.id]).length;
-  document.getElementById("badge-count").textContent = `${count}/${BADGES.length}`;
+  document.getElementById("badge-count").textContent = `獲得バッジ ${count}/${BADGES.length}`;
   el.innerHTML = BADGES.map(b => `
     <div class="badge-item${earned[b.id] ? " on" : ""}">
       <div class="badge-em">${b.em}</div>
