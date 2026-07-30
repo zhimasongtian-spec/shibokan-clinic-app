@@ -1060,12 +1060,11 @@ function rangeCutoff(range) {
   const c = new Date(); c.setDate(c.getDate() - Number(range));
   return c.toISOString().slice(0, 10);
 }
-function updateRangeSegDisabled(containerId, dates) {
-  const hasAny = dates.length > 0;
+function updateRangeSegDisabled(containerId, dates, minCount = 1) {
   document.querySelectorAll(`#${containerId} button`).forEach(btn => {
     const cutoff = rangeCutoff(btn.dataset.range);
-    const enabled = hasAny && dates.some(d => !cutoff || d >= cutoff);
-    btn.disabled = !enabled;
+    const count = cutoff ? dates.filter(d => d >= cutoff).length : dates.length;
+    btn.disabled = count < minCount;
   });
 }
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
@@ -2126,7 +2125,7 @@ function renderChart() {
   const svg = document.getElementById("chart");
   const { series, goal, refline, note } = metricSeries();
   document.getElementById("chart-note").textContent = note || "";
-  updateRangeSegDisabled("range-seg", series.flatMap(s => s.pts.map(p => p.x)));
+  updateRangeSegDisabled("range-seg", series.flatMap(s => s.pts.map(p => p.x)), 2);
   const cutoff = rangeCutoff(chartRange);
   const ser = series.map(s => ({ ...s, pts: cutoff ? s.pts.filter(p => p.x >= cutoff) : s.pts })).filter(s => s.pts.length > 0);
   const allPts = ser.flatMap(s => s.pts);
