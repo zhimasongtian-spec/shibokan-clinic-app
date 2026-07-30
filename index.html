@@ -2237,7 +2237,12 @@ document.getElementById("p-save").addEventListener("click", () => {
   if (!p.goalWeight && p.startWeight) p.goalWeight = Math.round(p.startWeight * 0.93 * 10) / 10;
   if (!p.goalKcal && p.height) p.goalKcal = Math.round(22 * (p.height / 100) ** 2 * 27 / 50) * 50;
   save(K.profile, p);
-  toast("設定を保存しました");
+  if (guestMode && p.nickname === "はなこ") {
+    seedGuestDemoData();
+    toast("デモデータを読み込みました 🌿");
+  } else {
+    toast("設定を保存しました");
+  }
   renderSettings(); renderHome();
 });
 
