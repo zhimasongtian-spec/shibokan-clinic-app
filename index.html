@@ -673,7 +673,6 @@
 
     <div class="card">
       <h2>データ管理</h2>
-      <button class="btn secondary" id="export-btn">記録をエクスポート (JSON)</button>
       <button class="btn danger-ghost" id="reset-btn">すべての記録を削除</button>
     </div>
 
@@ -2326,16 +2325,7 @@ function renderHome() {
   });
 }
 
-/* ============ export / reset ============ */
-document.getElementById("export-btn").addEventListener("click", () => {
-  const { apiKey, ...profileNoKey } = load(K.profile);
-  const data = { profile: profileNoKey, daily: load(K.daily), visits: load(K.visits) };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "kankatsu-data-" + todayStr() + ".json";
-  a.click(); URL.revokeObjectURL(a.href);
-});
+/* ============ reset ============ */
 document.getElementById("reset-btn").addEventListener("click", () => {
   if (confirm("すべての記録（プロフィール・日々の記録・来院データ）を削除します。よろしいですか？")) {
     Object.values(K).forEach(k => localStorage.removeItem(storageKey(k)));
