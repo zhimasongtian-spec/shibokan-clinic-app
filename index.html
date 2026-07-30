@@ -979,6 +979,9 @@ function nowTimeStr() {
   const d = new Date();
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
 }
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
@@ -1267,12 +1270,14 @@ document.getElementById("meal-photo-input").addEventListener("change", async e =
 
 /* ---- パソコンのカメラで撮影 ---- */
 let cameraStream = null;
+let cameraTarget = null; // "meal" | "labs" | "meds"
 function closeCameraModal() {
   document.getElementById("camera-modal").classList.remove("show");
   document.getElementById("camera-err").innerHTML = "";
   if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
 }
-document.getElementById("meal-webcam-btn").addEventListener("click", async () => {
+async function openCameraModal(target) {
+  cameraTarget = target;
   const errEl = document.getElementById("camera-err");
   errEl.innerHTML = "";
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -1286,7 +1291,8 @@ document.getElementById("meal-webcam-btn").addEventListener("click", async () =>
   } catch (err) {
     errEl.innerHTML = `<p class="analyze-error">カメラを起動できませんでした: ${String((err && err.message) || err).slice(0, 150)}</p>`;
   }
-});
+}
+document.getElementById("meal-webcam-btn").addEventListener("click", () => openCameraModal("meal"));
 document.getElementById("camera-cancel").addEventListener("click", closeCameraModal);
 document.getElementById("camera-capture").addEventListener("click", () => {
   const video = document.getElementById("camera-video");
@@ -1294,10 +1300,15 @@ document.getElementById("camera-capture").addEventListener("click", () => {
   const frame = document.createElement("canvas");
   frame.width = video.videoWidth; frame.height = video.videoHeight;
   frame.getContext("2d").drawImage(video, 0, 0);
-  const aiImage = imgToDataUrl(frame, 640, 0.7);
-  const thumb = imgToDataUrl(frame, 220, 0.6);
+  const target = cameraTarget;
   closeCameraModal();
-  analyzeMealPhoto(aiImage, thumb);
+  if (target === "labs") {
+    analyzeLabsPhoto(imgToDataUrl(frame, 900, 0.8), imgToDataUrl(frame, 220, 0.6));
+  } else if (target === "meds") {
+    analyzeMedsPhoto(imgToDataUrl(frame, 900, 0.8), imgToDataUrl(frame, 220, 0.6));
+  } else {
+    analyzeMealPhoto(imgToDataUrl(frame, 640, 0.7), imgToDataUrl(frame, 220, 0.6));
+  }
 });
 
 // スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー経由でGemini APIを呼びます。
@@ -1421,7 +1432,8 @@ function renderAnalyzeResult(thumb, items) {
 
 /* ---- 処方箋の写真読み取り (AI) ---- */
 document.getElementById("meds-photo-btn").addEventListener("click", () => {
-  document.getElementById("meds-photo-input").click();
+  if (isMobileDevice()) document.getElementById("meds-photo-input").click();
+  else openCameraModal("meds");
 });
 document.getElementById("meds-photo-input").addEventListener("change", async e => {
   const file = e.target.files[0];
@@ -1498,7 +1510,8 @@ function applyMedsAnalyzeResult(thumb, meds) {
 
 /* ---- 採血結果の写真読み取り (AI) ---- */
 document.getElementById("labs-photo-btn").addEventListener("click", () => {
-  document.getElementById("labs-photo-input").click();
+  if (isMobileDevice()) document.getElementById("labs-photo-input").click();
+  else openCameraModal("labs");
 });
 document.getElementById("labs-photo-input").addEventListener("change", async e => {
   const file = e.target.files[0];
