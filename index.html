@@ -1160,6 +1160,7 @@ function addMeal(name, kcal, photo = null) {
 function mealMood(total, target) {
   if (!target || total === 0) return { em: "", cls: "", msg: "" };
   const ratio = total / target;
+  if (ratio < 0.7) return { em: "😟", cls: "over", msg: "食事量が少なすぎるかも" };
   if (ratio <= 1.0) return { em: "😄", cls: "", msg: "腹八分目、ばっちりです！" };
   if (ratio <= 1.15) return { em: "😅", cls: "over", msg: "ちょっと多めかも" };
   return { em: "😮", cls: "over-hi", msg: "食べすぎに注意しましょう" };
@@ -2194,7 +2195,7 @@ function checkBadges() {
     for (let i = 0; i < 3; i++) {
       const r = all[todayStr(-i)];
       const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
-      if (!r || !r.meals || r.meals.length === 0 || tot > p.goalKcal) { ok = false; break; }
+      if (!r || !r.meals || r.meals.length === 0 || tot > p.goalKcal || tot < p.goalKcal * 0.7) { ok = false; break; }
     }
     if (ok) earn("kcal3");
   }
