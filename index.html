@@ -672,11 +672,6 @@
     </div>
 
     <div class="card">
-      <h2>データ管理</h2>
-      <button class="btn danger-ghost" id="reset-btn">すべての記録を削除</button>
-    </div>
-
-    <div class="card">
       <h2>ログイン状態</h2>
       <p class="muted" id="account-phone"></p>
       <button class="btn secondary" id="logout-btn">ログアウト</button>
@@ -2324,14 +2319,6 @@ function renderHome() {
     });
   });
 }
-
-/* ============ reset ============ */
-document.getElementById("reset-btn").addEventListener("click", () => {
-  if (confirm("すべての記録（プロフィール・日々の記録・来院データ）を削除します。よろしいですか？")) {
-    Object.values(K).forEach(k => localStorage.removeItem(storageKey(k)));
-    toast("削除しました"); renderHome(); renderSettings();
-  }
-});
 
 /* ============ init ============ */
 document.getElementById("meal-date").value = todayStr();
