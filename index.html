@@ -250,7 +250,7 @@
   .v-warn-note { font-size: .74rem; color: var(--sub); margin-top: 4px; }
   .v-warn-note.bad { color: var(--danger); font-weight: 700; }
 
-  #chart { width: 100%; height: auto; display: block; }
+  .chart-svg { width: 100%; height: auto; display: block; }
   .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
 
   .cheer {
@@ -426,6 +426,7 @@
         <button data-range="all">全期間</button>
       </div>
       <div id="rec-history-summary"></div>
+      <svg id="rec-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="rec-history"></div>
     </div>
 
@@ -506,7 +507,7 @@
         <button data-range="ytd">年初来</button>
         <button data-range="all">全期間</button>
       </div>
-      <svg id="chart" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
+      <svg id="chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
       <p class="muted" id="chart-note" style="margin-top:6px;"></p>
     </div>
   </section>
@@ -1153,6 +1154,8 @@ function renderRecordPage() {
   const weightDates = Object.keys(all).filter(d => all[d].weight != null);
   updateRangeSegDisabled("rec-range-seg", weightDates);
   const cutoff = rangeCutoff(recRange);
+  const { series, goal } = metricSeries("weight");
+  drawTrendSvg(document.getElementById("rec-chart"), series, goal, null, cutoff);
   const days = weightDates
     .filter(d => !cutoff || d >= cutoff)
     .sort().reverse();
@@ -1171,9 +1174,11 @@ function renderRecordPage() {
       <div class="stat"><div class="val">${diff > 0 ? "+" : ""}${diff}<span class="u"> kg</span></div><div class="lbl">期間内の変化（${days.length}日分）</div></div>
     </div>
     <p class="muted" style="margin-bottom:10px;">期間の平均: ${avg} kg</p>`;
+  const shown = days.slice(0, 10);
   document.getElementById("rec-history").innerHTML =
-    '<table class="log"><tr><th>日付</th><th>体重</th></tr>' + days.map(d =>
-      `<tr><td>${fmtDate(d)}</td><td>${all[d].weight} kg</td></tr>`).join("") + "</table>";
+    '<table class="log"><tr><th>日付</th><th>体重</th></tr>' + shown.map(d =>
+      `<tr><td>${fmtDate(d)}</td><td>${all[d].weight} kg</td></tr>`).join("") + "</table>" +
+    (days.length > shown.length ? `<p class="muted" style="margin-top:6px; font-size:.78rem;">直近${shown.length}件を表示（期間内は${days.length}件）</p>` : "");
 }
 document.getElementById("rec-date").addEventListener("change", renderRecordPage);
 
@@ -2090,11 +2095,11 @@ document.getElementById("range-seg").addEventListener("click", e => {
   b.classList.add("on"); chartRange = b.dataset.range; renderChart();
 });
 
-function metricSeries() {
+function metricSeries(metric) {
   const daily = load(K.daily), visits = load(K.visits);
   const vDates = Object.keys(visits).sort();
   const pick = (key) => vDates.filter(d => visits[d][key] != null).map(d => ({ x: d, y: visits[d][key] }));
-  switch (chartMetric) {
+  switch (metric) {
     case "weight": {
       const dDates = Object.keys(daily).sort().filter(d => daily[d].weight != null);
       const pts = dDates.map(d => ({ x: d, y: daily[d].weight }));
@@ -2121,12 +2126,7 @@ function metricSeries() {
       note: "CAP値は目盛りを合わせるため1/10で表示（例: 表示28 = 280 dB/m）。" };
   }
 }
-function renderChart() {
-  const svg = document.getElementById("chart");
-  const { series, goal, refline, note } = metricSeries();
-  document.getElementById("chart-note").textContent = note || "";
-  updateRangeSegDisabled("range-seg", series.flatMap(s => s.pts.map(p => p.x)), 2);
-  const cutoff = rangeCutoff(chartRange);
+function drawTrendSvg(svg, series, goal, refline, cutoff) {
   const ser = series.map(s => ({ ...s, pts: cutoff ? s.pts.filter(p => p.x >= cutoff) : s.pts })).filter(s => s.pts.length > 0);
   const allPts = ser.flatMap(s => s.pts);
   if (allPts.length < 2) {
@@ -2168,6 +2168,13 @@ function renderChart() {
     el += `<text x="${padL + si * 150 + 15}" y="18" font-size="11" fill="#3c4a43">${s.label}</text>`;
   });
   svg.innerHTML = el;
+}
+function renderChart() {
+  const svg = document.getElementById("chart");
+  const { series, goal, refline, note } = metricSeries(chartMetric);
+  document.getElementById("chart-note").textContent = note || "";
+  updateRangeSegDisabled("range-seg", series.flatMap(s => s.pts.map(p => p.x)), 2);
+  drawTrendSvg(svg, series, goal, refline, rangeCutoff(chartRange));
 }
 
 /* ============ 設定 ============ */
