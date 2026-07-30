@@ -456,7 +456,7 @@
       </div>
       <div class="row3">
         <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
-        <div><label>LDLコレステロール <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
+        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
         <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
       </div>
       <div class="row3">
@@ -1524,7 +1524,7 @@ const LABS_FIELDS = [
   { key: "alt", label: "ALT(GPT)", unit: "U/L", target: "v-alt" },
   { key: "ggtp", label: "γGTP", unit: "U/L", target: "v-ggtp" },
   { key: "tg", label: "中性脂肪", unit: "mg/dL", target: "v-tg" },
-  { key: "ldl", label: "LDLコレステロール", unit: "mg/dL", target: "v-ldl" },
+  { key: "ldl", label: "LDL-C", unit: "mg/dL", target: "v-ldl" },
   { key: "plt", label: "血小板数", unit: "万/µL", target: "v-plt" },
   { key: "hba1c", label: "HbA1c", unit: "%", target: "v-hba1c" },
 ];
@@ -2021,7 +2021,7 @@ function metricSeries() {
     case "fib4": return { series: [{ label: "FIB-4", color: "#c0504d", pts: pick("fib4") }], refline: 1.3, note: "点線は低リスクの目安 1.3。2.67超は高リスクです。" };
     case "lipid": return { series: [
       { label: "中性脂肪(mg/dL)", color: "#d9822b", pts: pick("tg") },
-      { label: "LDLコレステロール(mg/dL)", color: "#3a7ca5", pts: pick("ldl") }], note: "" };
+      { label: "LDL-C(mg/dL)", color: "#3a7ca5", pts: pick("ldl") }], note: "" };
     case "hba1c": return { series: [{ label: "HbA1c(%)", color: "#c0504d", pts: pick("hba1c") }], refline: 6.5, note: "点線は糖尿病の判定目安 6.5%。" };
     case "fscan": return { series: [
       { label: "肝硬度(kPa)", color: "#c0504d", pts: pick("kpa") },
