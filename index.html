@@ -92,7 +92,7 @@
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
   .food-input-row { display: flex; gap: 8px; margin: 8px 0; }
   .food-input-row input[type=text] { flex: 1; min-width: 0; }
-  .food-input-row input[type=number] { flex: 0 0 108px; min-width: 0; }
+  .food-input-row input[type=number] { flex: 0 0 124px; min-width: 0; }
   .unit-note { font-size: .74rem; color: var(--sub); font-weight: 400; }
   .row3 label .unit-note { display: block; }
 
@@ -205,7 +205,7 @@
     display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line);
   }
   .analyze-item-row input[type=text] { flex: 1; min-width: 0; }
-  .analyze-item-row .kcal-wrap { flex: 0 0 108px; display: flex; align-items: center; gap: 4px; }
+  .analyze-item-row .kcal-wrap { flex: 0 0 124px; display: flex; align-items: center; gap: 4px; }
   .analyze-item-row .kcal-wrap input[type=number] {
     width: 100%; min-width: 0; padding-left: 8px; padding-right: 4px;
     -webkit-appearance: none; appearance: none;
@@ -542,13 +542,13 @@
       <div class="chips" id="food-chips"></div>
       <div class="food-input-row">
         <input type="text" id="new-food-name" placeholder="名前（例: 焼き魚定食）">
-        <input type="number" id="new-food-kcal" min="0" step="10" placeholder="kcal">
+        <input type="number" id="new-food-kcal" min="0" max="99999" maxlength="5" placeholder="kcal">
       </div>
       <button class="btn small" id="food-register-btn">＋ よく食べるものに登録</button>
       <label style="margin-top:14px;">自由入力</label>
       <div class="food-input-row">
         <input type="text" id="meal-name" placeholder="例: 焼き魚定食">
-        <input type="number" id="meal-kcal" min="0" step="10" placeholder="kcal">
+        <input type="number" id="meal-kcal" min="0" max="99999" maxlength="5" placeholder="kcal">
       </div>
       <button class="btn small" id="meal-add">＋ 追加</button>
       <div class="item-list" id="meal-list"></div>
@@ -1232,6 +1232,13 @@ document.getElementById("food-edit-toggle").addEventListener("click", e => {
   e.target.textContent = foodEditMode ? "完了" : "編集";
   renderFoodChips();
 });
+function clampKcalInput(el) {
+  el.addEventListener("input", () => {
+    if (el.value.length > 5) el.value = el.value.slice(0, 5);
+    if (Number(el.value) > 99999) el.value = "99999";
+  });
+}
+[document.getElementById("new-food-kcal"), document.getElementById("meal-kcal")].forEach(clampKcalInput);
 document.getElementById("food-register-btn").addEventListener("click", () => {
   const name = document.getElementById("new-food-name").value.trim();
   const kcal = Number(document.getElementById("new-food-kcal").value);
@@ -1525,7 +1532,7 @@ function renderAnalyzeResult(thumb, items) {
         <div class="analyze-item-row">
           <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
           <div class="kcal-wrap">
-            <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}" max="9999" maxlength="4">
+            <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}" max="99999" maxlength="5">
             <span class="unit-note">kcal</span>
           </div>
           <button class="del" data-i="${i}">✕</button>
@@ -1536,8 +1543,8 @@ function renderAnalyzeResult(thumb, items) {
       const i = Number(inp.dataset.i);
       if (inp.dataset.f === "name") items[i].name = inp.value;
       else {
-        if (inp.value.length > 4) inp.value = inp.value.slice(0, 4);
-        items[i].kcal = Math.min(Number(inp.value) || 0, 9999);
+        if (inp.value.length > 5) inp.value = inp.value.slice(0, 5);
+        items[i].kcal = Math.min(Number(inp.value) || 0, 99999);
         const note = rowsEl.querySelector(`.analyze-zero-note[data-note-i="${i}"]`);
         if (note) note.style.display = items[i].kcal === 0 ? "block" : "none";
       }
