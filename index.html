@@ -1330,7 +1330,7 @@ function renderMealPage() {
   const pointColor = target
     ? p => (p.y < target * 0.7 ? COLOR_LOW : p.y > target * 1.15 ? COLOR_HIGH : COLOR_GOOD)
     : null;
-  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor });
+  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor, yUnit: "kcal" });
   const summaryEl = document.getElementById("meal-chart-summary");
   if (target && days.length) {
     let low = 0, good = 0, high = 0;
@@ -2181,9 +2181,14 @@ function drawTrendSvg(svg, series, goal, refline, cutoff, band, opts) {
   minY -= span * 0.12; maxY += span * 0.12;
   const t0 = Math.min(...allPts.map(p => new Date(p.x).getTime()));
   const t1 = Math.max(...allPts.map(p => new Date(p.x).getTime()));
-  const x = d => padL + ((new Date(d).getTime() - t0) / Math.max(t1 - t0, 1)) * (W - padL - padR);
+  const tSpan = Math.max(t1 - t0, 1);
+  const tPad = tSpan * 0.04;
+  const x = d => padL + ((new Date(d).getTime() - (t0 - tPad)) / (tSpan + tPad * 2)) * (W - padL - padR);
   const y = v => padT + (1 - (v - minY) / (maxY - minY)) * (H - padT - padB);
   let el = "";
+  if (opts.yUnit) {
+    el += `<text x="4" y="16" font-size="10" fill="#6b7a72">${opts.yUnit}</text>`;
+  }
   if (band) {
     const yLow = y(band.low), yHigh = y(band.high);
     el += `<rect x="${padL}" y="${Math.min(yLow, yHigh)}" width="${W - padL - padR}" height="${Math.abs(yLow - yHigh)}" fill="${band.color || "#e88bab"}" opacity="0.18"/>`;
