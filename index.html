@@ -1282,8 +1282,8 @@ function renderMealPage() {
       .sort((a, b) => (a.m.time || "99:99").localeCompare(b.m.time || "99:99"));
     list.innerHTML = ordered.map(({ m, i }) => `
       <div class="item-row">
-        ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
         ${m.time ? `<span class="tm">${m.time}</span>` : ""}
+        ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
         <span class="nm">${m.name}</span>
         <span class="kc">${m.kcal} kcal</span>
         <button class="del" data-i="${i}">✕</button>
