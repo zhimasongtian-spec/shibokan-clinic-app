@@ -201,8 +201,10 @@
   .analyze-item-row {
     display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line);
   }
-  .analyze-item-row input[type=text] { flex: 2; }
-  .analyze-item-row input[type=number] { flex: 1; }
+  .analyze-item-row input[type=text] { flex: 3; }
+  .analyze-item-row .kcal-wrap { flex: 1.6; display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .analyze-item-row .kcal-wrap input[type=number] { width: 100%; min-width: 0; }
+  .analyze-item-row .kcal-wrap .unit-note { white-space: nowrap; }
   .analyze-error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .88rem; }
   .kcal-summary {
     margin-top: 10px; padding: 11px 14px; background: var(--accent-soft); border-radius: 10px;
@@ -1495,7 +1497,10 @@ function renderAnalyzeResult(thumb, items) {
       <div>
         <div class="analyze-item-row">
           <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
-          <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+          <div class="kcal-wrap">
+            <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+            <span class="unit-note">kcal</span>
+          </div>
           <button class="del" data-i="${i}">✕</button>
         </div>
         <p class="muted analyze-zero-note" data-note-i="${i}" style="font-size:.7rem;margin:-4px 0 4px;${it.kcal === 0 ? "" : "display:none;"}">AIが0kcalと推定（無糖飲料・水など低カロリー食品の可能性）</p>
