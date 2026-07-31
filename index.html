@@ -90,6 +90,9 @@
   .row2 > div { display: flex; flex-direction: column; }
   .row2 > div input, .row2 > div select { margin-top: auto; }
   .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .food-input-row { display: flex; gap: 8px; margin: 8px 0; }
+  .food-input-row input[type=text] { flex: 1; min-width: 0; }
+  .food-input-row input[type=number] { flex: 0 0 108px; min-width: 0; }
   .unit-note { font-size: .74rem; color: var(--sub); font-weight: 400; }
   .row3 label .unit-note { display: block; }
 
@@ -537,13 +540,13 @@
         <button type="button" class="btn-link" id="food-edit-toggle">編集</button>
       </div>
       <div class="chips" id="food-chips"></div>
-      <div class="row2" style="margin-top:8px;">
+      <div class="food-input-row">
         <input type="text" id="new-food-name" placeholder="名前（例: 焼き魚定食）">
         <input type="number" id="new-food-kcal" min="0" step="10" placeholder="kcal">
       </div>
       <button class="btn small" id="food-register-btn">＋ よく食べるものに登録</button>
       <label style="margin-top:14px;">自由入力</label>
-      <div class="row2">
+      <div class="food-input-row">
         <input type="text" id="meal-name" placeholder="例: 焼き魚定食">
         <input type="number" id="meal-kcal" min="0" step="10" placeholder="kcal">
       </div>
