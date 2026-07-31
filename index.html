@@ -562,6 +562,8 @@
         <button data-range="all">全期間</button>
       </div>
       <div id="meal-history-summary"></div>
+      <svg id="meal-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
+      <p class="muted" style="font-size:.76rem; margin-top:4px;">ピンクの帯は目標カロリーの70〜115%の範囲です。</p>
       <div id="meal-history"></div>
     </div>
   </section>
@@ -1311,19 +1313,22 @@ function renderMealPage() {
   const days = mealDates
     .filter(d => !cutoff || d >= cutoff)
     .sort().reverse();
-  const periodTotal = days.reduce((s, d) => s + all[d].meals.reduce((ss, m) => ss + (m.kcal || 0), 0), 0);
+  const dayTotal = d => all[d].meals.reduce((s, m) => s + (m.kcal || 0), 0);
+  const periodTotal = days.reduce((s, d) => s + dayTotal(d), 0);
   const periodAvg = days.length ? Math.round(periodTotal / days.length) : 0;
   document.getElementById("meal-history-summary").innerHTML = days.length === 0 ? "" : `
     <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
       <div class="stat"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">記録日の1日平均（${days.length}日分）</div></div>
     </div>`;
+  const mealSeries = [{ label: "合計kcal", color: "#2e8b6d", pts: days.map(d => ({ x: d, y: dayTotal(d) })) }];
+  const band = target ? { low: target * 0.7, high: target * 1.15, color: "#e88bab" } : null;
+  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band);
+  const shown = days.slice(0, 10);
   document.getElementById("meal-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
-    : '<table class="log"><tr><th>日付</th><th>合計kcal</th></tr>' + days.map(d => {
-        const ms = all[d].meals;
-        const tot = ms.reduce((s, m) => s + (m.kcal || 0), 0);
-        return `<tr><td>${fmtDate(d)}</td><td>${tot.toLocaleString()}</td></tr>`;
-      }).join("") + "</table>";
+    : '<table class="log"><tr><th>日付</th><th>合計kcal</th></tr>' + shown.map(d =>
+        `<tr><td>${fmtDate(d)}</td><td>${dayTotal(d).toLocaleString()}</td></tr>`).join("") + "</table>" +
+      (days.length > shown.length ? `<p class="muted" style="margin-top:6px; font-size:.78rem;">直近${shown.length}件を表示（期間内は${days.length}件）</p>` : "");
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
 let mealRange = "30";
@@ -2139,7 +2144,7 @@ function metricSeries(metric) {
       note: "CAP値は目盛りを合わせるため1/10で表示（例: 表示28 = 280 dB/m）。" };
   }
 }
-function drawTrendSvg(svg, series, goal, refline, cutoff) {
+function drawTrendSvg(svg, series, goal, refline, cutoff, band) {
   const ser = series.map(s => ({ ...s, pts: cutoff ? s.pts.filter(p => p.x >= cutoff) : s.pts })).filter(s => s.pts.length > 0);
   const allPts = ser.flatMap(s => s.pts);
   if (allPts.length < 2) {
@@ -2150,6 +2155,7 @@ function drawTrendSvg(svg, series, goal, refline, cutoff) {
   let ys = allPts.map(p => p.y);
   if (goal != null) ys.push(goal);
   if (refline != null) ys.push(refline);
+  if (band) ys.push(band.low, band.high);
   let minY = Math.min(...ys), maxY = Math.max(...ys);
   const span = Math.max(maxY - minY, 1e-6);
   minY -= span * 0.12; maxY += span * 0.12;
@@ -2158,6 +2164,10 @@ function drawTrendSvg(svg, series, goal, refline, cutoff) {
   const x = d => padL + ((new Date(d).getTime() - t0) / Math.max(t1 - t0, 1)) * (W - padL - padR);
   const y = v => padT + (1 - (v - minY) / (maxY - minY)) * (H - padT - padB);
   let el = "";
+  if (band) {
+    const yLow = y(band.low), yHigh = y(band.high);
+    el += `<rect x="${padL}" y="${Math.min(yLow, yHigh)}" width="${W - padL - padR}" height="${Math.abs(yLow - yHigh)}" fill="${band.color || "#e88bab"}" opacity="0.18"/>`;
+  }
   for (let i = 0; i <= 4; i++) {
     const v = minY + (i / 4) * (maxY - minY), yy = y(v);
     el += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#e2e9e5"/>`;
