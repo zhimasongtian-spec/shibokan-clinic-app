@@ -201,8 +201,8 @@
   .analyze-item-row {
     display: flex; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--line);
   }
-  .analyze-item-row input[type=text] { flex: 2.2; }
-  .analyze-item-row .kcal-wrap { flex: 2; display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .analyze-item-row input[type=text] { flex: 1; min-width: 0; }
+  .analyze-item-row .kcal-wrap { flex: 0 0 92px; display: flex; align-items: center; gap: 4px; }
   .analyze-item-row .kcal-wrap input[type=number] { width: 100%; min-width: 0; padding-left: 8px; padding-right: 6px; }
   .analyze-item-row .kcal-wrap .unit-note { white-space: nowrap; }
   .analyze-error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .88rem; }
@@ -1498,7 +1498,7 @@ function renderAnalyzeResult(thumb, items) {
         <div class="analyze-item-row">
           <input type="text" data-i="${i}" data-f="name" value="${it.name.replace(/"/g, "&quot;")}">
           <div class="kcal-wrap">
-            <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}">
+            <input type="number" data-i="${i}" data-f="kcal" value="${it.kcal}" max="9999" maxlength="4">
             <span class="unit-note">kcal</span>
           </div>
           <button class="del" data-i="${i}">✕</button>
@@ -1509,7 +1509,8 @@ function renderAnalyzeResult(thumb, items) {
       const i = Number(inp.dataset.i);
       if (inp.dataset.f === "name") items[i].name = inp.value;
       else {
-        items[i].kcal = Number(inp.value) || 0;
+        if (inp.value.length > 4) inp.value = inp.value.slice(0, 4);
+        items[i].kcal = Math.min(Number(inp.value) || 0, 9999);
         const note = rowsEl.querySelector(`.analyze-zero-note[data-note-i="${i}"]`);
         if (note) note.style.display = items[i].kcal === 0 ? "block" : "none";
       }
