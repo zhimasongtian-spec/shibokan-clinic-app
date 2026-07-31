@@ -562,6 +562,7 @@
         <button data-range="all">全期間</button>
       </div>
       <div id="meal-history-summary"></div>
+      <div id="meal-chart-summary" style="font-size:.86rem; margin-bottom:6px;"></div>
       <svg id="meal-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
       <p class="muted" style="font-size:.76rem; margin-top:4px;">ピンクの帯は目標カロリーの70〜115%の範囲です。</p>
       <div id="meal-history"></div>
@@ -1322,7 +1323,22 @@ function renderMealPage() {
     </div>`;
   const mealSeries = [{ label: "合計kcal", color: "#2e8b6d", pts: days.map(d => ({ x: d, y: dayTotal(d) })) }];
   const band = target ? { low: target * 0.7, high: target * 1.15, color: "#e88bab" } : null;
-  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band);
+  const COLOR_LOW = "#3a7ca5", COLOR_GOOD = "#2e8b6d", COLOR_HIGH = "#d9822b";
+  const pointColor = target
+    ? p => (p.y < target * 0.7 ? COLOR_LOW : p.y > target * 1.15 ? COLOR_HIGH : COLOR_GOOD)
+    : null;
+  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor });
+  const summaryEl = document.getElementById("meal-chart-summary");
+  if (target && days.length) {
+    let low = 0, good = 0, high = 0;
+    days.forEach(d => { const t = dayTotal(d); if (t < target * 0.7) low++; else if (t > target * 1.15) high++; else good++; });
+    summaryEl.innerHTML =
+      `<span style="color:${COLOR_GOOD};">●</span> 順調 ${good}日　` +
+      `<span style="color:${COLOR_LOW};">●</span> 少なめ ${low}日　` +
+      `<span style="color:${COLOR_HIGH};">●</span> 多め ${high}日`;
+  } else {
+    summaryEl.innerHTML = "";
+  }
   const shown = days.slice(0, 10);
   document.getElementById("meal-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
@@ -2144,7 +2160,8 @@ function metricSeries(metric) {
       note: "CAP値は目盛りを合わせるため1/10で表示（例: 表示28 = 280 dB/m）。" };
   }
 }
-function drawTrendSvg(svg, series, goal, refline, cutoff, band) {
+function drawTrendSvg(svg, series, goal, refline, cutoff, band, opts) {
+  opts = opts || {};
   const ser = series.map(s => ({ ...s, pts: cutoff ? s.pts.filter(p => p.x >= cutoff) : s.pts })).filter(s => s.pts.length > 0);
   const allPts = ser.flatMap(s => s.pts);
   if (allPts.length < 2) {
@@ -2184,10 +2201,17 @@ function drawTrendSvg(svg, series, goal, refline, cutoff, band) {
   if (goal != null) dash(goal, "#d9822b", `目標 ${goal}`);
   if (refline != null) dash(refline, "#d9822b", `目安 ${refline}`);
   ser.forEach((s, si) => {
-    el += `<polyline fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" points="${s.pts.map(p => x(p.x) + "," + y(p.y)).join(" ")}"/>`;
-    s.pts.forEach(p => { el += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="3.2" fill="${s.color}"/>`; });
-    el += `<rect x="${padL + si * 150}" y="8" width="10" height="10" fill="${s.color}" rx="2"/>`;
-    el += `<text x="${padL + si * 150 + 15}" y="18" font-size="11" fill="#3c4a43">${s.label}</text>`;
+    if (!opts.hideLine) {
+      el += `<polyline fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round" points="${s.pts.map(p => x(p.x) + "," + y(p.y)).join(" ")}"/>`;
+    }
+    s.pts.forEach(p => {
+      const c = opts.pointColor ? opts.pointColor(p) : s.color;
+      el += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="4" fill="${c}"/>`;
+    });
+    if (!opts.hideLegend) {
+      el += `<rect x="${padL + si * 150}" y="8" width="10" height="10" fill="${s.color}" rx="2"/>`;
+      el += `<text x="${padL + si * 150 + 15}" y="18" font-size="11" fill="#3c4a43">${s.label}</text>`;
+    }
   });
   svg.innerHTML = el;
 }
