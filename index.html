@@ -217,6 +217,7 @@
   }
   .analyze-item-row input[type=text] { flex: 1; min-width: 0; }
   .kcal-wrap { flex: 0 0 124px; display: flex; align-items: center; gap: 4px; }
+  .kcal-wrap.grow { flex: 1 1 0; }
   .kcal-wrap input[type=number] {
     width: 100%; min-width: 0; padding-left: 8px; padding-right: 4px;
     -webkit-appearance: none; appearance: none;
@@ -596,7 +597,10 @@
       <label for="ex-date">日付</label>
       <input type="date" id="ex-date">
       <label for="ex-steps">今日の歩数</label>
-      <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
+      <div class="kcal-wrap">
+        <input type="number" id="ex-steps" min="0" step="100" placeholder="例: 8000">
+        <span class="unit-note">歩</span>
+      </div>
       <p class="muted" id="ex-steps-kcal-view" style="font-size:.78rem; margin:4px 0 0;"></p>
       <button class="btn small" id="ex-save">歩数を保存</button>
 
@@ -606,12 +610,12 @@
       </div>
       <div class="chips" id="custom-ex-chips"></div>
       <input type="text" id="new-ex-name" placeholder="名前（例: バドミントン）" style="margin-top:8px;">
-      <div class="row2" style="margin-top:8px;">
-        <div class="kcal-wrap" style="flex:1;">
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <div class="kcal-wrap grow">
           <input type="number" id="new-ex-min" min="0" step="5" placeholder="任意">
           <span class="unit-note">分</span>
         </div>
-        <div class="kcal-wrap" style="flex:1;">
+        <div class="kcal-wrap grow">
           <input type="number" id="new-ex-kcal" min="0" step="10" max="99999" maxlength="5">
           <span class="unit-note">kcal</span>
         </div>
