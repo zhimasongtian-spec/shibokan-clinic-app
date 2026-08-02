@@ -1337,7 +1337,7 @@ function renderMealPage() {
   const pointColor = target
     ? p => (p.y < target * 0.7 ? COLOR_LOW : p.y > target * 1.15 ? COLOR_HIGH : COLOR_GOOD)
     : null;
-  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, null, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor, yUnit: "kcal" });
+  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, target, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor, yUnit: "kcal" });
   const summaryEl = document.getElementById("meal-chart-summary");
   if (target && days.length) {
     let low = 0, good = 0, high = 0;
