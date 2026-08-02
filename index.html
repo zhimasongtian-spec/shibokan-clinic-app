@@ -104,6 +104,17 @@
   .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
   .chip.editing { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
   .chip .chip-sub { display: block; font-size: .72rem; color: var(--sub); font-weight: 400; margin-top: 2px; }
+
+  .ex-more summary {
+    cursor: pointer; list-style: none; font-weight: 700; padding: 12px 14px;
+    background: var(--accent-soft); color: var(--accent-dark); border-radius: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .ex-more summary::-webkit-details-marker { display: none; }
+  .ex-more summary .arrow { transition: transform .2s ease; font-size: .8rem; }
+  .ex-more[open] summary .arrow { transform: rotate(180deg); }
+  .ex-more[open] summary { border-radius: 10px 10px 0 0; margin-bottom: 0; }
+  .ex-more > div { padding-top: 10px; }
   .btn-link {
     background: none; border: none; color: var(--accent-dark); font-size: .84rem; font-weight: 700;
     cursor: pointer; font-family: inherit; padding: 6px 2px;
@@ -601,46 +612,51 @@
       </div>
       <button class="btn small" id="custom-ex-register-btn">＋ よくする運動に登録</button>
 
-      <label style="margin-top:16px;">運動の種類（タップで選択）</label>
-      <p class="muted hidden" id="ex-weight-note" style="font-size:.78rem; margin:2px 0 4px;">※体重を登録すると、より正確な目安になります（未登録の間は60kgと仮定して計算しています）</p>
-      <div class="chips" id="ex-chips"></div>
-      <label>筋トレ系（タップで選択・回数で記録）</label>
-      <div class="chips" id="ex-chips-reps"></div>
-      <div class="row2" id="ex-min-row">
+      <details class="ex-more" style="margin-top:16px;">
+        <summary><span>他の運動から選ぶ</span><span class="arrow">▼</span></summary>
         <div>
-          <label for="ex-min">時間（分）</label>
-          <input type="number" id="ex-min" min="1" step="5" placeholder="例: 30">
-        </div>
-        <div>
-          <label>消費カロリー <span class="unit-note">自動計算</span></label>
-          <input type="text" id="ex-kcal-view" readonly placeholder="— kcal">
-        </div>
-      </div>
-      <div class="row2" id="ex-reps-row" style="display:none;">
-        <div>
-          <label for="ex-reps">回数（回）</label>
-          <input type="number" id="ex-reps" min="1" step="1" placeholder="例: 20">
-        </div>
-        <div>
-          <label>消費カロリー <span class="unit-note">自動計算</span></label>
-          <input type="text" id="ex-reps-kcal-view" readonly placeholder="— kcal">
-        </div>
-      </div>
-      <button class="btn small" id="ex-add">＋ 追加</button>
+          <label>🚶 有酸素運動（タップで選択）</label>
+          <p class="muted hidden" id="ex-weight-note" style="font-size:.78rem; margin:2px 0 4px;">※体重を登録すると、より正確な目安になります（未登録の間は60kgと仮定して計算しています）</p>
+          <div class="chips" id="ex-chips"></div>
+          <label>💪 筋トレ（タップで選択・回数で記録）</label>
+          <div class="chips" id="ex-chips-reps"></div>
+          <div class="row2" id="ex-min-row">
+            <div>
+              <label for="ex-min">時間（分）</label>
+              <input type="number" id="ex-min" min="1" step="5" placeholder="例: 30">
+            </div>
+            <div>
+              <label>消費カロリー <span class="unit-note">自動計算</span></label>
+              <input type="text" id="ex-kcal-view" readonly placeholder="— kcal">
+            </div>
+          </div>
+          <div class="row2" id="ex-reps-row" style="display:none;">
+            <div>
+              <label for="ex-reps">回数（回）</label>
+              <input type="number" id="ex-reps" min="1" step="1" placeholder="例: 20">
+            </div>
+            <div>
+              <label>消費カロリー <span class="unit-note">自動計算</span></label>
+              <input type="text" id="ex-reps-kcal-view" readonly placeholder="— kcal">
+            </div>
+          </div>
+          <button class="btn small" id="ex-add">＋ 追加</button>
 
-      <label style="margin-top:16px;">自由入力</label>
-      <input type="text" id="ex-free-name" placeholder="例: バドミントン">
-      <div class="row2">
-        <div>
-          <label for="ex-free-min">時間（分） <span class="unit-note">任意</span></label>
-          <input type="number" id="ex-free-min" min="0" step="5" placeholder="例: 30">
+          <label style="margin-top:16px;">自由入力</label>
+          <input type="text" id="ex-free-name" placeholder="例: バドミントン">
+          <div class="row2">
+            <div>
+              <label for="ex-free-min">時間（分） <span class="unit-note">任意</span></label>
+              <input type="number" id="ex-free-min" min="0" step="5" placeholder="例: 30">
+            </div>
+            <div>
+              <label for="ex-free-kcal">消費カロリー</label>
+              <input type="number" id="ex-free-kcal" min="0" step="10" placeholder="例: 150">
+            </div>
+          </div>
+          <button class="btn small" id="ex-free-add">＋ 追加</button>
         </div>
-        <div>
-          <label for="ex-free-kcal">消費カロリー</label>
-          <input type="number" id="ex-free-kcal" min="0" step="10" placeholder="例: 150">
-        </div>
-      </div>
-      <button class="btn small" id="ex-free-add">＋ 追加</button>
+      </details>
 
       <div class="item-list" id="ex-list"></div>
       <div class="kcal-summary" id="ex-kcal-summary"></div>
