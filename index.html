@@ -602,6 +602,7 @@
       <button class="btn small" id="custom-ex-register-btn">＋ よくする運動に登録</button>
 
       <label style="margin-top:16px;">運動の種類（タップで選択）</label>
+      <p class="muted hidden" id="ex-weight-note" style="font-size:.78rem; margin:2px 0 4px;">※体重を登録すると、より正確な目安になります（未登録の間は60kgと仮定して計算しています）</p>
       <div class="chips" id="ex-chips"></div>
       <label>筋トレ系（タップで選択・回数で記録）</label>
       <div class="chips" id="ex-chips-reps"></div>
@@ -1946,6 +1947,7 @@ function renderExPage() {
   if (!dateEl.value) dateEl.value = todayStr();
   const date = dateEl.value;
   const rec = getDaily(date);
+  document.getElementById("ex-weight-note").classList.toggle("hidden", latestWeight() != null);
   document.getElementById("ex-steps").value = rec.steps ?? "";
   updateStepsKcal();
   const list = document.getElementById("ex-list");
