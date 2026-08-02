@@ -682,6 +682,7 @@
         <button data-range="all">全期間</button>
       </div>
       <div id="ex-history-summary"></div>
+      <svg id="ex-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
       <div id="ex-history"></div>
     </div>
   </section>
@@ -2016,9 +2017,12 @@ function renderExPage() {
     <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
       <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均（${exDays.length}日分）</div></div>
     </div>`;
+  const chartDays = exDays.slice(0, 30).reverse();
+  drawBarSvg(document.getElementById("ex-chart"), chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })), { color: "#3a7ca5", yUnit: "kcal" });
+  const shown = days.slice(0, 10);
   document.getElementById("ex-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
-    : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>消費kcal</th><th>歩数</th></tr>' + days.map(d => {
+    : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>消費kcal</th><th>歩数</th></tr>' + shown.map(d => {
       const r = all[d];
       const names = (r.exercises || []).map(e => e.name).join("、") || "—";
       const min = (r.exercises || []).reduce((s, e) => s + (e.min || 0), 0);
@@ -2026,7 +2030,8 @@ function renderExPage() {
       const amt = [min ? `${min}分` : "", reps ? `${reps}回` : ""].filter(Boolean).join(" / ");
       const kc = dayTotalKcal(d);
       return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${kc || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td></tr>`;
-    }).join("") + "</table>";
+    }).join("") + "</table>" +
+      (days.length > shown.length ? `<p class="muted" style="margin-top:6px; font-size:.78rem;">直近${shown.length}件を表示（期間内は${days.length}件）</p>` : "");
 }
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
@@ -2264,6 +2269,34 @@ function drawTrendSvg(svg, series, goal, refline, cutoff, band, opts) {
       el += `<text x="${padL + si * 150 + 15}" y="18" font-size="11" fill="#3c4a43">${s.label}</text>`;
     }
   });
+  svg.innerHTML = el;
+}
+function drawBarSvg(svg, points, opts) {
+  opts = opts || {};
+  if (points.length === 0) {
+    svg.innerHTML = '<text x="300" y="160" text-anchor="middle" fill="#6b7a72" font-size="15">記録がたまるとグラフが表示されます</text>';
+    return;
+  }
+  const W = 600, H = 320, padL = 48, padR = 14, padT = 34, padB = 34;
+  const maxY = Math.max(...points.map(p => p.y), 1) * 1.15;
+  const y = v => padT + (1 - v / maxY) * (H - padT - padB);
+  const n = points.length;
+  const bandW = (W - padL - padR) / n;
+  const barW = Math.max(Math.min(bandW * 0.6, 28), 3);
+  let el = "";
+  if (opts.yUnit) el += `<text x="4" y="16" font-size="10" fill="#6b7a72">${opts.yUnit}</text>`;
+  for (let i = 0; i <= 4; i++) {
+    const v = (i / 4) * maxY, yy = y(v);
+    el += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#e2e9e5"/>`;
+    el += `<text x="${padL - 6}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#6b7a72">${Math.round(v).toLocaleString()}</text>`;
+  }
+  points.forEach((p, i) => {
+    const cx = padL + bandW * (i + 0.5);
+    const barY = y(p.y);
+    el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
+  });
+  el += `<text x="${padL + bandW * 0.5}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDate(points[0].x)}</text>`;
+  if (n > 1) el += `<text x="${padL + bandW * (n - 0.5)}" y="${H - 10}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDate(points[n - 1].x)}</text>`;
   svg.innerHTML = el;
 }
 function renderChart() {
