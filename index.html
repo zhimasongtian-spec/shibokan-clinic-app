@@ -103,6 +103,7 @@
   }
   .chip.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); font-weight: 700; }
   .chip.editing { background: var(--danger-soft); border-color: var(--danger); color: var(--danger); }
+  .chip .chip-sub { display: block; font-size: .72rem; color: var(--sub); font-weight: 400; margin-top: 2px; }
   .btn-link {
     background: none; border: none; color: var(--accent-dark); font-size: .84rem; font-weight: 700;
     cursor: pointer; font-family: inherit; padding: 6px 2px;
@@ -1818,7 +1819,8 @@ let selEx = null;
 const exChips = document.getElementById("ex-chips");
 EXERCISES.forEach(([name, mets]) => {
   const b = document.createElement("button");
-  b.className = "chip"; b.textContent = name;
+  b.className = "chip";
+  b.innerHTML = `${name}<span class="chip-sub">約${estimateKcal(mets, 10)}kcal/10分</span>`;
   b.addEventListener("click", () => {
     document.querySelectorAll("#ex-chips .chip, #ex-chips-reps .chip").forEach(c => c.classList.remove("on"));
     b.classList.add("on"); selEx = { name, mets, mode: "time" };
@@ -1832,7 +1834,8 @@ EXERCISES.forEach(([name, mets]) => {
 const exChipsReps = document.getElementById("ex-chips-reps");
 REP_EXERCISES.forEach(([name, mets, repsPerMin]) => {
   const b = document.createElement("button");
-  b.className = "chip"; b.textContent = name;
+  b.className = "chip";
+  b.innerHTML = `${name}<span class="chip-sub">約${estimateKcal(mets, 10 / repsPerMin)}kcal/10回</span>`;
   b.addEventListener("click", () => {
     document.querySelectorAll("#ex-chips .chip, #ex-chips-reps .chip").forEach(c => c.classList.remove("on"));
     b.classList.add("on"); selEx = { name, mets, repsPerMin, mode: "reps" };
