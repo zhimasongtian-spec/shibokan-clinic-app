@@ -1949,7 +1949,9 @@ document.getElementById("ex-free-add").addEventListener("click", () => {
 });
 function weekExerciseDays() {
   const all = load(K.daily); let count = 0;
-  for (let i = 0; i < 7; i++) {
+  const dow = new Date().getDay(); // 0=日,1=月,...,6=土
+  const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+  for (let i = 0; i <= daysSinceMonday; i++) {
     const r = all[todayStr(-i)];
     if (r && r.exercises && r.exercises.length > 0) count++;
   }
