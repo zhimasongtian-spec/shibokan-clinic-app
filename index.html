@@ -2537,7 +2537,8 @@ function renderHome() {
     ring.setAttribute("stroke", wp.pct >= 100 ? "#d9a62b" : "#2e8b6d");
     document.getElementById("ring-pct").textContent = Math.round(wp.pct) + "%";
     document.getElementById("goal-text").innerHTML =
-      `現在 <strong>${wp.cur}kg</strong>／目標 <strong>${wp.goal}kg</strong><br>
+      `現在 <strong>${wp.cur}kg</strong><br>
+       目標 <strong>${wp.goal}kg</strong><br>
        <span class="muted">開始 ${wp.start}kgから${Math.round((wp.start - wp.cur) * 10) / 10}kg減、</span><br>
        <span class="muted">${wp.pct >= 100 ? "🎉 目標達成！" : `あと ${Math.round((wp.cur - wp.goal) * 10) / 10}kg`}</span>`;
   } else {
