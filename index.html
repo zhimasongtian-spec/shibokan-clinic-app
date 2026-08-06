@@ -1947,11 +1947,13 @@ document.getElementById("ex-free-add").addEventListener("click", () => {
   else cheer("🏃", "記録しました！えらい！");
   checkBadges();
 });
+function daysSinceMonday() {
+  const dow = new Date().getDay(); // 0=日,1=月,...,6=土
+  return dow === 0 ? 6 : dow - 1;
+}
 function weekExerciseDays() {
   const all = load(K.daily); let count = 0;
-  const dow = new Date().getDay(); // 0=日,1=月,...,6=土
-  const daysSinceMonday = dow === 0 ? 6 : dow - 1;
-  for (let i = 0; i <= daysSinceMonday; i++) {
+  for (let i = 0; i <= daysSinceMonday(); i++) {
     const r = all[todayStr(-i)];
     if (r && r.exercises && r.exercises.length > 0) count++;
   }
@@ -2461,13 +2463,13 @@ function checkBadges() {
   if (base != null && cur != null && base - cur >= 1) earn("weight1");
   if (p.goalWeight != null && cur != null && cur <= p.goalWeight) earn("goalweight");
   if (p.goalKcal) {
-    let ok = true;
-    for (let i = 0; i < 3; i++) {
+    let goodDays = 0;
+    for (let i = 0; i <= daysSinceMonday(); i++) {
       const r = all[todayStr(-i)];
       const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
-      if (!r || !r.meals || r.meals.length === 0 || tot > p.goalKcal || tot < p.goalKcal * 0.7) { ok = false; break; }
+      if (r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7) goodDays++;
     }
-    if (ok) earn("kcal3");
+    if (goodDays >= 3) earn("kcal3");
   }
 
   if (newlyEarned.length) {
