@@ -155,6 +155,8 @@
     display: flex; align-items: center; gap: 8px; margin-top: 8px;
   }
   .streak-box .num { font-size: 1.35rem; font-weight: 700; color: var(--gold); }
+  .card.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
+  .card.achieved #weekly-ex-summary { color: var(--gold) !important; }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--accent-soft); border-radius: 10px; padding: 11px; text-align: center; }
   .stat .val { font-size: 1.3rem; font-weight: 700; color: var(--accent-dark); }
@@ -423,7 +425,7 @@
       <p class="muted" id="badge-count" style="font-size:.78rem; margin-top:8px; text-align:right;"></p>
     </div>
 
-    <div class="card">
+    <div class="card" id="weekly-ex-card">
       <h2>🏃 今週の運動</h2>
       <p class="muted" id="weekly-ex-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
     </div>
@@ -2562,7 +2564,10 @@ function renderHome() {
       detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `（${exAmtLbl}）` : ""}` : "まだ未記録です",
     },
   ];
-  document.getElementById("weekly-ex-summary").textContent = `今週の運動 ${wkDays}/${goalEx}回`;
+  const weeklyExAchieved = wkDays >= goalEx;
+  document.getElementById("weekly-ex-card").classList.toggle("achieved", weeklyExAchieved);
+  document.getElementById("weekly-ex-summary").textContent =
+    weeklyExAchieved ? `🎉 今週の運動 ${wkDays}/${goalEx}回 達成！` : `今週の運動 ${wkDays}/${goalEx}回`;
   document.getElementById("today-checklist").innerHTML = checklist.map(it => `
     <button type="button" class="check-item${it.done ? " done" : ""}" data-goto="${it.goto}">
       <div class="check-icon">${it.icon}</div>
