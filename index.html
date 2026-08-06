@@ -711,7 +711,7 @@
       <h2>🎯 目標設定</h2>
       <div class="row2">
         <div><label>目標体重 <span class="unit-note">kg</span></label><input type="number" id="p-goal-weight" step="0.1" min="20" max="300"></div>
-        <div><label>週の運動目標 <span class="unit-note">分</span></label><input type="number" id="p-goal-ex" step="10" min="0" value="150"></div>
+        <div><label>週の運動目標 <span class="unit-note">回</span></label><input type="number" id="p-goal-ex" step="1" min="0" value="3"></div>
       </div>
       <div class="row2">
         <div><label>摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="p-goal-kcal" step="50" min="800"></div>
@@ -818,7 +818,7 @@ function seedGuestDemoData() {
 
   const profile = {
     nickname: "たろう", sex: "男性", birthdate: "1974-03-12", height: 172,
-    startWeight: 92.0, goalWeight: 85, goalKcal: 1800, goalSteps: 8000, goalEx: 150,
+    startWeight: 92.0, goalWeight: 85, goalKcal: 1800, goalSteps: 8000, goalEx: 3,
   };
   const ageAt = d => ageAtDate(profile.birthdate, d);
 
@@ -1913,10 +1913,10 @@ document.getElementById("ex-add").addEventListener("click", () => {
   }
   setDaily(date, rec);
   renderExPage();
-  const wk = weekExerciseMin();
-  const goal = load(K.profile).goalEx || 150;
-  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
-  else cheer("🏃", `ナイス運動！今週あと${goal - wk}分`);
+  const wk = weekExerciseDays();
+  const goal = load(K.profile).goalEx || 3;
+  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}回 達成！`);
+  else cheer("🏃", `ナイス運動！今週あと${goal - wk}回`);
   checkBadges();
 });
 document.getElementById("ex-free-add").addEventListener("click", () => {
@@ -1934,19 +1934,19 @@ document.getElementById("ex-free-add").addEventListener("click", () => {
   document.getElementById("ex-free-min").value = "";
   document.getElementById("ex-free-kcal").value = "";
   renderExPage();
-  const wk = weekExerciseMin();
-  const goal = load(K.profile).goalEx || 150;
-  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}分 達成！`);
+  const wk = weekExerciseDays();
+  const goal = load(K.profile).goalEx || 3;
+  if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}回 達成！`);
   else cheer("🏃", "記録しました！えらい！");
   checkBadges();
 });
-function weekExerciseMin() {
-  const all = load(K.daily); let sum = 0;
+function weekExerciseDays() {
+  const all = load(K.daily); let count = 0;
   for (let i = 0; i < 7; i++) {
     const r = all[todayStr(-i)];
-    if (r && r.exercises) sum += r.exercises.reduce((s, e) => s + (e.min || 0), 0);
+    if (r && r.exercises && r.exercises.length > 0) count++;
   }
-  return sum;
+  return count;
 }
 function updateStepsKcal() {
   const steps = Number(document.getElementById("ex-steps").value);
@@ -2329,7 +2329,7 @@ function renderSettings() {
   setv("p-nickname", p.nickname);
   setv("p-birthdate", p.birthdate); document.getElementById("p-sex").value = p.sex || "";
   setv("p-height", p.height); setv("p-start-weight", p.startWeight);
-  setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 150);
+  setv("p-goal-weight", p.goalWeight); setv("p-goal-ex", p.goalEx ?? 3);
   setv("p-goal-kcal", p.goalKcal); setv("p-goal-steps", p.goalSteps ?? 8000);
   document.getElementById("account-phone").textContent = guestMode
     ? "🧪 ゲストモードで利用中（データはこの端末のみ）"
@@ -2376,7 +2376,7 @@ document.getElementById("p-save").addEventListener("click", () => {
     nickname: document.getElementById("p-nickname").value.trim() || null,
     birthdate: document.getElementById("p-birthdate").value || null, sex: document.getElementById("p-sex").value || null,
     height: num("p-height"), startWeight: num("p-start-weight"),
-    goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 150,
+    goalWeight: num("p-goal-weight"), goalEx: num("p-goal-ex") ?? 3,
     goalKcal: num("p-goal-kcal"), goalSteps: num("p-goal-steps") ?? 8000,
   };
   if (!p.goalWeight && p.startWeight) p.goalWeight = Math.round(p.startWeight * 0.93 * 10) / 10;
@@ -2536,8 +2536,8 @@ function renderHome() {
   const exMin = t.exercises.reduce((s, e) => s + (e.min || 0), 0);
   const exReps = t.exercises.reduce((s, e) => s + (e.reps || 0), 0);
   const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : "", t.steps ? `${t.steps.toLocaleString()}歩` : ""].filter(Boolean).join("・");
-  const wkMin = weekExerciseMin();
-  const goalEx = p.goalEx || 150;
+  const wkDays = weekExerciseDays();
+  const goalEx = p.goalEx || 3;
   const weightDone = t.weight != null;
   const mealDone = t.meals.length > 0;
   const exDone = t.exercises.length > 0 || t.steps != null;
@@ -2555,7 +2555,7 @@ function renderHome() {
     {
       goto: "exercise", icon: "🏃", title: "運動記録", done: exDone,
       detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `（${exAmtLbl}）` : ""}` : "まだ未記録です",
-      sub: `今週の運動 ${wkMin}/${goalEx}分`,
+      sub: `今週の運動 ${wkDays}/${goalEx}回`,
     },
   ];
   document.getElementById("today-checklist").innerHTML = checklist.map(it => `
