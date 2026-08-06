@@ -2567,12 +2567,12 @@ function renderHome() {
     {
       goto: "meal", icon: "🍽", title: "食事記録", done: mealDone,
       detail: mealDone
-        ? `${kcalIn.toLocaleString()}kcal を記録済み${p.goalKcal ? `（目標 ${p.goalKcal.toLocaleString()}kcal）` : ""}`
+        ? `${kcalIn.toLocaleString()}kcal を記録済み${p.goalKcal ? `<span style="white-space:nowrap;">（目標 ${p.goalKcal.toLocaleString()}kcal）</span>` : ""}`
         : "まだ未記録です",
     },
     {
       goto: "exercise", icon: "🏃", title: "運動記録", done: exDone,
-      detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `（${exAmtLbl}）` : ""}` : "まだ未記録です",
+      detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `<span style="white-space:nowrap;">（${exAmtLbl}）</span>` : ""}` : "まだ未記録です",
     },
   ];
   const weeklyExAchieved = wkDays >= goalEx;
