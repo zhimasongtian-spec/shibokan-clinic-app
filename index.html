@@ -2537,8 +2537,9 @@ function renderHome() {
     ring.setAttribute("stroke", wp.pct >= 100 ? "#d9a62b" : "#2e8b6d");
     document.getElementById("ring-pct").textContent = Math.round(wp.pct) + "%";
     document.getElementById("goal-text").innerHTML =
-      `<span style="white-space:nowrap;">現在 <strong>${wp.cur}kg</strong></span> ／ <span style="white-space:nowrap;">目標 <strong>${wp.goal}kg</strong></span><br>
-       <span class="muted"><span style="white-space:nowrap;">開始 ${wp.start}kg</span> から <span style="white-space:nowrap;">${Math.round((wp.start - wp.cur) * 10) / 10}kg 減</span>${wp.pct >= 100 ? " 🎉 目標達成！" : `、<span style="white-space:nowrap;">あと ${Math.round((wp.cur - wp.goal) * 10) / 10}kg</span>`}</span>`;
+      `現在 <strong>${wp.cur}kg</strong>／目標 <strong>${wp.goal}kg</strong><br>
+       <span class="muted">開始 ${wp.start}kgから${Math.round((wp.start - wp.cur) * 10) / 10}kg減、</span><br>
+       <span class="muted">${wp.pct >= 100 ? "🎉 目標達成！" : `あと ${Math.round((wp.cur - wp.goal) * 10) / 10}kg`}</span>`;
   } else {
     ring.setAttribute("stroke-dashoffset", C);
     document.getElementById("ring-pct").textContent = "—";
