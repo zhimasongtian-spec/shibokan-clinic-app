@@ -156,7 +156,7 @@
   }
   .streak-box .num { font-size: 1.35rem; font-weight: 700; color: var(--gold); }
   .card.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
-  .card.achieved #weekly-ex-summary { color: var(--gold) !important; }
+  .card.achieved #weekly-ex-summary, .card.achieved #weekly-meal-summary { color: var(--gold) !important; }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--accent-soft); border-radius: 10px; padding: 11px; text-align: center; }
   .stat .val { font-size: 1.3rem; font-weight: 700; color: var(--accent-dark); }
@@ -428,6 +428,11 @@
     <div class="card" id="weekly-ex-card">
       <h2>🏃 今週の運動</h2>
       <p class="muted" id="weekly-ex-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
+    </div>
+
+    <div class="card hidden" id="weekly-meal-card">
+      <h2>🍚 今週の腹八分目</h2>
+      <p class="muted" id="weekly-meal-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
     </div>
 
   </section>
@@ -2433,8 +2438,19 @@ const BADGES = [
   { id: "streak180", em: "🌸", label: "180日連続記録" },
   { id: "weight1", em: "⚖️", label: "-1kg達成" },
   { id: "goalweight", em: "🎯", label: "目標体重達成" },
-  { id: "kcal3", em: "🍚", label: "腹八分目3日" },
 ];
+function weekGoodMealDays() {
+  const all = load(K.daily);
+  const p = load(K.profile);
+  if (!p.goalKcal) return 0;
+  let goodDays = 0;
+  for (let i = 0; i <= daysSinceMonday(); i++) {
+    const r = all[todayStr(-i)];
+    const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
+    if (r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7) goodDays++;
+  }
+  return goodDays;
+}
 function baselineWeight() {
   const p = load(K.profile);
   if (p.startWeight != null) return p.startWeight;
@@ -2462,15 +2478,6 @@ function checkBadges() {
   if (streak >= 180) earn("streak180");
   if (base != null && cur != null && base - cur >= 1) earn("weight1");
   if (p.goalWeight != null && cur != null && cur <= p.goalWeight) earn("goalweight");
-  if (p.goalKcal) {
-    let goodDays = 0;
-    for (let i = 0; i <= daysSinceMonday(); i++) {
-      const r = all[todayStr(-i)];
-      const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
-      if (r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7) goodDays++;
-    }
-    if (goodDays >= 3) earn("kcal3");
-  }
 
   if (newlyEarned.length) {
     save(K.badges, badges);
@@ -2572,6 +2579,15 @@ function renderHome() {
   document.getElementById("weekly-ex-card").classList.toggle("achieved", weeklyExAchieved);
   document.getElementById("weekly-ex-summary").textContent =
     weeklyExAchieved ? `🎉 今週の運動 ${wkDays}/${goalEx}回 達成！` : `今週の運動 ${wkDays}/${goalEx}回`;
+  const mealCard = document.getElementById("weekly-meal-card");
+  mealCard.classList.toggle("hidden", !p.goalKcal);
+  if (p.goalKcal) {
+    const goodMealDays = weekGoodMealDays();
+    const mealAchieved = goodMealDays >= 3;
+    mealCard.classList.toggle("achieved", mealAchieved);
+    document.getElementById("weekly-meal-summary").textContent =
+      mealAchieved ? `🎉 今週の腹八分目 ${goodMealDays}/3日 達成！` : `今週の腹八分目 ${goodMealDays}/3日`;
+  }
   document.getElementById("today-checklist").innerHTML = checklist.map(it => `
     <button type="button" class="check-item${it.done ? " done" : ""}" data-goto="${it.goto}">
       <div class="check-icon">${it.icon}</div>
