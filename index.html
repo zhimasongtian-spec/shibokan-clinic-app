@@ -2460,13 +2460,15 @@ function renderWeekSection(prefix, label, icon, arr, todayIdx) {
   const count = arr.filter(Boolean).length;
   const achieved = count >= 7;
   const milestone = !achieved && count >= 3;
+  // 今日より前の日を1日でも落としていたら、今週中の7/7達成はもう不可能
+  const stillPossible = arr.slice(0, todayIdx).every(Boolean);
   const section = document.getElementById(`weekly-${prefix}-section`);
   section.classList.toggle("achieved", achieved);
   section.classList.toggle("milestone", milestone);
   document.getElementById(`weekly-${prefix}-summary`).textContent =
     achieved ? `🎉 ${label}　${count} / 7日 達成！` : `${icon} ${label}　${count} / 7日`;
-  document.getElementById(`weekly-${prefix}-note`).textContent =
-    milestone ? `🌱 いいペースです！あと${7 - count}日で達成` : "";
+  document.getElementById(`weekly-${prefix}-note`).textContent = !milestone ? "" :
+    stillPossible ? `🌱 その調子！あと${7 - count}日で達成` : `😊 今週も${count}日、よく取り組めています！`;
   renderWeekDots(`weekly-${prefix}-dots`, arr, todayIdx);
   return count;
 }
