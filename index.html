@@ -151,8 +151,12 @@
   .week-section { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
   .week-section:first-child { margin-top: 0; }
   .week-section.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
+  .week-section.milestone { background: var(--blue-soft); border: 1.5px solid var(--blue); }
   .week-section-title { font-weight: 700; color: var(--accent-dark); font-size: .92rem; }
   .week-section.achieved .week-section-title { color: var(--gold); }
+  .week-section.milestone .week-section-title { color: var(--blue); }
+  .week-section-note { font-size: .78rem; color: var(--sub); margin-top: 6px; }
+  .week-section.milestone .week-section-note { color: var(--blue); font-weight: 700; }
   .week-dots { display: flex; justify-content: space-between; margin-top: 8px; }
   .week-dot { flex: 1; text-align: center; }
   .week-dot .dot { display: inline-block; font-size: 1.05rem; line-height: 1; color: #c3cec7; }
@@ -405,11 +409,13 @@
       <div class="week-section hidden" id="weekly-meal-section">
         <p class="week-section-title" id="weekly-meal-summary"></p>
         <div class="week-dots" id="weekly-meal-dots"></div>
+        <p class="week-section-note" id="weekly-meal-note"></p>
       </div>
 
       <div class="week-section" id="weekly-ex-section">
         <p class="week-section-title" id="weekly-ex-summary"></p>
         <div class="week-dots" id="weekly-ex-dots"></div>
+        <p class="week-section-note" id="weekly-ex-note"></p>
       </div>
     </div>
 
@@ -2450,6 +2456,20 @@ function renderWeekDots(containerId, arr, todayIdx) {
       <div class="lbl">${labels[idx]}</div>
     </div>`).join("");
 }
+function renderWeekSection(prefix, label, icon, arr, todayIdx) {
+  const count = arr.filter(Boolean).length;
+  const achieved = count >= 7;
+  const milestone = !achieved && count >= 3;
+  const section = document.getElementById(`weekly-${prefix}-section`);
+  section.classList.toggle("achieved", achieved);
+  section.classList.toggle("milestone", milestone);
+  document.getElementById(`weekly-${prefix}-summary`).textContent =
+    achieved ? `🎉 ${label}　${count} / 7日 達成！` : `${icon} ${label}　${count} / 7日`;
+  document.getElementById(`weekly-${prefix}-note`).textContent =
+    milestone ? `🌱 いいペースです！あと${7 - count}日で達成` : "";
+  renderWeekDots(`weekly-${prefix}-dots`, arr, todayIdx);
+  return count;
+}
 function latestEval() {
   const all = load(K.eval);
   const dates = Object.keys(all).sort().reverse();
@@ -2526,7 +2546,6 @@ function renderHome() {
   const exMin = t.exercises.reduce((s, e) => s + (e.min || 0), 0);
   const exReps = t.exercises.reduce((s, e) => s + (e.reps || 0), 0);
   const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : "", t.steps ? `${t.steps.toLocaleString()}歩` : ""].filter(Boolean).join("・");
-  const goalEx = p.goalEx || 3;
   const weightDone = t.weight != null;
   const mealDone = t.meals.length > 0;
   const exDone = t.exercises.length > 0 || t.steps != null;
@@ -2547,22 +2566,12 @@ function renderHome() {
     },
   ];
   const exWeek = weekDayArray(exerciseDay);
-  const wkDays = exWeek.arr.filter(Boolean).length;
-  const weeklyExAchieved = wkDays >= goalEx;
-  document.getElementById("weekly-ex-section").classList.toggle("achieved", weeklyExAchieved);
-  document.getElementById("weekly-ex-summary").textContent =
-    weeklyExAchieved ? `🎉 運動　${wkDays} / 7日 達成！` : `🏃 運動　${wkDays} / 7日`;
-  renderWeekDots("weekly-ex-dots", exWeek.arr, exWeek.todayIdx);
+  renderWeekSection("ex", "運動", "🏃", exWeek.arr, exWeek.todayIdx);
 
   document.getElementById("weekly-meal-section").classList.toggle("hidden", !p.goalKcal);
   if (p.goalKcal) {
     const mealWeek = weekDayArray(goodMealDay);
-    const goodMealDays = mealWeek.arr.filter(Boolean).length;
-    const mealAchieved = goodMealDays >= 5;
-    document.getElementById("weekly-meal-section").classList.toggle("achieved", mealAchieved);
-    document.getElementById("weekly-meal-summary").textContent =
-      mealAchieved ? `🎉 腹八分目　${goodMealDays} / 7日 達成！` : `🍚 腹八分目　${goodMealDays} / 7日`;
-    renderWeekDots("weekly-meal-dots", mealWeek.arr, mealWeek.todayIdx);
+    renderWeekSection("meal", "腹八分目", "🍚", mealWeek.arr, mealWeek.todayIdx);
   }
   document.getElementById("today-checklist").innerHTML = checklist.map(it => `
     <button type="button" class="check-item${it.done ? " done" : ""}" data-goto="${it.goto}">
