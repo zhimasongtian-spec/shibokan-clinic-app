@@ -371,7 +371,12 @@
     <div class="card">
       <h2>🎯 あなたの目標</h2>
       <p id="goal-status-text" style="font-weight:700; color: var(--accent-dark); font-size:1.02rem; margin-bottom:8px;"></p>
+      <p style="text-align:right; font-size:.85rem; font-weight:700; color: var(--accent); margin-bottom:2px;">達成率 <span id="goal-bar-pct"></span></p>
       <div class="bar-track"><div class="bar-fill" id="goal-bar-fill"></div></div>
+      <div style="display:flex; justify-content:space-between; margin-top:4px;">
+        <span class="muted" style="font-size:.72rem;">スタート（0%）</span>
+        <span class="muted" style="font-size:.72rem;">🎯 目標達成（100%）</span>
+      </div>
       <p class="muted" id="goal-bar-sub" style="font-size:.82rem; margin-top:6px;"></p>
     </div>
 
@@ -2453,13 +2458,15 @@ function renderHome() {
     const remain = Math.round((wp.cur - wp.goal) * 10) / 10;
     fill.style.width = Math.max(0, Math.min(100, wp.pct)) + "%";
     fill.classList.toggle("achieved", wp.pct >= 100);
+    document.getElementById("goal-bar-pct").textContent = Math.round(wp.pct) + "%";
     document.getElementById("goal-status-text").textContent =
       wp.pct >= 100 ? "🎉 目標達成です！" : `あと${remain}kgで目標達成です！`;
     document.getElementById("goal-bar-sub").innerHTML =
-      `<span style="white-space:nowrap;">開始 ${wp.start}kg → 目標 ${wp.goal}kg</span>　<span style="white-space:nowrap;">（${lost}kg減・${Math.round(wp.pct)}%）</span>`;
+      `<span style="white-space:nowrap;">開始 ${wp.start}kg → 目標 ${wp.goal}kg</span>　<span style="white-space:nowrap;">（${lost}kg減）</span>`;
   } else {
     fill.style.width = "0%";
     fill.classList.remove("achieved");
+    document.getElementById("goal-bar-pct").textContent = "";
     document.getElementById("goal-status-text").textContent = "目標を設定しましょう";
     document.getElementById("goal-bar-sub").textContent = "「⚙️設定」で身長・体重・目標を入力すると、達成率が表示されます。";
   }
