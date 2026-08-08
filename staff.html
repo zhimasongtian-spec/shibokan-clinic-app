@@ -109,6 +109,11 @@
   .trend-chip.good { background: var(--accent-soft); color: var(--accent-dark); }
   .trend-chip.bad { background: var(--danger-soft); color: var(--danger); }
   .trend-chip.flat { background: #eef1ef; color: var(--sub); }
+  .cumulative-details { margin-top: 12px; }
+  .cumulative-details summary { cursor: pointer; font-weight: 700; color: var(--sub); font-size: .84rem; padding: 4px 0; }
+  .cumulative-details-body { margin-top: 8px; font-size: .84rem; color: var(--sub); }
+  .cumulative-details-body table.lab-table { font-size: .8rem; }
+  .cumulative-weight-line { margin-bottom: 10px; }
 
   /* ---- 栄養・運動アドバイス ---- */
   .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -185,6 +190,8 @@
     .advice-block li + li { margin-top: 2px; }
 
     .stat-card, .advice-block, table.lab-table { break-inside: avoid; }
+    .cumulative-details summary { display: none; }
+    .cumulative-details-body { font-size: .74rem; }
     @page { size: A4; margin: 10mm; }
   }
 </style>
@@ -297,6 +304,11 @@
 
     <h3>🩺 からだの変化（検査値）</h3>
     <div id="pd-labs"></div>
+
+    <details class="cumulative-details">
+      <summary>🌱 かん活開始からの変化（参考）</summary>
+      <div class="cumulative-details-body" id="pd-cumulative"></div>
+    </details>
 
     <h3>💡 次に頑張りたいこと</h3>
     <div id="pd-advice"></div>
@@ -806,6 +818,18 @@ document.getElementById("open-submit").addEventListener("click", async () => {
 });
 
 document.getElementById("pd-print-btn").addEventListener("click", () => window.print());
+// 印刷時は「参考」の折りたたみ内容も紙面に含める（画面では閉じたままにしておく）。
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll(".cumulative-details").forEach(d => {
+    if (!d.open) { d.open = true; d.dataset.wasClosed = "1"; }
+  });
+});
+window.addEventListener("afterprint", () => {
+  document.querySelectorAll(".cumulative-details[data-was-closed='1']").forEach(d => {
+    d.open = false;
+    delete d.dataset.wasClosed;
+  });
+});
 
 document.getElementById("patient-detail-back").addEventListener("click", () => {
   openResearchId = null; // 画面を離れたらかん活IDを忘れる
@@ -833,6 +857,7 @@ async function loadPatientDetail() {
     document.getElementById("pd-print-date").textContent = `評価日: ${fmtDate(todayStr())}`;
     renderPatientSummary(daily, evals, profile);
     renderPatientLabs(visits);
+    renderCumulativeNote(daily, visits, evals, profile);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
     prefillEvalForm(evals);
@@ -1046,23 +1071,19 @@ function renderPatientSummary(daily, evals, profile) {
   const firstW = weightDays.length ? daily[weightDays[0]].weight : null;
   const lastW = weightDays.length ? daily[weightDays[weightDays.length - 1]].weight : null;
 
-  // かん活を始めてから（初回記録日〜今日）の通算の変化。前回からの変化とは別に出す。
-  const allWeightDays = dates.filter(d => daily[d].weight != null);
-  const startW = allWeightDays.length ? daily[allWeightDays[0]].weight : null;
-  const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : null;
-  const startDate = allWeightDays.length ? allWeightDays[0] : null;
-
-  // 摂取・運動カロリーの「始めた頃」と「直近」の平均比較（最初の7日間 vs 直近7日間）。
-  // 単純合計だと利用期間が長いほど大きくなるだけで頑張りが見えないため、1日あたり平均で比較する。
-  const appStartDate = dates.length ? dates[0] : null;
-  const first7Dates = appStartDate ? dates.filter(d => d <= addDays(appStartDate, 6)) : [];
-  const last7Dates = dates.filter(d => d >= addDays(todayStr(), -6));
-  const windowsDontOverlap = first7Dates.length && last7Dates.length &&
-    first7Dates[first7Dates.length - 1] < last7Dates[0];
-  const mealAvgFirst = avgKcal(daily, first7Dates, "meals");
-  const mealAvgLast = avgKcal(daily, last7Dates, "meals");
-  const exAvgFirst = avgKcal(daily, first7Dates, "exercises");
-  const exAvgLast = avgKcal(daily, last7Dates, "exercises");
+  // 摂取・運動カロリーは「前回受診期間」と「今回受診期間」の平均で比較する
+  // （体重・検査値と同じ「前回受診 vs 今回」の軸に統一。利用開始からの累積は下の「参考」に分離）。
+  let prevMealAvg = null, curMealAvg = null, prevExAvg = null, curExAvg = null;
+  if (sinceDate) {
+    const prevIntervalStart = evalDates.length >= 2 ? evals[evalDates[evalDates.length - 2]].visitDate : null;
+    const prevIntervalDates = prevIntervalStart
+      ? dates.filter(d => d > prevIntervalStart && d <= sinceDate)
+      : dates.filter(d => d <= sinceDate);
+    curMealAvg = avgKcal(daily, inRange, "meals");
+    curExAvg = avgKcal(daily, inRange, "exercises");
+    prevMealAvg = avgKcal(daily, prevIntervalDates, "meals");
+    prevExAvg = avgKcal(daily, prevIntervalDates, "exercises");
+  }
 
   // 患者プロフィールカード（年齢・BMIなど、取得できた分だけ）
   const profileBits = [];
@@ -1096,25 +1117,17 @@ function renderPatientSummary(daily, evals, profile) {
       `${lastW}<span class="stat-unit">kg</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span>`,
       goalNote(lastW) || `前回 ${fmtDate(sinceDate)} 時点 ${firstW}kg から`, null));
   }
-  if (startW != null && nowW != null) {
-    // かん活を始めてから今日までの通算の変化（続けてきた成果を見る）
-    const diffAll = Math.round((nowW - startW) * 10) / 10;
-    const label = sinceDate ? "🌱 かん活開始からの体重変化" : "⚖️ 体重の変化";
-    cards.push(statCard(label,
-      `${nowW}<span class="stat-unit">kg</span> <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>`,
-      goalNote(nowW) || `${fmtDate(startDate)} 時点 ${startW}kg から`, null));
-  }
-  if (windowsDontOverlap && mealAvgFirst != null && mealAvgLast != null) {
-    const diff = mealAvgLast - mealAvgFirst;
+  if (sinceDate && curMealAvg != null && prevMealAvg != null) {
+    const diff = curMealAvg - prevMealAvg;
     cards.push(statCard("🍚 平均摂取カロリー（1日）",
-      `${mealAvgLast}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
-      `最初の7日間平均 ${mealAvgFirst}kcalから`, null));
+      `${curMealAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
+      `前回受診期間の平均 ${prevMealAvg}kcalから`, null));
   }
-  if (windowsDontOverlap && exAvgFirst != null && exAvgLast != null) {
-    const diff = exAvgLast - exAvgFirst;
+  if (sinceDate && curExAvg != null && prevExAvg != null) {
+    const diff = curExAvg - prevExAvg;
     cards.push(statCard("🏃 平均運動消費カロリー（1日）",
-      `${exAvgLast}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff >= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
-      `最初の7日間平均 ${exAvgFirst}kcalから`, null));
+      `${curExAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff >= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
+      `前回受診期間の平均 ${prevExAvg}kcalから`, null));
   }
   cards.push(statCard("📅 体重記録率", `${weightDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(weightDays.length, totalDays)}%の日に記録`, pct(weightDays.length, totalDays)));
   cards.push(statCard("🍚 食事記録率", `${mealDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(mealDays.length, totalDays)}%の日に記録`, pct(mealDays.length, totalDays)));
@@ -1154,15 +1167,42 @@ function renderPatientLabs(visits) {
   if (dates.length === 0) { el.innerHTML = `<p class="muted">来院データがまだありません</p>`; return; }
   const latest = visits[dates[dates.length - 1]];
   const prev = dates.length > 1 ? visits[dates[dates.length - 2]] : null;
-  const first = dates.length > 2 ? visits[dates[0]] : null; // 前回比と重複するため2回目までは出さない
 
   let html = `<div class="lab-card-date">来院日: ${fmtDate(dates[dates.length - 1])}${prev ? `（前回 ${fmtDate(dates[dates.length - 2])} 比）` : ""}</div>`;
   html += labTableHtml(prev, latest);
-  if (first) {
-    html += `<div class="lab-card-date" style="margin-top:14px;">🌱 かん活開始（${fmtDate(dates[0])}）からの変化</div>`;
+  el.innerHTML = html;
+}
+
+function renderCumulativeNote(daily, visits, evals, profile) {
+  const el = document.getElementById("pd-cumulative");
+  const dates = Object.keys(daily).sort();
+  const allWeightDays = dates.filter(d => daily[d].weight != null);
+  const startW = allWeightDays.length ? daily[allWeightDays[0]].weight : null;
+  const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : null;
+  const startDate = allWeightDays.length ? allWeightDays[0] : null;
+  const goalW = profile.goalWeight;
+  const goalNote = w => {
+    if (goalW == null) return "";
+    const remain = Math.round((w - goalW) * 10) / 10;
+    return remain > 0 ? `目標体重まであと ${remain}kg` : "目標体重を達成 🎉";
+  };
+
+  let html = "";
+  if (startW != null && nowW != null && startDate) {
+    const diffAll = Math.round((nowW - startW) * 10) / 10;
+    html += `<div class="cumulative-weight-line">⚖️ 体重：${fmtDate(startDate)} ${startW}kg → 本日 ${nowW}kg
+      <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>
+      ${goalNote(nowW) ? `（${goalNote(nowW)}）` : ""}</div>`;
+  }
+
+  const visitDates = Object.keys(visits).sort();
+  if (visitDates.length >= 2) {
+    const first = visits[visitDates[0]];
+    const latest = visits[visitDates[visitDates.length - 1]];
+    html += `<div class="lab-card-date">検査値：${fmtDate(visitDates[0])} 〜 ${fmtDate(visitDates[visitDates.length - 1])}</div>`;
     html += labTableHtml(first, latest);
   }
-  el.innerHTML = html;
+  el.innerHTML = html || `<p class="muted">まだ十分なデータがありません</p>`;
 }
 
 // ------- 栄養・運動アドバイス（ルールベース自動生成） -------
