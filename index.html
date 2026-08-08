@@ -1967,7 +1967,9 @@ function weekDayArray(predicate) {
 }
 function exerciseDay(d) {
   const r = load(K.daily)[d];
-  return !!(r && r.exercises && r.exercises.length > 0);
+  if (!r) return false;
+  const goalSteps = load(K.profile).goalSteps ?? 8000;
+  return !!((r.exercises && r.exercises.length > 0) || (r.steps != null && r.steps >= goalSteps));
 }
 function weekExerciseDays() {
   return weekDayArray(exerciseDay).arr.filter(Boolean).length;
