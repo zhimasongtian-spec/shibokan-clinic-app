@@ -2462,7 +2462,7 @@ function renderHome() {
     fill.classList.toggle("achieved", wp.pct >= 100);
     document.getElementById("goal-bar-pct").textContent = Math.round(wp.pct) + "%";
     document.getElementById("goal-status-text").textContent =
-      wp.pct >= 100 ? "🎉 目標達成です！" : `あと${remain}kgで目標達成です！`;
+      wp.pct >= 100 ? "🎉 目標達成です！" : `あと${remain}kgで目標達成！`;
     weightRow.innerHTML = `
       <div style="text-align:center;">
         <div style="font-size:1rem; font-weight:700;">${wp.start}kg</div>
