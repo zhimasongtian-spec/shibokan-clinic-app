@@ -145,10 +145,22 @@
   }
   .streak-box .num { font-size: 1.35rem; font-weight: 700; color: var(--gold); }
   .card.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
-  .card.achieved #weekly-ex-summary, .card.achieved #weekly-meal-summary { color: var(--gold) !important; }
   .bar-track { background: #e2e9e5; border-radius: 999px; height: 16px; overflow: hidden; }
   .bar-fill { background: var(--accent); height: 100%; border-radius: 999px; transition: width .5s ease; }
   .bar-fill.achieved { background: var(--gold); }
+  .week-section { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+  .week-section:first-child { margin-top: 0; }
+  .week-section.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
+  .week-section-title { font-weight: 700; color: var(--accent-dark); font-size: .92rem; }
+  .week-section.achieved .week-section-title { color: var(--gold); }
+  .week-dots { display: flex; justify-content: space-between; margin-top: 8px; }
+  .week-dot { flex: 1; text-align: center; }
+  .week-dot .dot { display: inline-block; font-size: 1.05rem; line-height: 1; color: #c3cec7; }
+  .week-dot.done .dot { color: var(--accent); }
+  .week-dot .lbl { font-size: .64rem; color: var(--sub); margin-top: 3px; }
+  .week-dot.today .dot { font-size: 1.4rem; font-weight: 700; color: var(--accent-dark); }
+  .week-dot.today.done .dot { color: var(--gold); }
+  .week-dot.today .lbl { font-weight: 700; color: var(--accent-dark); }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--accent-soft); border-radius: 10px; padding: 11px; text-align: center; }
   .stat .val { font-size: 1.3rem; font-weight: 700; color: var(--accent-dark); }
@@ -387,14 +399,18 @@
       <p class="muted" id="today-checklist-summary" style="font-size:.85rem; margin-top:10px; text-align:right; font-weight:700;"></p>
     </div>
 
-    <div class="card" id="weekly-ex-card">
-      <h2>🏃 今週の運動</h2>
-      <p class="muted" id="weekly-ex-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
-    </div>
+    <div class="card">
+      <h2>📅 今週の取り組み</h2>
 
-    <div class="card hidden" id="weekly-meal-card">
-      <h2>🍚 今週の腹八分目</h2>
-      <p class="muted" id="weekly-meal-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
+      <div class="week-section hidden" id="weekly-meal-section">
+        <p class="week-section-title" id="weekly-meal-summary"></p>
+        <div class="week-dots" id="weekly-meal-dots"></div>
+      </div>
+
+      <div class="week-section" id="weekly-ex-section">
+        <p class="week-section-title" id="weekly-ex-summary"></p>
+        <div class="week-dots" id="weekly-ex-dots"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -1935,13 +1951,20 @@ function daysSinceMonday() {
   const dow = new Date().getDay(); // 0=日,1=月,...,6=土
   return dow === 0 ? 6 : dow - 1;
 }
-function weekExerciseDays() {
-  const all = load(K.daily); let count = 0;
-  for (let i = 0; i <= daysSinceMonday(); i++) {
-    const r = all[todayStr(-i)];
-    if (r && r.exercises && r.exercises.length > 0) count++;
+function weekDayArray(predicate) {
+  const todayIdx = daysSinceMonday();
+  const arr = [];
+  for (let idx = 0; idx <= 6; idx++) {
+    arr.push(idx > todayIdx ? false : predicate(todayStr(-(todayIdx - idx))));
   }
-  return count;
+  return { arr, todayIdx };
+}
+function exerciseDay(d) {
+  const r = load(K.daily)[d];
+  return !!(r && r.exercises && r.exercises.length > 0);
+}
+function weekExerciseDays() {
+  return weekDayArray(exerciseDay).arr.filter(Boolean).length;
 }
 function updateStepsKcal() {
   const steps = Number(document.getElementById("ex-steps").value);
@@ -2409,17 +2432,23 @@ function weightProgress() {
   return { start, goal, cur, pct };
 }
 
-function weekGoodMealDays() {
-  const all = load(K.daily);
+function goodMealDay(d) {
   const p = load(K.profile);
-  if (!p.goalKcal) return 0;
-  let goodDays = 0;
-  for (let i = 0; i <= daysSinceMonday(); i++) {
-    const r = all[todayStr(-i)];
-    const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
-    if (r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7) goodDays++;
-  }
-  return goodDays;
+  if (!p.goalKcal) return false;
+  const r = load(K.daily)[d];
+  const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
+  return !!(r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7);
+}
+function weekGoodMealDays() {
+  return weekDayArray(goodMealDay).arr.filter(Boolean).length;
+}
+function renderWeekDots(containerId, arr, todayIdx) {
+  const labels = ["月", "火", "水", "木", "金", "土", "日"];
+  document.getElementById(containerId).innerHTML = arr.map((done, idx) => `
+    <div class="week-dot${done ? " done" : ""}${idx === todayIdx ? " today" : ""}">
+      <span class="dot">${done ? "●" : "○"}</span>
+      <div class="lbl">${labels[idx]}</div>
+    </div>`).join("");
 }
 function latestEval() {
   const all = load(K.eval);
@@ -2497,7 +2526,6 @@ function renderHome() {
   const exMin = t.exercises.reduce((s, e) => s + (e.min || 0), 0);
   const exReps = t.exercises.reduce((s, e) => s + (e.reps || 0), 0);
   const exAmtLbl = [exMin ? `${exMin}分` : "", exReps ? `${exReps}回` : "", t.steps ? `${t.steps.toLocaleString()}歩` : ""].filter(Boolean).join("・");
-  const wkDays = weekExerciseDays();
   const goalEx = p.goalEx || 3;
   const weightDone = t.weight != null;
   const mealDone = t.meals.length > 0;
@@ -2518,18 +2546,23 @@ function renderHome() {
       detail: exDone ? `${kcalOut.toLocaleString()}kcal 消費${exAmtLbl ? `<span style="white-space:nowrap;">（${exAmtLbl}）</span>` : ""}` : "まだ未記録です",
     },
   ];
+  const exWeek = weekDayArray(exerciseDay);
+  const wkDays = exWeek.arr.filter(Boolean).length;
   const weeklyExAchieved = wkDays >= goalEx;
-  document.getElementById("weekly-ex-card").classList.toggle("achieved", weeklyExAchieved);
+  document.getElementById("weekly-ex-section").classList.toggle("achieved", weeklyExAchieved);
   document.getElementById("weekly-ex-summary").textContent =
-    weeklyExAchieved ? `🎉 今週の運動 ${wkDays}/${goalEx}回 達成！` : `今週の運動 ${wkDays}/${goalEx}回`;
-  const mealCard = document.getElementById("weekly-meal-card");
-  mealCard.classList.toggle("hidden", !p.goalKcal);
+    weeklyExAchieved ? `🎉 運動　${wkDays} / 7日 達成！` : `🏃 運動　${wkDays} / 7日`;
+  renderWeekDots("weekly-ex-dots", exWeek.arr, exWeek.todayIdx);
+
+  document.getElementById("weekly-meal-section").classList.toggle("hidden", !p.goalKcal);
   if (p.goalKcal) {
-    const goodMealDays = weekGoodMealDays();
+    const mealWeek = weekDayArray(goodMealDay);
+    const goodMealDays = mealWeek.arr.filter(Boolean).length;
     const mealAchieved = goodMealDays >= 3;
-    mealCard.classList.toggle("achieved", mealAchieved);
+    document.getElementById("weekly-meal-section").classList.toggle("achieved", mealAchieved);
     document.getElementById("weekly-meal-summary").textContent =
-      mealAchieved ? `🎉 今週の腹八分目 ${goodMealDays}/3日 達成！` : `今週の腹八分目 ${goodMealDays}/3日`;
+      mealAchieved ? `🎉 腹八分目　${goodMealDays} / 7日 達成！` : `🍚 腹八分目　${goodMealDays} / 7日`;
+    renderWeekDots("weekly-meal-dots", mealWeek.arr, mealWeek.todayIdx);
   }
   document.getElementById("today-checklist").innerHTML = checklist.map(it => `
     <button type="button" class="check-item${it.done ? " done" : ""}" data-goto="${it.goto}">
