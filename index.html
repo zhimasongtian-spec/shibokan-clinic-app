@@ -139,17 +139,6 @@
   .toast.show { opacity: .95; }
 
   /* home */
-  .hero {
-    display: flex; align-items: center; gap: 16px;
-  }
-  .ring-wrap { position: relative; width: 118px; height: 118px; flex-shrink: 0; }
-  .ring-wrap svg { transform: rotate(-90deg); }
-  .ring-center {
-    position: absolute; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; text-align: center;
-  }
-  .ring-center .big { font-size: 1.4rem; font-weight: 700; color: var(--accent-dark); line-height: 1.2; }
-  .ring-center .sml { font-size: .68rem; color: var(--sub); }
   .streak-box {
     background: var(--gold-soft); border-radius: 10px; padding: 9px 14px;
     display: flex; align-items: center; gap: 8px; margin-top: 8px;
@@ -157,6 +146,9 @@
   .streak-box .num { font-size: 1.35rem; font-weight: 700; color: var(--gold); }
   .card.achieved { background: var(--gold-soft); border: 1.5px solid var(--gold); }
   .card.achieved #weekly-ex-summary, .card.achieved #weekly-meal-summary { color: var(--gold) !important; }
+  .bar-track { background: #e2e9e5; border-radius: 999px; height: 16px; overflow: hidden; }
+  .bar-fill { background: var(--accent); height: 100%; border-radius: 999px; transition: width .5s ease; }
+  .bar-fill.achieved { background: var(--gold); }
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat { background: var(--accent-soft); border-radius: 10px; padding: 11px; text-align: center; }
   .stat .val { font-size: 1.3rem; font-weight: 700; color: var(--accent-dark); }
@@ -237,13 +229,6 @@
   .kcal-summary.over strong, .kcal-summary.over .mood-msg { color: var(--warn); }
   .kcal-summary.over-hi { background: var(--danger-soft); }
   .kcal-summary.over-hi strong, .kcal-summary.over-hi .mood-msg { color: var(--danger); }
-
-  /* badges */
-  .badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
-  .badge-item { text-align: center; opacity: .32; filter: grayscale(1); }
-  .badge-item.on { opacity: 1; filter: none; }
-  .badge-em { font-size: 2rem; line-height: 1; }
-  .badge-lbl { font-size: .7rem; color: var(--sub); margin-top: 4px; line-height: 1.25; }
 
   .seg { display: flex; gap: 5px; margin: 8px 0; flex-wrap: wrap; }
   .seg button {
@@ -380,49 +365,20 @@
       <p style="font-size:.85rem; font-weight:700; color: var(--warn);">🧪 ゲストモードで利用中</p>
       <p class="muted" style="font-size:.8rem; margin-top:4px;">入力したデータはこの端末にのみ保存され、病院とは共有されません。機種変更やブラウザのデータ削除で失われるのでご注意ください。</p>
     </div>
-    <div class="card hidden" id="doctor-message-card">
-      <h2>📋 先生からのメッセージ</h2>
-      <p id="doctor-comment" style="font-weight:700;"></p>
-      <p class="muted" id="doctor-eval-date" style="font-size:.8rem;"></p>
-      <p id="doctor-goal-summary" style="font-size:.85rem; margin-top:8px;"></p>
-      <p id="doctor-next-visit" style="font-size:.85rem; margin-top:4px;"></p>
+
+    <p id="home-greeting" style="font-size:1.15rem; font-weight:700; color: var(--accent-dark); margin: 4px 0 12px;"></p>
+
+    <div class="card">
+      <h2>🎯 あなたの目標</h2>
+      <p id="goal-status-text" style="font-weight:700; color: var(--accent-dark); font-size:1.02rem; margin-bottom:8px;"></p>
+      <div class="bar-track"><div class="bar-fill" id="goal-bar-fill"></div></div>
+      <p class="muted" id="goal-bar-sub" style="font-size:.82rem; margin-top:6px;"></p>
     </div>
 
     <div class="card">
-      <h2>✅ 今日の記録チェック</h2>
+      <h2>✅ 今日やること</h2>
       <div class="check-list" id="today-checklist"></div>
-    </div>
-
-    <div class="card">
-      <h2>⚖️ 体重目標の達成率</h2>
-      <div class="hero">
-        <div class="ring-wrap">
-          <svg width="118" height="118" viewBox="0 0 118 118">
-            <circle cx="59" cy="59" r="50" fill="none" stroke="#e2e9e5" stroke-width="11"/>
-            <circle id="ring-fg" cx="59" cy="59" r="50" fill="none" stroke="#2e8b6d" stroke-width="11"
-              stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16"
-              style="transition: stroke-dashoffset .8s ease;"/>
-          </svg>
-          <div class="ring-center">
-            <div class="big" id="ring-pct">—</div>
-            <div class="sml">目標達成率</div>
-          </div>
-        </div>
-        <div style="flex:1;">
-          <div id="goal-text" style="font-size:.85rem;"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>🔥 連続記録・バッジ</h2>
-      <p class="muted" style="font-size:.78rem; margin-top:2px;">体重・食事・運動のいずれかを記録した日が対象です</p>
-      <div class="streak-box">
-        <span style="font-size:1.3rem;">🔥</span>
-        <div><span class="num" id="streak-num">0</span><span style="font-size:.75rem;"> 日連続記録中</span></div>
-      </div>
-      <div class="badge-grid" id="badge-shelf"></div>
-      <p class="muted" id="badge-count" style="font-size:.78rem; margin-top:8px; text-align:right;"></p>
+      <p class="muted" id="today-checklist-summary" style="font-size:.85rem; margin-top:10px; text-align:right; font-weight:700;"></p>
     </div>
 
     <div class="card" id="weekly-ex-card">
@@ -433,6 +389,23 @@
     <div class="card hidden" id="weekly-meal-card">
       <h2>🍚 今週の腹八分目</h2>
       <p class="muted" id="weekly-meal-summary" style="font-size:.95rem; font-weight:700; color: var(--accent-dark);"></p>
+    </div>
+
+    <div class="card">
+      <h2>🔥 連続記録</h2>
+      <p class="muted" style="font-size:.78rem; margin-top:2px;">体重・食事・運動のいずれかを記録した日が対象です</p>
+      <div class="streak-box">
+        <span style="font-size:1.3rem;">🔥</span>
+        <div><span class="num" id="streak-num">0</span><span style="font-size:.75rem;"> 日連続記録中</span></div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="doctor-message-card">
+      <h2>📋 先生からのメッセージ</h2>
+      <p id="doctor-comment" style="font-weight:700;"></p>
+      <p class="muted" id="doctor-eval-date" style="font-size:.8rem;"></p>
+      <p id="doctor-goal-summary" style="font-size:.85rem; margin-top:8px;"></p>
+      <p id="doctor-next-visit" style="font-size:.85rem; margin-top:4px;"></p>
     </div>
 
   </section>
@@ -791,7 +764,7 @@ let currentUid = null;
 let guestMode = false;
 
 /* ============ storage keys ============ */
-const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1", badges: "nafld-badges-v1" };
+const K = { profile: "nafld-profile-v1", daily: "nafld-daily-v1", visits: "nafld-visits-v1", foods: "nafld-foods-v1", customEx: "nafld-custom-ex-v1", eval: "nafld-eval-v1" };
 const storageKey = k => guestMode ? "guest-" + k : k;
 const load = k => { try { return JSON.parse(localStorage.getItem(storageKey(k))) || {}; } catch { return {}; } };
 const save = (k, v) => {
@@ -879,7 +852,6 @@ function startGuestMode() {
   document.getElementById("v-date").value = todayStr();
   renderHome();
   renderSettings();
-  checkBadges();
 }
 document.getElementById("auth-guest-start").addEventListener("click", startGuestMode);
 document.getElementById("guest-exit-btn").addEventListener("click", () => {
@@ -1198,7 +1170,6 @@ document.getElementById("rec-save").addEventListener("click", () => {
   toast("体重を保存しました 🌿");
   renderRecordPage();
   cheer("⚖️", "記録しました！えらい！");
-  checkBadges();
 });
 document.getElementById("rec-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
@@ -1318,7 +1289,6 @@ function addMeal(name, kcal, photo = null) {
   document.getElementById("meal-time").value = nowTimeStr();
   renderMealPage();
   cheer("🍽", "記録しました！えらい！");
-  checkBadges();
 }
 function mealMood(total, target) {
   if (!target || total === 0) return { em: "", cls: "", msg: "" };
@@ -1818,7 +1788,6 @@ function renderCustomExChips() {
         setDaily(date, rec);
         renderExPage();
         cheer("🏃", "記録しました！えらい！");
-        checkBadges();
       }
     });
     customExChips.appendChild(b);
@@ -1929,7 +1898,6 @@ document.getElementById("ex-add").addEventListener("click", () => {
   const goal = load(K.profile).goalEx || 3;
   if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}回 達成！`);
   else cheer("🏃", `ナイス運動！今週あと${goal - wk}回`);
-  checkBadges();
 });
 document.getElementById("ex-free-add").addEventListener("click", () => {
   const name = document.getElementById("ex-free-name").value.trim();
@@ -1950,7 +1918,6 @@ document.getElementById("ex-free-add").addEventListener("click", () => {
   const goal = load(K.profile).goalEx || 3;
   if (wk >= goal) cheer("🏆", `今週の運動目標 ${goal}回 達成！`);
   else cheer("🏃", "記録しました！えらい！");
-  checkBadges();
 });
 function daysSinceMonday() {
   const dow = new Date().getDay(); // 0=日,1=月,...,6=土
@@ -1977,7 +1944,6 @@ document.getElementById("ex-save").addEventListener("click", () => {
   setDaily(date, rec);
   toast("保存しました 🌿");
   renderExPage();
-  checkBadges();
 });
 let exRange = "30";
 document.getElementById("ex-range-seg").addEventListener("click", e => {
@@ -2429,16 +2395,6 @@ function weightProgress() {
   return { start, goal, cur, pct };
 }
 
-/* ============ バッジ ============ */
-const BADGES = [
-  { id: "first", em: "👣", label: "はじめの一歩" },
-  { id: "streak7", em: "🌱", label: "7日連続記録" },
-  { id: "streak30", em: "🌿", label: "30日連続記録" },
-  { id: "streak90", em: "🌳", label: "90日連続記録" },
-  { id: "streak180", em: "🌸", label: "180日連続記録" },
-  { id: "weight1", em: "⚖️", label: "-1kg達成" },
-  { id: "goalweight", em: "🎯", label: "目標体重達成" },
-];
 function weekGoodMealDays() {
   const all = load(K.daily);
   const p = load(K.profile);
@@ -2450,53 +2406,6 @@ function weekGoodMealDays() {
     if (r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7) goodDays++;
   }
   return goodDays;
-}
-function baselineWeight() {
-  const p = load(K.profile);
-  if (p.startWeight != null) return p.startWeight;
-  const all = load(K.daily);
-  const dates = Object.keys(all).sort();
-  for (const d of dates) if (all[d].weight != null) return all[d].weight;
-  return null;
-}
-function checkBadges() {
-  const badges = load(K.badges);
-  if (!badges.earned) badges.earned = {};
-  const all = load(K.daily);
-  const p = load(K.profile);
-  const hasAnyRecord = Object.values(all).some(r => (r.meals && r.meals.length) || (r.exercises && r.exercises.length) || r.weight != null || r.steps != null);
-  const streak = calcStreak();
-  const base = baselineWeight();
-  const cur = latestWeight();
-  const newlyEarned = [];
-  const earn = id => { if (!badges.earned[id]) { badges.earned[id] = todayStr(); newlyEarned.push(id); } };
-
-  if (hasAnyRecord) earn("first");
-  if (streak >= 7) earn("streak7");
-  if (streak >= 30) earn("streak30");
-  if (streak >= 90) earn("streak90");
-  if (streak >= 180) earn("streak180");
-  if (base != null && cur != null && base - cur >= 1) earn("weight1");
-  if (p.goalWeight != null && cur != null && cur <= p.goalWeight) earn("goalweight");
-
-  if (newlyEarned.length) {
-    save(K.badges, badges);
-    const b = BADGES.find(x => x.id === newlyEarned[0]);
-    if (b) cheer("🎖️", `新しいバッジ「${b.label}」獲得！`);
-  }
-  renderBadges();
-}
-function renderBadges() {
-  const el = document.getElementById("badge-shelf");
-  if (!el) return;
-  const earned = load(K.badges).earned || {};
-  const count = BADGES.filter(b => earned[b.id]).length;
-  document.getElementById("badge-count").textContent = `獲得バッジ ${count}/${BADGES.length}`;
-  el.innerHTML = BADGES.map(b => `
-    <div class="badge-item${earned[b.id] ? " on" : ""}">
-      <div class="badge-em">${b.em}</div>
-      <div class="badge-lbl">${b.label}</div>
-    </div>`).join("");
 }
 function latestEval() {
   const all = load(K.eval);
@@ -2525,26 +2434,26 @@ function renderDoctorMessage() {
 }
 function renderHome() {
   renderDoctorMessage();
-  renderBadges();
   const nickname = load(K.profile).nickname;
   document.getElementById("header-nickname").textContent = nickname ? `${nickname}さん` : "";
-  // ring
+  document.getElementById("home-greeting").textContent = nickname ? `こんにちは　${nickname}さん` : "こんにちは";
+  // goal bar
   const wp = weightProgress();
-  const ring = document.getElementById("ring-fg");
-  const C = 2 * Math.PI * 50;
+  const fill = document.getElementById("goal-bar-fill");
   if (wp) {
-    ring.setAttribute("stroke-dashoffset", C * (1 - wp.pct / 100));
-    ring.setAttribute("stroke", wp.pct >= 100 ? "#d9a62b" : "#2e8b6d");
-    document.getElementById("ring-pct").textContent = Math.round(wp.pct) + "%";
-    document.getElementById("goal-text").innerHTML =
-      `現在 <strong>${wp.cur}kg</strong><br>
-       目標 <strong>${wp.goal}kg</strong><br>
-       <span class="muted">開始 ${wp.start}kgから${Math.round((wp.start - wp.cur) * 10) / 10}kg減、</span><br>
-       <span class="muted">${wp.pct >= 100 ? "🎉 目標達成！" : `あと ${Math.round((wp.cur - wp.goal) * 10) / 10}kg`}</span>`;
+    const lost = Math.round((wp.start - wp.cur) * 10) / 10;
+    const remain = Math.round((wp.cur - wp.goal) * 10) / 10;
+    fill.style.width = Math.max(0, Math.min(100, wp.pct)) + "%";
+    fill.classList.toggle("achieved", wp.pct >= 100);
+    document.getElementById("goal-status-text").textContent =
+      wp.pct >= 100 ? "🎉 目標達成です！" : `あと${remain}kgで目標達成です！`;
+    document.getElementById("goal-bar-sub").innerHTML =
+      `<span style="white-space:nowrap;">開始 ${wp.start}kg → 目標 ${wp.goal}kg</span>　<span style="white-space:nowrap;">（${lost}kg減・${Math.round(wp.pct)}%）</span>`;
   } else {
-    ring.setAttribute("stroke-dashoffset", C);
-    document.getElementById("ring-pct").textContent = "—";
-    document.getElementById("goal-text").innerHTML = `<span class="muted">「⚙️設定」で身長・体重・目標を入力すると、達成率が表示されます。</span>`;
+    fill.style.width = "0%";
+    fill.classList.remove("achieved");
+    document.getElementById("goal-status-text").textContent = "目標を設定しましょう";
+    document.getElementById("goal-bar-sub").textContent = "「⚙️設定」で身長・体重・目標を入力すると、達成率が表示されます。";
   }
   document.getElementById("streak-num").textContent = calcStreak();
 
@@ -2605,6 +2514,8 @@ function renderHome() {
       document.querySelector(`[data-page="${el.dataset.goto}"]`).click();
     });
   });
+  const doneCount = checklist.filter(it => it.done).length;
+  document.getElementById("today-checklist-summary").textContent = `${doneCount} / ${checklist.length} 完了`;
 }
 
 /* ============ init ============ */
