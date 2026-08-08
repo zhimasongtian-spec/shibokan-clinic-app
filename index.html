@@ -712,6 +712,12 @@
       <button class="btn secondary" id="logout-btn">ログアウト</button>
       <button class="btn secondary hidden" id="guest-exit-btn">ゲストモードを終了する</button>
     </div>
+
+    <div class="card hidden" id="demo-data-card">
+      <h2>🧪 デモデータ</h2>
+      <p class="muted" style="font-size:.8rem; margin-bottom:8px;">3か月分のサンプルデータを読み込んで、アプリの動作を確認できます（現在のデータは上書きされます）。</p>
+      <button class="btn secondary" id="demo-data-btn">デモデータを読み込む</button>
+    </div>
   </section>
 </main>
 
@@ -2318,6 +2324,7 @@ function renderSettings() {
     : (auth.currentUser ? `ログイン中: ${auth.currentUser.phoneNumber}` : "ログインしていません");
   document.getElementById("logout-btn").classList.toggle("hidden", guestMode);
   document.getElementById("guest-exit-btn").classList.toggle("hidden", !guestMode);
+  document.getElementById("demo-data-card").classList.toggle("hidden", !guestMode);
   updateAgeView(); updateBmiView(); updateGoalSuggest();
 }
 function updateAgeView() {
@@ -2364,12 +2371,13 @@ document.getElementById("p-save").addEventListener("click", () => {
   if (!p.goalWeight && p.startWeight) p.goalWeight = Math.round(p.startWeight * 0.93 * 10) / 10;
   if (!p.goalKcal && p.height) p.goalKcal = Math.round(22 * (p.height / 100) ** 2 * 27 / 50) * 50;
   save(K.profile, p);
-  if (guestMode && p.nickname === "はなこ") {
-    seedGuestDemoData();
-    toast("デモデータを読み込みました 🌿");
-  } else {
-    toast("設定を保存しました");
-  }
+  toast("設定を保存しました");
+  renderSettings(); renderHome();
+});
+document.getElementById("demo-data-btn").addEventListener("click", () => {
+  if (!confirm("現在のデータを3か月分のデモデータで上書きします。よろしいですか？")) return;
+  seedGuestDemoData();
+  toast("デモデータを読み込みました 🌿");
   renderSettings(); renderHome();
 });
 
