@@ -2437,7 +2437,7 @@ function goodMealDay(d) {
   if (!p.goalKcal) return false;
   const r = load(K.daily)[d];
   const tot = r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0;
-  return !!(r && r.meals && r.meals.length > 0 && tot <= p.goalKcal && tot >= p.goalKcal * 0.7);
+  return !!(r && r.meals && r.meals.length > 0 && tot >= p.goalKcal * 0.7 && tot <= p.goalKcal * 1.15);
 }
 function weekGoodMealDays() {
   return weekDayArray(goodMealDay).arr.filter(Boolean).length;
