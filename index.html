@@ -2558,7 +2558,7 @@ function renderHome() {
   if (p.goalKcal) {
     const mealWeek = weekDayArray(goodMealDay);
     const goodMealDays = mealWeek.arr.filter(Boolean).length;
-    const mealAchieved = goodMealDays >= 3;
+    const mealAchieved = goodMealDays >= 5;
     document.getElementById("weekly-meal-section").classList.toggle("achieved", mealAchieved);
     document.getElementById("weekly-meal-summary").textContent =
       mealAchieved ? `🎉 腹八分目　${goodMealDays} / 7日 達成！` : `🍚 腹八分目　${goodMealDays} / 7日`;
