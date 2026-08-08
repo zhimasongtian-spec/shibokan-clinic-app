@@ -2323,8 +2323,8 @@ function drawBarSvg(svg, points, opts) {
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
   });
-  el += `<text x="${padL + bandW * 0.5}" y="${H - 8}" text-anchor="middle" font-size="14" fill="#6b7a72">${fmtDate(points[0].x)}</text>`;
-  if (n > 1) el += `<text x="${padL + bandW * (n - 0.5)}" y="${H - 8}" text-anchor="middle" font-size="14" fill="#6b7a72">${fmtDate(points[n - 1].x)}</text>`;
+  el += `<text x="${padL}" y="${H - 8}" text-anchor="start" font-size="14" fill="#6b7a72">${fmtDate(points[0].x)}</text>`;
+  if (n > 1) el += `<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="14" fill="#6b7a72">${fmtDate(points[n - 1].x)}</text>`;
   svg.innerHTML = el;
 }
 function renderChart() {
