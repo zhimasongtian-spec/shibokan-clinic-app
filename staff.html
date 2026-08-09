@@ -717,47 +717,33 @@ function buildDemoStore() {
     exercises: [{ min: 25, kcal: 150 }],
   };
 
-  // 6か月間で約1〜1.5か月おきに来院した想定（開始＋4回の外来）。
+  // 3ヶ月おきの外来モデルを想定（開始＋2回の外来、約90日間隔）。
   const visitStart = start;
-  const visit2 = addDays(start, 40);
-  const visit3 = addDays(start, 85);
-  const visit4 = addDays(start, 130);
+  const visit2 = addDays(start, 90);
   const visitRecent = addDays(today, -9);
 
   return {
     [DK.daily]: daily,
     [DK.visits]: {
       [visitStart]: { ast: 48, alt: 40, ggtp: 62, tg: 210, ldl: 142, hba1c: 6.4, kpa: 9.1, plt: 17.8, cap: 300 },
-      [visit2]: { ast: 42, alt: 35, ggtp: 55, tg: 185, ldl: 130, hba1c: 6.1, kpa: 8.2, plt: 18.5, cap: 285 },
-      [visit3]: { ast: 36, alt: 30, ggtp: 48, tg: 168, ldl: 124, hba1c: 6.0, kpa: 7.8, plt: 19.0, cap: 268 },
-      [visit4]: { ast: 30, alt: 24, ggtp: 41, tg: 150, ldl: 114, hba1c: 5.9, kpa: 7.3, plt: 19.7, cap: 245 },
+      [visit2]: { ast: 36, alt: 30, ggtp: 48, tg: 168, ldl: 124, hba1c: 6.0, kpa: 7.8, plt: 19.0, cap: 268 },
       [visitRecent]: { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1, plt: 20.1, cap: 232 },
     },
     [DK.eval]: {
       [visitStart]: {
-        type: "eval", visitDate: visitStart, goalWeight: 89, goalExPerWeek: 2, goalExMinutes: 20,
+        type: "eval", visitDate: visitStart, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
         goalMealNote: "間食を控える・野菜から食べる", doctorComment: "かん活スタートです。まずは無理なく続けましょう",
-        nextVisitInterval: "1m", nextVisitDate: visit2,
+        nextVisitInterval: "3m", nextVisitDate: visit2,
       },
       [visit2]: {
-        type: "eval", visitDate: visit2, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 25,
-        goalMealNote: "間食を控える・野菜から食べる", doctorComment: "順調に減ってきています。この調子で",
-        nextVisitInterval: "1m", nextVisitDate: visit3,
-      },
-      [visit3]: {
-        type: "eval", visitDate: visit3, goalWeight: 87, goalExPerWeek: 3, goalExMinutes: 30,
-        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "検査値も改善しています。運動も増やしていきましょう",
-        nextVisitInterval: "1m", nextVisitDate: visit4,
-      },
-      [visit4]: {
-        type: "eval", visitDate: visit4, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
-        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
-        nextVisitInterval: "1m", nextVisitDate: visitRecent,
+        type: "eval", visitDate: visit2, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
+        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "検査値も改善しています。この調子で続けましょう",
+        nextVisitInterval: "3m", nextVisitDate: visitRecent,
       },
       [visitRecent]: {
         type: "eval", visitDate: visitRecent, goalWeight: 85, goalExPerWeek: 3, goalExMinutes: 30,
         goalMealNote: "現在の生活リズムを継続", doctorComment: "検査値も体重も順調です。このまま続けましょう",
-        nextVisitInterval: "1m", nextVisitDate: addDays(today, 21),
+        nextVisitInterval: "3m", nextVisitDate: addDays(today, 81),
       },
     },
     [DK.profile]: {
