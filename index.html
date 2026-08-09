@@ -447,7 +447,6 @@
 
     <div class="card hidden" id="doctor-nutrition-card">
       <h2>🍚 先生からの栄養アドバイス</h2>
-      <div id="doctor-nutrition-note" style="font-size:.9rem;"></div>
       <ul id="doctor-nutrition-list" style="margin:0; padding-left:20px; font-size:.88rem;"></ul>
     </div>
 
@@ -870,17 +869,17 @@ function seedGuestDemoData() {
   const evalData = {
     [visitStart]: {
       type: "eval", visitDate: visitStart, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
-      goalMealNote: "間食を控える・野菜から食べる", doctorComment: "かん活スタートです。まずは無理なく続けましょう",
+      doctorComment: "かん活スタートです。まずは無理なく続けましょう",
       nextVisitInterval: "1m", nextVisitDate: visitMid,
     },
     [visitMid]: {
       type: "eval", visitDate: visitMid, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
-      goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
+      doctorComment: "よく頑張りました！次は86kg台を目指しましょう",
       nextVisitInterval: "1m", nextVisitDate: visitRecent,
     },
     [visitRecent]: {
       type: "eval", visitDate: visitRecent, goalWeight: 85, goalExPerWeek: 3, goalExMinutes: 30,
-      goalMealNote: "現在の生活リズムを継続", doctorComment: "検査値も体重も順調です。このまま続けましょう",
+      doctorComment: "検査値も体重も順調です。このまま続けましょう",
       nextVisitInterval: "1m", nextVisitDate: todayStr(21),
     },
   };
@@ -2621,13 +2620,11 @@ function renderDoctorMessage() {
     document.getElementById("doctor-next-visit").textContent = "";
   }
 
-  // 先生が選んだ栄養アドバイス＋食事目標（患者は編集不可・表示のみ、まとめて1カードに表示）
-  if ((ev.nutritionAdvice && ev.nutritionAdvice.length) || ev.goalMealNote) {
+  // 先生が選んだ栄養アドバイス（患者は編集不可・表示のみ）
+  if (ev.nutritionAdvice && ev.nutritionAdvice.length) {
     nutritionCard.classList.remove("hidden");
-    const noteHtml = ev.goalMealNote ? `<p style="font-weight:700; margin:0 0 6px;">${ev.goalMealNote}</p>` : "";
     document.getElementById("doctor-nutrition-list").innerHTML =
-      (ev.nutritionAdvice || []).map(t => `<li>${t}</li>`).join("");
-    document.getElementById("doctor-nutrition-note").innerHTML = noteHtml;
+      ev.nutritionAdvice.map(t => `<li>${t}</li>`).join("");
   } else {
     nutritionCard.classList.add("hidden");
   }

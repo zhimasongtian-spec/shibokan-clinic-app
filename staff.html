@@ -348,8 +348,6 @@
         <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
         <div><label for="pd-goal-steps">歩数目標 <span class="unit-note">歩</span></label><input type="number" id="pd-goal-steps" step="500" min="1000" max="30000"></div>
       </div>
-      <label for="pd-goal-meal">食事目標</label>
-      <textarea id="pd-goal-meal" rows="2" placeholder="例: 地中海食継続・アルコール週2回以内"></textarea>
       <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
       <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
 
@@ -734,17 +732,17 @@ function buildDemoStore() {
     [DK.eval]: {
       [visitStart]: {
         type: "eval", visitDate: visitStart, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
-        goalMealNote: "間食を控える・野菜から食べる", doctorComment: "かん活スタートです。まずは無理なく続けましょう",
+        doctorComment: "かん活スタートです。まずは無理なく続けましょう",
         nextVisitInterval: "3m", nextVisitDate: visit2,
       },
       [visit2]: {
         type: "eval", visitDate: visit2, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
-        goalMealNote: "地中海食継続・アルコール週2回以内", doctorComment: "検査値も改善しています。この調子で続けましょう",
+        doctorComment: "検査値も改善しています。この調子で続けましょう",
         nextVisitInterval: "3m", nextVisitDate: visitRecent,
       },
       [visitRecent]: {
         type: "eval", visitDate: visitRecent, goalWeight: 85, goalExPerWeek: 3, goalExMinutes: 30,
-        goalMealNote: "現在の生活リズムを継続", doctorComment: "検査値も体重も順調です。このまま続けましょう",
+        doctorComment: "検査値も体重も順調です。このまま続けましょう",
         nextVisitInterval: "3m", nextVisitDate: addDays(today, 81),
       },
     },
@@ -1478,7 +1476,6 @@ function renderPlanPrint(evals) {
     ["来院日", fmtDate(latest.visitDate)],
     ["体重目標", latest.goalWeight != null ? `${latest.goalWeight}kg` : "—"],
     ["運動目標", (latest.goalExPerWeek != null || latest.goalExMinutes != null) ? `週${latest.goalExPerWeek ?? "—"}回 × ${latest.goalExMinutes ?? "—"}分` : "—"],
-    ["食事目標", latest.goalMealNote || "—"],
     ["栄養アドバイス", nutritionText],
     ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : "—"],
     ["コメント", latest.doctorComment || "—"],
@@ -1512,7 +1509,6 @@ function prefillEvalForm(evals, profile) {
   document.getElementById("pd-goal-weight").value = latest && latest.goalWeight != null ? latest.goalWeight : (profile.goalWeight ?? "");
   document.getElementById("pd-goal-kcal").value = profile.goalKcal ?? "";
   document.getElementById("pd-goal-steps").value = profile.goalSteps ?? "";
-  document.getElementById("pd-goal-meal").value = "";
   document.getElementById("pd-comment").value = "";
   renderAdvicePicker(latest && latest.nutritionAdvice);
   const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "";
@@ -1551,7 +1547,6 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     goalWeight,
     goalExPerWeek,
     goalExMinutes,
-    goalMealNote: document.getElementById("pd-goal-meal").value.trim(),
     doctorComment: document.getElementById("pd-comment").value.trim(),
     nutritionAdvice: getSelectedNutritionAdvice(),
     exerciseLevel: exerciseLevelValue,
