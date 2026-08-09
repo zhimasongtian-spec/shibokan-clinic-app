@@ -130,6 +130,11 @@
   .exercise-level-preview .elp-group { font-weight: 700; margin-top: 6px; }
   .exercise-level-preview ul { margin: 2px 0 0; padding-left: 18px; }
   .exercise-level-preview li { margin-bottom: 3px; }
+  .doctor-input-section {
+    margin-top: 16px; padding: 14px 14px 16px; background: var(--accent-soft);
+    border: 1.5px solid var(--accent); border-radius: 12px;
+  }
+  .doctor-input-section h3 { color: var(--accent-dark); margin-top: 0; }
 
   /* ---- 栄養・運動アドバイス ---- */
   .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -326,14 +331,16 @@
       <div class="cumulative-details-body" id="pd-cumulative"></div>
     </details>
 
-    <h3>💡 次に頑張りたいこと <span class="muted" style="font-size:.7rem; font-weight:400;">（医師向け参考ヒント・自動生成）</span></h3>
-    <div id="pd-advice"></div>
+    <details class="cumulative-details no-print">
+      <summary>💡 次に頑張りたいこと（医師向け参考ヒント・自動生成）</summary>
+      <div class="cumulative-details-body" id="pd-advice"></div>
+    </details>
 
     <h3 class="print-only">📌 前回の目標とコメント</h3>
     <div id="pd-plan-print" class="print-only"></div>
 
-    <div class="no-print">
-      <h3>評価・次の目標を入力</h3>
+    <div class="no-print doctor-input-section">
+      <h3>✍️ ここから医師が入力してください</h3>
       <label for="pd-visit-date">来院日</label>
       <input type="date" id="pd-visit-date">
       <div class="row3">
