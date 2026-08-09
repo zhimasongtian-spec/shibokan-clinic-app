@@ -718,9 +718,11 @@ function buildDemoStore() {
   };
 
   // 3ヶ月おきの外来モデルを想定（開始＋2回の外来、約90日間隔）。
+  // 直近の来院（visitRecent）は「今日」とし、集計期間（前回来院〜今回来院）も
+  // 検査値の前回比と同じ約3ヶ月になるようにする（＝今日が来院日という想定）。
   const visitStart = start;
   const visit2 = addDays(start, 90);
-  const visitRecent = addDays(today, -9);
+  const visitRecent = today;
 
   return {
     [DK.daily]: daily,
@@ -729,6 +731,8 @@ function buildDemoStore() {
       [visit2]: { ast: 36, alt: 30, ggtp: 48, tg: 168, ldl: 124, hba1c: 6.0, kpa: 7.8, plt: 19.0, cap: 268 },
       [visitRecent]: { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1, plt: 20.1, cap: 232 },
     },
+    // evalは「まだ保存されていない今日の分」を含めない（来院時に医師が保存するまでは
+    // 前回＝visit2が最新のevalのまま。がんばり度の集計期間もvisit2〜今日になる）。
     [DK.eval]: {
       [visitStart]: {
         type: "eval", visitDate: visitStart, goalWeight: 88, goalExPerWeek: 2, goalExMinutes: 20,
@@ -739,11 +743,6 @@ function buildDemoStore() {
         type: "eval", visitDate: visit2, goalWeight: 86, goalExPerWeek: 3, goalExMinutes: 30,
         doctorComment: "検査値も改善しています。この調子で続けましょう",
         nextVisitInterval: "3m", nextVisitDate: visitRecent,
-      },
-      [visitRecent]: {
-        type: "eval", visitDate: visitRecent, goalWeight: 85, goalExPerWeek: 3, goalExMinutes: 30,
-        doctorComment: "検査値も体重も順調です。このまま続けましょう",
-        nextVisitInterval: "3m", nextVisitDate: addDays(today, 81),
       },
     },
     [DK.profile]: {
