@@ -114,6 +114,22 @@
   .cumulative-details-body { margin-top: 8px; font-size: .84rem; color: var(--sub); }
   .cumulative-details-body table.lab-table { font-size: .8rem; }
   .cumulative-weight-line { margin-bottom: 10px; }
+  .advice-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+  .advice-pick-title { font-weight: 700; font-size: .84rem; color: var(--accent-dark); margin-bottom: 4px; }
+  .advice-pick-list { display: flex; flex-direction: column; gap: 4px; }
+  .advice-pick-list label {
+    display: flex; align-items: flex-start; gap: 6px; font-weight: 400; font-size: .82rem;
+    margin: 0; cursor: pointer; line-height: 1.4;
+  }
+  .advice-pick-list input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; }
+  .exercise-level-preview {
+    margin-top: 8px; padding: 10px 12px; background: #fbfdfc; border: 1px solid var(--line);
+    border-radius: 10px; font-size: .8rem; color: var(--sub);
+  }
+  .exercise-level-preview .elp-title { font-weight: 700; color: var(--accent-dark); margin-bottom: 6px; }
+  .exercise-level-preview .elp-group { font-weight: 700; margin-top: 6px; }
+  .exercise-level-preview ul { margin: 2px 0 0; padding-left: 18px; }
+  .exercise-level-preview li { margin-bottom: 3px; }
 
   /* ---- 栄養・運動アドバイス ---- */
   .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -310,7 +326,7 @@
       <div class="cumulative-details-body" id="pd-cumulative"></div>
     </details>
 
-    <h3>💡 次に頑張りたいこと</h3>
+    <h3>💡 次に頑張りたいこと <span class="muted" style="font-size:.7rem; font-weight:400;">（医師向け参考ヒント・自動生成）</span></h3>
     <div id="pd-advice"></div>
 
     <h3 class="print-only">📌 前回の目標とコメント</h3>
@@ -325,10 +341,25 @@
         <div><label for="pd-goal-ex-per-week">運動目標 <span class="unit-note">回/週</span></label><input type="number" id="pd-goal-ex-per-week" min="0" max="14"></div>
         <div><label for="pd-goal-ex-min">1回あたり <span class="unit-note">分</span></label><input type="number" id="pd-goal-ex-min" min="0" max="300" step="5"></div>
       </div>
+      <p class="muted" style="font-size:.76rem; margin-top:2px;">以下2項目は患者アプリの「目標設定」にも反映されます</p>
+      <div class="row3">
+        <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
+        <div><label for="pd-goal-steps">歩数目標 <span class="unit-note">歩</span></label><input type="number" id="pd-goal-steps" step="500" min="1000" max="30000"></div>
+      </div>
       <label for="pd-goal-meal">食事目標</label>
       <textarea id="pd-goal-meal" rows="2" placeholder="例: 地中海食継続・アルコール週2回以内"></textarea>
       <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
       <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
+
+      <label for="pd-advice-nutrition-title">栄養アドバイス（複数選択可・患者アプリに表示予定）</label>
+      <div id="pd-advice-nutrition" class="advice-pick-list"></div>
+
+      <label for="pd-exercise-level">運動プログラム（理学療法士監修・レベル1〜10）</label>
+      <select id="pd-exercise-level">
+        <option value="">選択なし</option>
+      </select>
+      <div id="pd-exercise-level-preview" class="exercise-level-preview"></div>
+
       <label>次回来院</label>
       <div class="seg-interval" id="pd-interval-seg">
         <button type="button" data-interval="1m">1ヶ月</button>
@@ -860,7 +891,7 @@ async function loadPatientDetail() {
     renderCumulativeNote(daily, visits, evals, profile);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
-    prefillEvalForm(evals);
+    prefillEvalForm(evals, profile);
     statusEl.textContent = "";
     document.getElementById("pd-content").classList.remove("hidden");
   } catch (err) {
@@ -1205,7 +1236,165 @@ function renderCumulativeNote(daily, visits, evals, profile) {
   el.innerHTML = html || `<p class="muted">まだ十分なデータがありません</p>`;
 }
 
-// ------- 栄養・運動アドバイス（ルールベース自動生成） -------
+// ------- 患者に見せるアドバイス（医師がテンプレートから選択） -------
+// 上のルールベース自動生成は医師向けの参考情報にとどめ、実際に患者アプリへ
+// 表示する文言は、この固定テンプレートから医師が選んだものだけにする。
+const ADVICE_TEMPLATES = {
+  nutrition: [
+    "間食を控えましょう",
+    "アルコールの摂取量を見直しましょう（週2回以内を目安に）",
+    "夜遅い時間の食事を控えましょう",
+    "野菜から先に食べる「ベジファースト」を意識しましょう",
+    "清涼飲料水・ジュースを控えましょう",
+    "揚げ物・脂質の多い食事を控えめにしましょう",
+    "主食（ご飯・パン）の量を見直しましょう",
+    "たんぱく質をしっかり摂りましょう",
+    "食事の記録を続けましょう",
+    "現在の食事内容を継続しましょう（良好です）",
+  ],
+};
+function renderAdvicePicker(selectedNutrition) {
+  const sel = selectedNutrition || [];
+  const container = document.getElementById("pd-advice-nutrition");
+  container.innerHTML = ADVICE_TEMPLATES.nutrition.map((text, i) => {
+    const id = `pd-advice-nutrition-${i}`;
+    const checked = sel.includes(text) ? "checked" : "";
+    return `<label for="${id}"><input type="checkbox" id="${id}" value="${text.replace(/"/g, "&quot;")}" ${checked}>${text}</label>`;
+  }).join("");
+}
+function getSelectedNutritionAdvice() {
+  return Array.from(document.querySelectorAll("#pd-advice-nutrition input:checked")).map(el => el.value);
+}
+
+// ------- 運動プログラム（理学療法士監修・レベル1〜10） -------
+// 週の頻度目安: 週3〜4回（例: 月・水・金・土）、1回約15〜25分
+const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
+const EXERCISE_PROGRAM = [
+  { level: 1, title: "運動の習慣づけと基礎体力づくり（初心者向け）",
+    strength: [
+      { name: "ウォール・プッシュアップ（壁立て伏せ）", reps: "8〜10回×2セット", point: "壁に向かって立ち、腕立て伏せを行います。胸と腕の筋肉を刺激します。" },
+      { name: "チェア・スクワット（椅子座り立ち）", reps: "10回×2セット", point: "椅子の座面を利用し、立ち上がりと座りを繰り返します。太ももと下半身の強化に最適です。" },
+      { name: "ヒップリフト", reps: "10回×2セット", point: "仰向けで膝を立て、お尻を持ち上げます。お尻と裏ももの筋肉を刺激します。" },
+    ],
+    aerobic: [
+      { name: "スロウ・その場足踏み", time: "2分間×2セット", point: "腕をしっかり振りながら、無理のないペースでその場で足踏みをします。" },
+      { name: "フロント・トゥタップ", time: "2分間×2セット", point: "立った状態で、交互にかかとを軸にしてつま先を軽く前にトントンとタッチします。" },
+    ] },
+  { level: 2, title: "少し動きを大きくして代謝を高める段階",
+    strength: [
+      { name: "ニーリング・プッシュアップ（膝つき腕立て伏せ）", reps: "8回×2セット", point: "膝を床についた状態で行う腕立て伏せです。レベル1より胸・肩・腕にしっかり負荷がかかります。" },
+      { name: "ワイド・スクワット", reps: "10回×2セット", point: "足幅を肩幅より広めに取り、内ももやお尻を意識しながらゆっくりスクワットします。" },
+      { name: "バードドッグ", reps: "左右交互に各8回×2セット", point: "四つばいになり、対角の手足をまっすぐ伸ばします。体幹と背中の引き締めに効果的です。" },
+    ],
+    aerobic: [
+      { name: "ステップ・タッチ", time: "2分半×2セット", point: "左右に一歩ずつステップを踏みながら、腕をリズミカルに動かします。" },
+      { name: "ニーアップ（その場もも上げ）", time: "2分間×2セット", point: "水平より少し低めで構わないので、リズミカルにももを軽く引き上げます。" },
+    ] },
+  { level: 3, title: "全身の連動性と脂肪燃焼を意識する段階",
+    strength: [
+      { name: "リバース・ランジ（後ろ引きランジ）", reps: "左右交互に各6〜8回×2セット", point: "一歩後ろに足を引き、腰を真下に落とします。バランスをとりながら下半身を強化します。" },
+      { name: "プランク（ひざつき）", reps: "20秒キープ×2セット", point: "肘と膝を床につき、お腹と背中に力を入れて一直線をキープします。インナーマッスル強化に。" },
+      { name: "バック・エクステンション（背筋運動）", reps: "10回×2セット", point: "うつ伏せになり、上半身を軽く反らせます。背中全体の筋肉を刺激します。" },
+    ],
+    aerobic: [
+      { name: "シャドー・ボクシング", time: "2分半×2セット", point: "立ち姿勢のまま、無理のない範囲で左右に軽くパンチを繰り出します。上半身も使う有酸素運動です。" },
+      { name: "ツイスト・ステップ", time: "2分半×2セット", point: "足踏みをしながら上体を軽く左右にひねり、お腹周りも同時に刺激します。" },
+    ] },
+  { level: 4, title: "負荷と心拍数を一段階引き上げる段階",
+    strength: [
+      { name: "ノーマル・スクワット", reps: "10〜12回×2セット", point: "肩幅に足を開き、股関節を引いてしっかり腰を落とします。下半身全体の筋力向上に最も効果的です。" },
+      { name: "インクライン・プッシュアップ", reps: "8〜10回×2セット", point: "安定した椅子や低い台に手をつき、腕立て伏せを行います。通常の腕立て伏せへのステップアップになります。" },
+      { name: "シングルレッグ・ヒップリフト", reps: "左右各8回×2セット", point: "仰向けで片足を軽く上げ、もう片方の足でお尻を持ち上げます。お尻や裏ももの引き締めに効果的です。" },
+    ],
+    aerobic: [
+      { name: "ロー・スキップ（その場スキップ風）", time: "2分半×2セット", point: "弾みすぎず、リズミカルに軽くその場でスキップ動作を行います。心拍数をしっかり上げます。" },
+      { name: "サイド・タップ＆リーチ", time: "2分半×2セット", point: "左右に足を出しながら、床に近い方向へ軽く手を伸ばす動作を繰り返します。全身の血流を促します。" },
+    ] },
+  { level: 5, title: "筋持久力と体幹の安定性を高める段階",
+    strength: [
+      { name: "サイド・ランジ", reps: "左右交互に各8回×2セット", point: "横に大きく一歩踏み出し、片側の膝を曲げてお尻を後ろに引きます。太ももの内側や外側を刺激します。" },
+      { name: "プランク（ノーマル）", reps: "20〜30秒キープ×2セット", point: "つま先と前腕を床につき、頭からかかとまでを一直線に保ちます。お腹周りの引き締めに直結します。" },
+      { name: "スーパーマン（バック・エクステンション発展）", reps: "8〜10回×2セット", point: "うつ伏せの状態で、手足を同時に少しだけ床から浮かせてキープします。背中と背面全体を強化します。" },
+    ],
+    aerobic: [
+      { name: "ジャンピング・ジャック（ローインパクト版）", time: "3分×2セット", point: "ジャンプせずに、片足ずつ左右に開きながら頭上で大きく手を叩く動作を繰り返します。" },
+      { name: "ボクシング・ステップ", time: "3分×2セット", point: "前後に小さくステップを踏みながら、ワン・ツーとリズミカルにパンチを繰り出します。" },
+    ] },
+  { level: 6, title: "全身の連動性と運動代謝をさらに高める段階",
+    strength: [
+      { name: "ブルガリアンスクワット（低負荷版）", reps: "左右各6〜8回×2セット", point: "片足を後ろの椅子にのせ、前側の足でスクワットを行います。負荷が高いため、無理のない可動域で行います。" },
+      { name: "パイク・プッシュアップ", reps: "6〜8回×2セット", point: "お尻を高く突き上げた状態で腕立て伏せを行います。肩や二の腕、上半身の筋肉をしっかり刺激します。" },
+      { name: "サイド・プランク（ひざつき）", reps: "左右各15〜20秒キープ×2セット", point: "横向きになり、肘と下の膝を支えにして体側面（脇腹）を持ち上げます。" },
+    ],
+    aerobic: [
+      { name: "ハイニー（しっかりもも上げ）", time: "2分半×2セット", point: "骨盤の高さ程度までしっかりももを引き上げながら、その場でリズミカルに足踏みをします。" },
+      { name: "スピード・スケーター（ローインパクト版）", time: "3分×2セット", point: "スケート選手のように斜め後ろへ交互に足を交差させながら、体を左右に大きく動かします。" },
+    ] },
+  { level: 7, title: "高めの負荷と持続的な心拍数キープに挑戦する段階",
+    strength: [
+      { name: "ジャンピング・スクワット（低負荷版）", reps: "8〜10回×2セット", point: "スクワットから立ち上がるときに、軽くかかとを浮かせる程度の低いジャンプを挟みます。下半身の瞬発力を高めます。" },
+      { name: "ノーマル・プッシュアップ", reps: "8〜10回×2セット", point: "つま先をついた通常の腕立て伏せです。胸、肩、二の腕、体幹を同時に鍛える王道の種目です。" },
+      { name: "リバース・プランク", reps: "20〜30秒キープ×2セット", point: "床に長座の状態で座り、手を体の後ろについてお尻を持ち上げ、体前面を一直線にします。体幹の背面全体に効きます。" },
+    ],
+    aerobic: [
+      { name: "マウンテン・クライマー（スローペース）", time: "3分×2セット", point: "腕立て伏せの姿勢から、片膝ずつ胸に引き寄せる動作をゆっくり、リズムよく繰り返します。" },
+      { name: "クロスボディ・パンチ（ハイペース）", time: "3分×2セット", point: "立った姿勢で、左右のパンチを身体を鋭くひねりながら素早く繰り出し、心拍数を上げます。" },
+    ] },
+  { level: 8, title: "全身の協調性とハードな脂肪燃焼を狙う段階",
+    strength: [
+      { name: "ウォーキング・ランジ", reps: "左右交互に各8〜10歩×2セット", point: "一歩ずつ前方に大きく踏み込みながら、連続してランジ動作を行います。バランス能力も問われます。" },
+      { name: "ダイヤモンド・プッシュアップ（ひざつき）", reps: "6〜8回×2セット", point: "両手の親指と人差し指で三角形を作り、腕立て伏せを行います。二の腕（上腕三頭筋）を集中的に刺激します。" },
+      { name: "サイド・プランク（ノーマル）", reps: "左右各20〜30秒キープ×2セット", point: "肘とつま先を支えにして体を横向きにまっすぐ保持します。脇腹の強力な引き締めに。" },
+    ],
+    aerobic: [
+      { name: "スタンダード・ジャンピング・ジャック", time: "3分×2セット", point: "しっかりと軽くジャンプしながら、足を開閉し同時に頭上で手を叩く、本格的な有酸素運動です。" },
+      { name: "ハイニー・ツイスト（もも上げひねり）", time: "3分×2セット", point: "ももを高く上げながら、反対側の肘を近づけるように上体をしっかりひねり、全身の代謝を高めます。" },
+    ] },
+  { level: 9, title: "高い代謝を維持し、全身を追い込むタフな段階",
+    strength: [
+      { name: "ブルガリアンスクワット（スタンダード）", reps: "左右各8〜10回×2セット", point: "後ろ足の甲を椅子に乗せ、前側の足に体重を乗せて深くスクワットします。下半身に対する非常に高い刺激と筋肥大効果を生みます。" },
+      { name: "デクライン・プッシュアップ", reps: "6〜8回×2セット", point: "足を椅子の上にのせ、手は床について腕立て伏せを行います。上半身の高い位置に大きな負荷がかかります。" },
+      { name: "V字キープ（またはシゼルスピン等）", reps: "15〜20秒キープ×2セット", point: "仰向けまたは座位で、上体と脚を少し浮かせた状態でキープし、腹筋群を強力に追い込みます。" },
+    ],
+    aerobic: [
+      { name: "マウンテン・クライマー（ハイペース）", time: "3分×2セット", point: "レベル7よりテンポを上げ、走るようにリズミカルに足を胸に引き寄せます。抜群の脂肪燃焼効果があります。" },
+      { name: "スピード・スケーター（ジャンプあり）", time: "3分×2セット", point: "左右へ軽快にジャンプしながら足をクロスさせ、ダイナミックに全身を動かします。" },
+    ] },
+  { level: 10, title: "自宅自重トレーニングの最高峰・総仕上げ段階",
+    strength: [
+      { name: "バーピージャンプ（ローインパクト版・フル）", reps: "8〜10回×2セット", point: "屈む、足を後ろに伸ばす、戻る、立ち上がる一連の動作を流れるように行います（ジャンプなしでも十分高負荷です）。" },
+      { name: "スロー・パイク・プッシュアップ", reps: "8回×2セット", point: "お尻を突き上げたパイク状態での腕立て伏せを、下ろすときは3秒かけてゆっくり行います。肩と腕の限界を引き出します。" },
+      { name: "プランク・ジャック（またはプランク・ヒップディップ）", reps: "20〜30秒キープまたは左右に腰を振る動作×2セット", point: "プランクの姿勢を維持しながら、お尻を左右の床にタッチするように動かすか、足を横に開閉して体幹を極限まで鍛えます。" },
+    ],
+    aerobic: [
+      { name: "フル・ハイニー・ラン（その場全力疾走）", time: "3分×2セット", point: "腕を力強く振り、ももをしっかり高く上げながら、その場で出せる最高のスピードで走り抜きます。" },
+      { name: "コンビネーション・ボクシング＆ステップ", time: "3分×2セット", point: "ステップを踏みながら、ジャブ、ストレート、フックなどのコンビネーションを途切れなくスピーディーに繰り出します。" },
+    ] },
+];
+function initExerciseLevelSelect() {
+  const sel = document.getElementById("pd-exercise-level");
+  EXERCISE_PROGRAM.forEach(lv => {
+    const opt = document.createElement("option");
+    opt.value = lv.level;
+    opt.textContent = `レベル${lv.level}：${lv.title}`;
+    sel.appendChild(opt);
+  });
+}
+function renderExerciseLevelPreview(level) {
+  const el = document.getElementById("pd-exercise-level-preview");
+  const lv = EXERCISE_PROGRAM.find(l => l.level === Number(level));
+  if (!lv) { el.innerHTML = `<p class="muted" style="margin:0;">頻度目安: ${EXERCISE_PROGRAM_NOTE}</p>`; return; }
+  const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
+  el.innerHTML = `
+    <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
+    <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
+    <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}`;
+}
+document.getElementById("pd-exercise-level").addEventListener("change", e => renderExerciseLevelPreview(e.target.value));
+initExerciseLevelSelect();
+renderExerciseLevelPreview("");
+
+// ------- 栄養・運動アドバイス（ルールベース自動生成・医師向け参考情報） -------
 function renderAdvice(daily, evals, visits, profile) {
   const evalDates = Object.keys(evals).sort();
   const sinceDate = evalDates.length ? evals[evalDates[evalDates.length - 1]].visitDate : null;
@@ -1307,15 +1496,28 @@ function renderPlanPrint(evals) {
   const el = document.getElementById("pd-plan-print");
   if (!dates.length) { el.innerHTML = `<p class="muted">これまでに保存された目標はありません</p>`; return; }
   const latest = evals[dates[dates.length - 1]];
+  const nutritionText = (latest.nutritionAdvice && latest.nutritionAdvice.length) ? latest.nutritionAdvice.join("／") : "—";
+  const lv = latest.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === latest.exerciseLevel) : null;
   const rows = [
     ["来院日", fmtDate(latest.visitDate)],
     ["体重目標", latest.goalWeight != null ? `${latest.goalWeight}kg` : "—"],
     ["運動目標", (latest.goalExPerWeek != null || latest.goalExMinutes != null) ? `週${latest.goalExPerWeek ?? "—"}回 × ${latest.goalExMinutes ?? "—"}分` : "—"],
     ["食事目標", latest.goalMealNote || "—"],
+    ["栄養アドバイス", nutritionText],
+    ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : "—"],
     ["コメント", latest.doctorComment || "—"],
     ["次回来院予定", latest.nextVisitDate ? fmtDate(latest.nextVisitDate) : "—"],
   ];
-  el.innerHTML = `<table class="lab-table">${rows.map(([l, v]) => `<tr><td style="width:32%">${l}</td><td class="val" style="text-align:left">${v}</td></tr>`).join("")}</table>`;
+  let html = `<table class="lab-table">${rows.map(([l, v]) => `<tr><td style="width:32%">${l}</td><td class="val" style="text-align:left">${v}</td></tr>`).join("")}</table>`;
+  if (lv) {
+    const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
+    html += `<div class="exercise-level-preview" style="margin-top:10px;">
+      <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
+      <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
+      <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}
+    </div>`;
+  }
+  el.innerHTML = html;
 }
 
 let pdInterval = null;
@@ -1327,15 +1529,21 @@ document.getElementById("pd-interval-seg").addEventListener("click", e => {
   document.getElementById("pd-custom-date-wrap").classList.toggle("hidden", pdInterval !== "custom");
 });
 
-function prefillEvalForm(evals) {
+function prefillEvalForm(evals, profile) {
   const dates = Object.keys(evals).sort();
   const latest = dates.length ? evals[dates[dates.length - 1]] : null;
   document.getElementById("pd-visit-date").value = todayStr();
-  document.getElementById("pd-goal-weight").value = latest && latest.goalWeight != null ? latest.goalWeight : "";
+  document.getElementById("pd-goal-weight").value = latest && latest.goalWeight != null ? latest.goalWeight : (profile.goalWeight ?? "");
   document.getElementById("pd-goal-ex-per-week").value = latest && latest.goalExPerWeek != null ? latest.goalExPerWeek : "";
   document.getElementById("pd-goal-ex-min").value = latest && latest.goalExMinutes != null ? latest.goalExMinutes : "";
+  document.getElementById("pd-goal-kcal").value = profile.goalKcal ?? "";
+  document.getElementById("pd-goal-steps").value = profile.goalSteps ?? "";
   document.getElementById("pd-goal-meal").value = "";
   document.getElementById("pd-comment").value = "";
+  renderAdvicePicker(latest && latest.nutritionAdvice);
+  const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "";
+  document.getElementById("pd-exercise-level").value = exLevel;
+  renderExerciseLevelPreview(exLevel);
   document.querySelectorAll("#pd-interval-seg button").forEach(x => x.classList.remove("on"));
   pdInterval = null;
   document.getElementById("pd-custom-date-wrap").classList.add("hidden");
@@ -1355,14 +1563,21 @@ document.getElementById("pd-save").addEventListener("click", async () => {
   if (!nextVisitDate) { errEl.textContent = "次回来院日を入力してください"; errEl.style.display = "block"; return; }
 
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+  const goalWeight = num("pd-goal-weight");
+  const goalExPerWeek = num("pd-goal-ex-per-week");
+  const goalExMinutes = num("pd-goal-ex-min");
+  const goalKcal = num("pd-goal-kcal");
+  const goalSteps = num("pd-goal-steps");
   const entry = {
     type: "eval",
     visitDate,
-    goalWeight: num("pd-goal-weight"),
-    goalExPerWeek: num("pd-goal-ex-per-week"),
-    goalExMinutes: num("pd-goal-ex-min"),
+    goalWeight,
+    goalExPerWeek,
+    goalExMinutes,
     goalMealNote: document.getElementById("pd-goal-meal").value.trim(),
     doctorComment: document.getElementById("pd-comment").value.trim(),
+    nutritionAdvice: getSelectedNutritionAdvice(),
+    exerciseLevel: document.getElementById("pd-exercise-level").value ? Number(document.getElementById("pd-exercise-level").value) : null,
     nextVisitInterval: pdInterval,
     nextVisitDate,
     createdBy: demoMode ? "demo" : auth.currentUser.uid,
@@ -1372,11 +1587,25 @@ document.getElementById("pd-save").addEventListener("click", async () => {
   try {
     if (demoMode) {
       demoStore[DK.eval][visitDate] = entry;
+      const p = demoStore[DK.profile];
+      if (goalWeight != null) p.goalWeight = goalWeight;
+      if (goalKcal != null) p.goalKcal = goalKcal;
+      if (goalSteps != null) p.goalSteps = goalSteps;
+      if (goalExPerWeek != null && goalExMinutes != null) p.goalEx = goalExPerWeek * goalExMinutes;
     } else {
       const evals = await fetchPatientDoc(openResearchId, DK.eval);
       evals[visitDate] = entry;
       await db.collection("patients").doc(openResearchId).collection("data").doc(DK.eval)
         .set({ value: evals, updatedAt: Date.now() });
+
+      // 患者アプリの「目標設定」（プロフィール）にも同じ目標を反映する
+      const profile = await fetchPatientDoc(openResearchId, DK.profile);
+      if (goalWeight != null) profile.goalWeight = goalWeight;
+      if (goalKcal != null) profile.goalKcal = goalKcal;
+      if (goalSteps != null) profile.goalSteps = goalSteps;
+      if (goalExPerWeek != null && goalExMinutes != null) profile.goalEx = goalExPerWeek * goalExMinutes;
+      await db.collection("patients").doc(openResearchId).collection("data").doc(DK.profile)
+        .set({ value: profile, updatedAt: Date.now() });
     }
     document.getElementById("pd-saved-msg").style.display = "block";
     await loadPatientDetail();
