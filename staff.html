@@ -118,10 +118,10 @@
   .advice-pick-title { font-weight: 700; font-size: .84rem; color: var(--accent-dark); margin-bottom: 4px; }
   .advice-pick-list { display: flex; flex-direction: column; gap: 4px; }
   .advice-pick-list label {
-    display: flex; align-items: flex-start; gap: 6px; font-weight: 400; font-size: .82rem;
-    margin: 0; cursor: pointer; line-height: 1.4;
+    display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 6px;
+    font-weight: 400; font-size: .82rem; margin: 0; cursor: pointer; line-height: 1.4;
   }
-  .advice-pick-list input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; }
+  .advice-pick-list input[type="checkbox"] { margin-top: 3px; }
   .exercise-level-preview {
     margin-top: 8px; padding: 10px 12px; background: #fbfdfc; border: 1px solid var(--line);
     border-radius: 10px; font-size: .8rem; color: var(--sub);
