@@ -447,6 +447,7 @@
 
     <div class="card hidden" id="doctor-nutrition-card">
       <h2>🍚 先生からの栄養アドバイス</h2>
+      <div id="doctor-nutrition-note" style="font-size:.9rem;"></div>
       <ul id="doctor-nutrition-list" style="margin:0; padding-left:20px; font-size:.88rem;"></ul>
     </div>
 
@@ -2611,7 +2612,6 @@ function renderDoctorMessage() {
   const goalParts = [];
   if (ev.goalWeight != null) goalParts.push(`体重目標 ${ev.goalWeight}kg`);
   if (ev.goalExPerWeek != null) goalParts.push(`運動 週${ev.goalExPerWeek}回×${ev.goalExMinutes || "?"}分`);
-  if (ev.goalMealNote) goalParts.push(ev.goalMealNote);
   document.getElementById("doctor-goal-summary").textContent = goalParts.join(" ／ ");
   if (ev.nextVisitDate) {
     const days = Math.round((new Date(ev.nextVisitDate) - new Date(todayStr())) / 86400000);
@@ -2621,11 +2621,13 @@ function renderDoctorMessage() {
     document.getElementById("doctor-next-visit").textContent = "";
   }
 
-  // 先生が選んだ栄養アドバイス（患者は編集不可・表示のみ）
-  if (ev.nutritionAdvice && ev.nutritionAdvice.length) {
+  // 先生が選んだ栄養アドバイス＋食事目標（患者は編集不可・表示のみ、まとめて1カードに表示）
+  if ((ev.nutritionAdvice && ev.nutritionAdvice.length) || ev.goalMealNote) {
     nutritionCard.classList.remove("hidden");
+    const noteHtml = ev.goalMealNote ? `<p style="font-weight:700; margin:0 0 6px;">${ev.goalMealNote}</p>` : "";
     document.getElementById("doctor-nutrition-list").innerHTML =
-      ev.nutritionAdvice.map(t => `<li>${t}</li>`).join("");
+      (ev.nutritionAdvice || []).map(t => `<li>${t}</li>`).join("");
+    document.getElementById("doctor-nutrition-note").innerHTML = noteHtml;
   } else {
     nutritionCard.classList.add("hidden");
   }

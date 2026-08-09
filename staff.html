@@ -211,8 +211,6 @@
     .advice-block li + li { margin-top: 2px; }
 
     .stat-card, .advice-block, table.lab-table { break-inside: avoid; }
-    .cumulative-details summary { display: none; }
-    .cumulative-details-body { font-size: .74rem; }
     @page { size: A4; margin: 10mm; }
   }
 </style>
@@ -326,8 +324,8 @@
     <h3>🩺 からだの変化（検査値）</h3>
     <div id="pd-labs"></div>
 
-    <details class="cumulative-details">
-      <summary>🌱 かん活開始からの変化（参考）</summary>
+    <details class="cumulative-details no-print">
+      <summary>🌱 かん活開始からの変化（参考・印刷されません）</summary>
       <div class="cumulative-details-body" id="pd-cumulative"></div>
     </details>
 
@@ -343,11 +341,8 @@
       <h3>✍️ ここから医師が入力してください</h3>
       <label for="pd-visit-date">来院日</label>
       <input type="date" id="pd-visit-date">
-      <div class="row3">
-        <div><label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label><input type="number" id="pd-goal-weight" step="0.1" min="20" max="300"></div>
-        <div><label for="pd-goal-ex-per-week">運動目標 <span class="unit-note">回/週</span></label><input type="number" id="pd-goal-ex-per-week" min="0" max="14"></div>
-        <div><label for="pd-goal-ex-min">1回あたり <span class="unit-note">分</span></label><input type="number" id="pd-goal-ex-min" min="0" max="300" step="5"></div>
-      </div>
+      <label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label>
+      <input type="number" id="pd-goal-weight" step="0.1" min="20" max="300">
       <p class="muted" style="font-size:.76rem; margin-top:2px;">以下2項目は患者アプリの「目標設定」にも反映されます</p>
       <div class="row3">
         <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
@@ -842,18 +837,6 @@ document.getElementById("open-submit").addEventListener("click", async () => {
 });
 
 document.getElementById("pd-print-btn").addEventListener("click", () => window.print());
-// 印刷時は「参考」の折りたたみ内容も紙面に含める（画面では閉じたままにしておく）。
-window.addEventListener("beforeprint", () => {
-  document.querySelectorAll(".cumulative-details").forEach(d => {
-    if (!d.open) { d.open = true; d.dataset.wasClosed = "1"; }
-  });
-});
-window.addEventListener("afterprint", () => {
-  document.querySelectorAll(".cumulative-details[data-was-closed='1']").forEach(d => {
-    d.open = false;
-    delete d.dataset.wasClosed;
-  });
-});
 
 document.getElementById("patient-detail-back").addEventListener("click", () => {
   openResearchId = null; // 画面を離れたらかん活IDを忘れる
@@ -1527,8 +1510,6 @@ function prefillEvalForm(evals, profile) {
   const latest = dates.length ? evals[dates[dates.length - 1]] : null;
   document.getElementById("pd-visit-date").value = todayStr();
   document.getElementById("pd-goal-weight").value = latest && latest.goalWeight != null ? latest.goalWeight : (profile.goalWeight ?? "");
-  document.getElementById("pd-goal-ex-per-week").value = latest && latest.goalExPerWeek != null ? latest.goalExPerWeek : "";
-  document.getElementById("pd-goal-ex-min").value = latest && latest.goalExMinutes != null ? latest.goalExMinutes : "";
   document.getElementById("pd-goal-kcal").value = profile.goalKcal ?? "";
   document.getElementById("pd-goal-steps").value = profile.goalSteps ?? "";
   document.getElementById("pd-goal-meal").value = "";
@@ -1557,8 +1538,11 @@ document.getElementById("pd-save").addEventListener("click", async () => {
 
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
   const goalWeight = num("pd-goal-weight");
-  const goalExPerWeek = num("pd-goal-ex-per-week");
-  const goalExMinutes = num("pd-goal-ex-min");
+  const exerciseLevelValue = document.getElementById("pd-exercise-level").value ? Number(document.getElementById("pd-exercise-level").value) : null;
+  // 運動目標（週◯回×◯分）は個別入力せず、運動プログラムを選んだ時点の頻度目安（週3回×20分）を
+  // そのまま記録率・進捗計算用の数値目標として使う。プログラム未選択なら目標も無しとする。
+  const goalExPerWeek = exerciseLevelValue != null ? 3 : null;
+  const goalExMinutes = exerciseLevelValue != null ? 20 : null;
   const goalKcal = num("pd-goal-kcal");
   const goalSteps = num("pd-goal-steps");
   const entry = {
@@ -1570,7 +1554,7 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     goalMealNote: document.getElementById("pd-goal-meal").value.trim(),
     doctorComment: document.getElementById("pd-comment").value.trim(),
     nutritionAdvice: getSelectedNutritionAdvice(),
-    exerciseLevel: document.getElementById("pd-exercise-level").value ? Number(document.getElementById("pd-exercise-level").value) : null,
+    exerciseLevel: exerciseLevelValue,
     nextVisitInterval: pdInterval,
     nextVisitDate,
     createdBy: demoMode ? "demo" : auth.currentUser.uid,
