@@ -97,6 +97,14 @@
   .stat-bar { height: 7px; border-radius: 999px; background: #dfeae4; margin-top: 6px; overflow: hidden; }
   .stat-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
   .stat-note { font-size: .72rem; color: var(--sub); margin-top: 4px; }
+  .weight-flow-card { grid-column: 1 / -1; }
+  .weight-flow { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+  .wf-point { text-align: center; min-width: 56px; }
+  .wf-val { font-weight: 800; font-size: .96rem; color: var(--accent-dark); }
+  .wf-point.current .wf-val { font-size: 1.15rem; }
+  .wf-tag { font-size: .66rem; color: var(--sub); margin-top: 1px; white-space: nowrap; }
+  .wf-arrow { display: flex; flex-direction: column; align-items: center; font-size: .8rem; color: var(--sub); line-height: 1.3; }
+  .wf-arrow .stat-delta { font-size: .68rem; margin-left: 0; }
 
   /* ---- 検査値テーブル ---- */
   .lab-card-date { font-size: .8rem; color: var(--sub); margin-bottom: 6px; }
@@ -1211,23 +1219,37 @@ function renderPatientSummary(daily, evals, profile) {
   };
 
   {
-    // 前回からの変化・開始時からの変化を1枚のカードにまとめる（目標体重メモの重複を避ける）。
+    // 体重の推移を「開始→前回→今日」の実測値の流れとして1枚のカードで見せる
+    // （目標体重メモは1回だけ表示し、重複を避ける）。
     const allWeightDays = dates.filter(d => daily[d].weight != null);
     const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : lastW;
-    const lines = [];
-    if (sinceDate && firstW != null && lastW != null) {
-      const diff = Math.round((lastW - firstW) * 10) / 10;
-      lines.push(`前回(${fmtDate(sinceDate)}) ${firstW}kg → <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span>`);
-    }
+    const points = [];
     if (allWeightDays.length) {
-      const startDate = allWeightDays[0];
-      const startW = daily[startDate].weight;
-      const diffAll = Math.round((nowW - startW) * 10) / 10;
-      lines.push(`開始(${fmtDate(startDate)}) ${startW}kg → <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>`);
+      points.push({ date: allWeightDays[0], val: daily[allWeightDays[0]].weight, tag: "開始" });
     }
-    if (nowW != null) {
-      const note = [goalNote(nowW), ...lines].filter(Boolean).join("<br>");
-      cards.push(statCard("⚖️ 体重の変化", `${nowW}<span class="stat-unit">kg</span>`, note, null));
+    if (sinceDate && firstW != null && (!points.length || sinceDate !== points[points.length - 1].date)) {
+      points.push({ date: sinceDate, val: firstW, tag: "前回" });
+    }
+    if (nowW != null && (!points.length || points[points.length - 1].date !== todayStr())) {
+      points.push({ date: todayStr(), val: nowW, tag: "今日" });
+    }
+    if (points.length) {
+      const flowHtml = points.map((p, i) => {
+        const point = `<div class="wf-point${i === points.length - 1 ? " current" : ""}">
+          <div class="wf-val">${p.val}<span class="stat-unit">kg</span></div>
+          <div class="wf-tag">${p.tag}(${fmtDate(p.date)})</div>
+        </div>`;
+        if (i === 0) return point;
+        const diff = Math.round((p.val - points[i - 1].val) * 10) / 10;
+        const arrow = `<div class="wf-arrow">→<span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span></div>`;
+        return arrow + point;
+      }).join("");
+      const note = goalNote(nowW);
+      cards.push(`<div class="stat-card weight-flow-card">
+        <div class="stat-label">⚖️ 体重の推移</div>
+        <div class="weight-flow">${flowHtml}</div>
+        ${note ? `<div class="stat-note">${note}</div>` : ""}
+      </div>`);
     }
   }
   if (sinceDate && curMealAvg != null && prevMealAvg != null) {
