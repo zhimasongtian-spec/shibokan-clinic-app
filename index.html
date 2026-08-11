@@ -441,7 +441,6 @@
       <h2>📋 先生からのメッセージ</h2>
       <p id="doctor-comment" style="font-weight:700;"></p>
       <p class="muted" id="doctor-eval-date" style="font-size:.8rem;"></p>
-      <p id="doctor-goal-summary" style="font-size:.85rem; margin-top:8px;"></p>
       <p id="doctor-next-visit" style="font-size:.85rem; margin-top:4px;"></p>
     </div>
 
@@ -2608,10 +2607,6 @@ function renderDoctorMessage() {
   card.classList.remove("hidden");
   document.getElementById("doctor-comment").textContent = ev.doctorComment || "";
   document.getElementById("doctor-eval-date").textContent = ev.visitDate ? `（前回来院 ${fmtDate(ev.visitDate)}より）` : "";
-  const goalParts = [];
-  if (ev.goalWeight != null) goalParts.push(`体重目標 ${ev.goalWeight}kg`);
-  if (ev.goalExPerWeek != null) goalParts.push(`運動 週${ev.goalExPerWeek}回×${ev.goalExMinutes || "?"}分`);
-  document.getElementById("doctor-goal-summary").textContent = goalParts.join(" ／ ");
   if (ev.nextVisitDate) {
     const days = Math.round((new Date(ev.nextVisitDate) - new Date(todayStr())) / 86400000);
     document.getElementById("doctor-next-visit").textContent =
