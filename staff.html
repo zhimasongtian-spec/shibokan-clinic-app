@@ -113,7 +113,6 @@
   .cumulative-details summary { cursor: pointer; font-weight: 700; color: var(--sub); font-size: .84rem; padding: 4px 0; }
   .cumulative-details-body { margin-top: 8px; font-size: .84rem; color: var(--sub); }
   .cumulative-details-body table.lab-table { font-size: .8rem; }
-  .cumulative-weight-line { margin-bottom: 10px; }
   .advice-pick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
   .advice-pick-title { font-weight: 700; font-size: .84rem; color: var(--accent-dark); margin-bottom: 4px; }
   .advice-pick-list { display: flex; flex-direction: column; gap: 4px; }
@@ -310,24 +309,28 @@
     <div class="pd-print-meta"><span id="pd-print-date"></span></div>
   </div>
 
-  <h2 class="no-print">かん活レポート</h2>
-  <p class="muted no-print" id="pd-greeting"></p>
+  <h2 class="no-print">かん活レポート <span id="pd-patient-name"></span></h2>
+  <p class="pd-profile-line no-print" id="pd-greeting"></p>
   <p class="muted" id="pd-status"></p>
 
   <div id="pd-content" class="hidden">
-    <p class="pd-profile-line" id="pd-profile-line"></p>
+    <p class="pd-profile-line print-only" id="pd-profile-line"></p>
     <p class="muted pd-period-line" id="pd-period-line"></p>
+
+    <div class="seg-interval no-print" id="pd-period-seg">
+      <button type="button" data-period="sincePrev" class="on">前回受診日から</button>
+      <button type="button" data-period="custom">📅 期間を指定</button>
+    </div>
+    <div class="row3 no-print hidden" id="pd-period-custom-wrap" style="max-width:360px;">
+      <div><label for="pd-period-from">開始日</label><input type="date" id="pd-period-from"></div>
+      <div><label for="pd-period-to">終了日</label><input type="date" id="pd-period-to"></div>
+    </div>
 
     <h3>🏅 ここまでのがんばり</h3>
     <div id="pd-summary"></div>
 
     <h3>🩺 からだの変化（検査値）</h3>
     <div id="pd-labs"></div>
-
-    <details class="cumulative-details no-print">
-      <summary>🌱 かん活開始からの変化（参考・印刷されません）</summary>
-      <div class="cumulative-details-body" id="pd-cumulative"></div>
-    </details>
 
     <details class="cumulative-details no-print">
       <summary>💡 次に頑張りたいこと（医師向け参考ヒント・自動生成）</summary>
@@ -861,10 +864,49 @@ function getSinceDate(evals) {
   return priorDates.length ? priorDates[priorDates.length - 1] : null;
 }
 
+// 「🏅ここまでのがんばり」の集計期間（医師が切り替え可能。デフォルトは前回受診日から）。
+let pdPeriodMode = "sincePrev";
+let pdCustomFrom = null, pdCustomTo = null; // カレンダーで期間を指定した場合
+function reportSinceDate(evals) {
+  if (pdPeriodMode === "custom") return pdCustomFrom || null;
+  return getSinceDate(evals);
+}
+function reportUntilDate() {
+  return (pdPeriodMode === "custom" && pdCustomTo) ? pdCustomTo : todayStr();
+}
+function rerenderPdSummary() {
+  if (!pdCache) return;
+  renderPatientSummary(pdCache.daily, pdCache.evals, pdCache.profile);
+  renderAdvice(pdCache.daily, pdCache.evals, pdCache.visits, pdCache.profile);
+}
+document.getElementById("pd-period-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#pd-period-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on");
+  pdPeriodMode = b.dataset.period;
+  const customWrap = document.getElementById("pd-period-custom-wrap");
+  if (pdPeriodMode === "custom") {
+    customWrap.classList.remove("hidden");
+    if (!pdCustomFrom) pdCustomFrom = getSinceDate((pdCache && pdCache.evals) || {}) || todayStr();
+    if (!pdCustomTo) pdCustomTo = todayStr();
+    document.getElementById("pd-period-from").value = pdCustomFrom;
+    document.getElementById("pd-period-to").value = pdCustomTo;
+  } else {
+    customWrap.classList.add("hidden");
+  }
+  rerenderPdSummary();
+});
+document.getElementById("pd-period-from").addEventListener("change", e => { pdCustomFrom = e.target.value; rerenderPdSummary(); });
+document.getElementById("pd-period-to").addEventListener("change", e => { pdCustomTo = e.target.value; rerenderPdSummary(); });
+
 async function loadPatientDetail() {
   const statusEl = document.getElementById("pd-status");
   document.getElementById("pd-content").classList.add("hidden");
   statusEl.textContent = "読み込み中...";
+  pdPeriodMode = "sincePrev";
+  pdCustomFrom = null; pdCustomTo = null;
+  document.getElementById("pd-period-custom-wrap").classList.add("hidden");
+  document.querySelectorAll("#pd-period-seg button").forEach(x => x.classList.toggle("on", x.dataset.period === "sincePrev"));
   try {
     const [daily, visits, evals, profile] = await Promise.all([
       fetchPatientDoc(openResearchId, DK.daily),
@@ -876,7 +918,6 @@ async function loadPatientDetail() {
     document.getElementById("pd-print-date").textContent = `評価日: ${fmtDate(todayStr())}`;
     renderPatientSummary(daily, evals, profile);
     renderPatientLabs(visits);
-    renderCumulativeNote(daily, visits, evals, profile);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
     prefillEvalForm(evals, profile);
@@ -1102,12 +1143,13 @@ function statCard(label, valueHtml, note, ratio) {
 
 function renderPatientSummary(daily, evals, profile) {
   const evalDates = Object.keys(evals).sort();
-  const sinceDate = getSinceDate(evals);
+  const sinceDate = reportSinceDate(evals);
+  const untilDate = reportUntilDate();
   const dates = Object.keys(daily).sort();
-  const inRange = sinceDate ? dates.filter(d => d > sinceDate) : dates;
+  const inRange = dates.filter(d => (!sinceDate || d > sinceDate) && d <= untilDate);
   const totalDays = sinceDate
-    ? Math.max(1, Math.round((new Date(todayStr()) - new Date(sinceDate)) / 86400000))
-    : dates.length;
+    ? Math.max(1, Math.round((new Date(untilDate) - new Date(sinceDate)) / 86400000))
+    : dates.filter(d => d <= untilDate).length;
 
   const weightDays = inRange.filter(d => daily[d].weight != null);
   const mealDays = inRange.filter(d => daily[d].meals && daily[d].meals.length);
@@ -1139,11 +1181,25 @@ function renderPatientSummary(daily, evals, profile) {
     profileBits.push(`身長 ${profile.height}cm ／ BMI ${bmi.toFixed(1)}`);
   }
   document.getElementById("pd-profile-line").textContent = profileBits.join("　");
+  const untilLabel = untilDate === todayStr() ? "本日" : fmtDate(untilDate);
   document.getElementById("pd-period-line").textContent =
-    `集計期間: ${sinceDate ? fmtDate(sinceDate) + " 〜 本日（" + totalDays + "日間）" : "全期間"}`;
+    `集計期間: ${sinceDate ? fmtDate(sinceDate) + " 〜 " + untilLabel + "（" + totalDays + "日間）" : "全期間"}`;
+
+  // 画面上（医師が見る側）はひと目でわかる臨床サマリー行にする。印刷（患者向け）は
+  // pd-print-leadの挨拶文のまま変えない。患者名は見出し（かん活レポート）の隣に表示する。
+  document.getElementById("pd-patient-name").textContent = profile.nickname ? `${profile.nickname}さん` : "";
+  const clinicalBits = [];
+  if (age != null) clinicalBits.push(`${age}歳`);
+  if (profile.sex) clinicalBits.push(profile.sex);
+  if (lastW != null && profile.height) {
+    const bmi = lastW / ((profile.height / 100) ** 2);
+    clinicalBits.push(`現在の BMI ${bmi.toFixed(1)}（身長 ${profile.height}cm ／体重 ${lastW}kg）`);
+  } else if (lastW != null) {
+    clinicalBits.push(`現在の体重 ${lastW}kg`);
+  }
+  document.getElementById("pd-greeting").textContent = clinicalBits.join("　");
 
   const greeting = profile.nickname ? `${profile.nickname}さん、いつも記録ありがとうございます！` : "いつも記録ありがとうございます！";
-  document.getElementById("pd-greeting").textContent = greeting;
   document.getElementById("pd-print-lead").textContent = `${greeting}ここまでの頑張りをまとめました。`;
 
   const cards = [];
@@ -1154,12 +1210,25 @@ function renderPatientSummary(daily, evals, profile) {
     return remain > 0 ? `目標体重まであと ${remain}kg` : "目標体重を達成 🎉";
   };
 
-  if (sinceDate && firstW != null && lastW != null) {
-    // 前回診察から今回までの変化（直近の頑張りを見る）
-    const diff = Math.round((lastW - firstW) * 10) / 10;
-    cards.push(statCard("⚖️ 前回からの体重変化",
-      `${lastW}<span class="stat-unit">kg</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span>`,
-      goalNote(lastW) || `前回 ${fmtDate(sinceDate)} 時点 ${firstW}kg から`, null));
+  {
+    // 前回からの変化・開始時からの変化を1枚のカードにまとめる（目標体重メモの重複を避ける）。
+    const allWeightDays = dates.filter(d => daily[d].weight != null);
+    const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : lastW;
+    const lines = [];
+    if (sinceDate && firstW != null && lastW != null) {
+      const diff = Math.round((lastW - firstW) * 10) / 10;
+      lines.push(`前回(${fmtDate(sinceDate)}) ${firstW}kg → <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span>`);
+    }
+    if (allWeightDays.length) {
+      const startDate = allWeightDays[0];
+      const startW = daily[startDate].weight;
+      const diffAll = Math.round((nowW - startW) * 10) / 10;
+      lines.push(`開始(${fmtDate(startDate)}) ${startW}kg → <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>`);
+    }
+    if (nowW != null) {
+      const note = [goalNote(nowW), ...lines].filter(Boolean).join("<br>");
+      cards.push(statCard("⚖️ 体重の変化", `${nowW}<span class="stat-unit">kg</span>`, note, null));
+    }
   }
   if (sinceDate && curMealAvg != null && prevMealAvg != null) {
     const diff = curMealAvg - prevMealAvg;
@@ -1215,38 +1284,6 @@ function renderPatientLabs(visits) {
   let html = `<div class="lab-card-date">来院日: ${fmtDate(dates[dates.length - 1])}${prev ? `（前回 ${fmtDate(dates[dates.length - 2])} 比）` : ""}</div>`;
   html += labTableHtml(prev, latest);
   el.innerHTML = html;
-}
-
-function renderCumulativeNote(daily, visits, evals, profile) {
-  const el = document.getElementById("pd-cumulative");
-  const dates = Object.keys(daily).sort();
-  const allWeightDays = dates.filter(d => daily[d].weight != null);
-  const startW = allWeightDays.length ? daily[allWeightDays[0]].weight : null;
-  const nowW = allWeightDays.length ? daily[allWeightDays[allWeightDays.length - 1]].weight : null;
-  const startDate = allWeightDays.length ? allWeightDays[0] : null;
-  const goalW = profile.goalWeight;
-  const goalNote = w => {
-    if (goalW == null) return "";
-    const remain = Math.round((w - goalW) * 10) / 10;
-    return remain > 0 ? `目標体重まであと ${remain}kg` : "目標体重を達成 🎉";
-  };
-
-  let html = "";
-  if (startW != null && nowW != null && startDate) {
-    const diffAll = Math.round((nowW - startW) * 10) / 10;
-    html += `<div class="cumulative-weight-line">⚖️ 体重：${fmtDate(startDate)} ${startW}kg → 本日 ${nowW}kg
-      <span class="stat-delta ${diffAll <= 0 ? 'good' : 'bad'}">${diffAll >= 0 ? "+" : ""}${diffAll}kg</span>
-      ${goalNote(nowW) ? `（${goalNote(nowW)}）` : ""}</div>`;
-  }
-
-  const visitDates = Object.keys(visits).sort();
-  if (visitDates.length >= 2) {
-    const first = visits[visitDates[0]];
-    const latest = visits[visitDates[visitDates.length - 1]];
-    html += `<div class="lab-card-date">検査値：${fmtDate(visitDates[0])} 〜 ${fmtDate(visitDates[visitDates.length - 1])}</div>`;
-    html += labTableHtml(first, latest);
-  }
-  el.innerHTML = html || `<p class="muted">まだ十分なデータがありません</p>`;
 }
 
 // ------- 患者に見せるアドバイス（医師がテンプレートから選択） -------
@@ -1410,12 +1447,13 @@ renderExerciseLevelPreview("");
 // ------- 栄養・運動アドバイス（ルールベース自動生成・医師向け参考情報） -------
 function renderAdvice(daily, evals, visits, profile) {
   const evalDates = Object.keys(evals).sort();
-  const sinceDate = getSinceDate(evals);
+  const sinceDate = reportSinceDate(evals);
+  const untilDate = reportUntilDate();
   const dates = Object.keys(daily).sort();
-  const inRange = sinceDate ? dates.filter(d => d > sinceDate) : dates;
+  const inRange = dates.filter(d => (!sinceDate || d > sinceDate) && d <= untilDate);
   const totalDays = sinceDate
-    ? Math.max(1, Math.round((new Date(todayStr()) - new Date(sinceDate)) / 86400000))
-    : dates.length;
+    ? Math.max(1, Math.round((new Date(untilDate) - new Date(sinceDate)) / 86400000))
+    : dates.filter(d => d <= untilDate).length;
 
   const mealDays = inRange.filter(d => daily[d].meals && daily[d].meals.length);
   const exDays = inRange.filter(d => (daily[d].exercises && daily[d].exercises.length) || daily[d].steps != null);
