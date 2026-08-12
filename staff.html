@@ -354,6 +354,10 @@
       <label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label>
       <input type="number" id="pd-goal-weight" step="0.1" min="20" max="300">
       <p class="muted" id="pd-goal-suggest" style="font-size:.78rem; margin-top:6px;"></p>
+      <div id="pd-current-weight-prompt" class="hidden" style="margin-top:4px;">
+        <label for="pd-current-weight-input" style="font-size:.78rem;">まだ体重記録がありません。現在の体重を入力するとおすすめが出ます <span class="unit-note">kg</span></label>
+        <input type="number" id="pd-current-weight-input" step="0.1" min="20" max="300" style="max-width:140px;">
+      </div>
       <div class="row3">
         <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
         <div><label for="pd-goal-steps">歩数目標 <span class="unit-note">歩</span></label><input type="number" id="pd-goal-steps" step="500" min="1000" max="30000"></div>
@@ -1601,20 +1605,37 @@ document.getElementById("pd-interval-seg").addEventListener("click", e => {
 });
 
 // 患者アプリの「目標設定」と同じ計算式で、体重目標・カロリー目標のおすすめを出す
-// （開始時体重の-7%、標準体重×27kcal）。医師が数値を決める際の参考情報。
-function renderGoalSuggest(daily, profile) {
+// （体重の-7%、標準体重×27kcal）。医師が数値を決める際の参考情報。
+// 患者がまだ体重を記録していない（新規登録直後など）場合は、その場で医師が
+// 現在の体重を入力すればおすすめを計算できるようにする。
+function computeGoalSuggest(weight, height, sourceLabel) {
   const el = document.getElementById("pd-goal-suggest");
-  const allWeightDays = Object.keys(daily).sort().filter(d => daily[d].weight != null);
-  const startWeight = allWeightDays.length ? daily[allWeightDays[0]].weight : null;
-  const height = profile.height;
-  if (!startWeight || !height) { el.textContent = ""; return; }
-  const g7 = Math.round(startWeight * 0.93 * 10) / 10;
+  if (!weight || !height) { el.textContent = ""; return; }
+  const g7 = Math.round(weight * 0.93 * 10) / 10;
   const stdW = 22 * (height / 100) ** 2;
   const kcal = Math.round(stdW * 27 / 50) * 50;
   el.innerHTML = `おすすめ<br>
-    目標体重 <strong>${g7}kg</strong>（−7%）<br>
+    目標体重 <strong>${g7}kg</strong>（${weight}kg${sourceLabel ? `［${sourceLabel}］` : ""}の−7%）<br>
     摂取カロリー 約<strong>${kcal.toLocaleString()}kcal/日</strong>（標準体重×27kcal）`;
 }
+function renderGoalSuggest(daily, profile) {
+  const allWeightDays = Object.keys(daily).sort().filter(d => daily[d].weight != null);
+  const startDate = allWeightDays.length ? allWeightDays[0] : null;
+  const startWeight = startDate ? daily[startDate].weight : null;
+  const promptWrap = document.getElementById("pd-current-weight-prompt");
+  const input = document.getElementById("pd-current-weight-input");
+  if (startWeight) {
+    promptWrap.classList.add("hidden");
+    input.value = "";
+    computeGoalSuggest(startWeight, profile.height, `${fmtDate(startDate)}の記録`);
+  } else {
+    promptWrap.classList.remove("hidden");
+    computeGoalSuggest(Number(input.value) || null, profile.height, "本日入力");
+  }
+}
+document.getElementById("pd-current-weight-input").addEventListener("input", e => {
+  if (pdCache) computeGoalSuggest(Number(e.target.value) || null, pdCache.profile.height, "本日入力");
+});
 
 function prefillEvalForm(evals, profile) {
   const dates = Object.keys(evals).sort();
