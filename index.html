@@ -1325,13 +1325,14 @@ document.getElementById("meal-add").addEventListener("click", () => {
   document.getElementById("meal-name").value = "";
   document.getElementById("meal-kcal").value = "";
 });
-function addMeal(name, kcal, photo = null) {
+function addMeal(name, kcal, photo = null, tags = null) {
   const date = document.getElementById("meal-date").value || todayStr();
   const time = document.getElementById("meal-time").value || null;
   const rec = getDaily(date);
   const entry = { name, kcal };
   if (time) entry.time = time;
   if (photo) entry.photo = photo;
+  if (tags && tags.length) entry.tags = tags;
   rec.meals.push(entry);
   try { setDaily(date, rec); }
   catch (err) { entry.photo = null; rec.meals[rec.meals.length - 1] = entry; setDaily(date, rec); toast("保存容量の都合で写真なしで保存しました"); }
@@ -1359,12 +1360,15 @@ function renderMealPage() {
     const ordered = rec.meals.map((m, i) => ({ m, i }))
       .sort((a, b) => (a.m.time || "99:99").localeCompare(b.m.time || "99:99"));
     list.innerHTML = ordered.map(({ m, i }) => `
-      <div class="item-row">
-        ${m.time ? `<span class="tm">${m.time}</span>` : ""}
-        ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
-        <span class="nm">${m.name}</span>
-        <span class="kc">${m.kcal} kcal</span>
-        <button class="del" data-i="${i}">✕</button>
+      <div>
+        <div class="item-row">
+          ${m.time ? `<span class="tm">${m.time}</span>` : ""}
+          ${m.photo ? `<img src="${m.photo}" class="meal-thumb" alt="食事写真">` : ""}
+          <span class="nm">${m.name}</span>
+          <span class="kc">${m.kcal} kcal</span>
+          <button class="del" data-i="${i}">✕</button>
+        </div>
+        ${m.tags && m.tags.length ? `<p class="muted" style="font-size:.72rem; margin:-4px 0 6px;">${m.tags.map(id => { const t = MEAL_TAGS.find(x => x.id === id); return t ? `${t.em}${t.label}` : ""; }).filter(Boolean).join("　")}</p>` : ""}
       </div>`).join("");
     list.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
       const r = getDaily(date); r.meals.splice(Number(b.dataset.i), 1); setDaily(date, r); renderMealPage();
@@ -1528,6 +1532,21 @@ function extractFirstJsonObject(str) {
   }
   return str.slice(start);
 }
+const MEAL_TAGS = [
+  { id: "fried", em: "🍤", label: "揚げ物・脂っこい" },
+  { id: "sugary_drink", em: "🥤", label: "糖分の多い飲料・デザート" },
+  { id: "refined_carb", em: "🍚", label: "精製炭水化物多め" },
+  { id: "low_veggie", em: "🥗", label: "野菜少なめ" },
+  { id: "alcohol", em: "🍺", label: "アルコール" },
+  { id: "snack", em: "🍪", label: "間食" },
+];
+function isSnackTime(time) {
+  if (!time) return false;
+  const [h, m] = time.split(":").map(Number);
+  const mins = h * 60 + m;
+  const inWindow = (s, e) => mins >= s && mins <= e;
+  return !(inWindow(6 * 60, 9 * 60) || inWindow(11 * 60, 14 * 60) || inWindow(18 * 60, 21 * 60));
+}
 async function analyzeMealPhoto(aiImage, thumb) {
   const area = document.getElementById("photo-analyze-area");
   const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
@@ -1544,7 +1563,7 @@ async function analyzeMealPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが解析中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真に写っている食事の品目を日本語で判定してください。カロリー(kcal)は、日本食品標準成分表などに基づく一般的な1人前の目安値を採用し、特殊な調理法や極端な数値ではなく、よくある家庭料理・外食店の平均的なカロリーで推定してください。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}]}";
+  const promptText = "この写真に写っている食事の品目を日本語で判定してください。カロリー(kcal)は、日本食品標準成分表などに基づく一般的な1人前の目安値を採用し、特殊な調理法や極端な数値ではなく、よくある家庭料理・外食店の平均的なカロリーで推定してください。また、次の観点のうち写真から明らかに当てはまるものだけをtagsに含めてください（該当なしなら空配列）: fried(揚げ物や脂っこい料理), sugary_drink(清涼飲料水や加糖デザート), refined_carb(白米大盛りや麺類など精製炭水化物が多い), low_veggie(野菜がほとんど写っていない), alcohol(酒類), snack(お菓子・スナックなど間食的な食品)。次のJSON形式のみで回答してください。\n{\"items\":[{\"name\":\"料理名\",\"kcal\":数値}],\"tags\":[\"fried\"]}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -1570,7 +1589,11 @@ async function analyzeMealPhoto(aiImage, thumb) {
       .filter(it => it && it.name)
       .map(it => ({ name: String(it.name), kcal: Math.round(Number(it.kcal) || 0) }));
     if (items.length === 0) throw new Error("食事内容を認識できませんでした");
-    renderAnalyzeResult(thumb, items);
+    const knownTagIds = MEAL_TAGS.map(t => t.id);
+    const aiTags = Array.isArray(parsed.tags) ? parsed.tags.filter(t => knownTagIds.includes(t)) : [];
+    const tagSet = new Set(aiTags);
+    if (isSnackTime(document.getElementById("meal-time").value)) tagSet.add("snack");
+    renderAnalyzeResult(thumb, items, Array.from(tagSet));
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="食事写真">
@@ -1578,17 +1601,31 @@ async function analyzeMealPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-function renderAnalyzeResult(thumb, items) {
+function renderAnalyzeResult(thumb, items, tags) {
   const area = document.getElementById("photo-analyze-area");
+  const activeTags = new Set(tags || []);
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="食事写真">
     <p class="muted">🔍 AIの推定結果（追加前に修正できます）</p>
     <div id="analyze-rows"></div>
+    <p class="muted" style="font-size:.78rem; margin-top:10px;">気になる点（違っていればタップで解除、追加もできます）</p>
+    <div class="chips" id="analyze-tags"></div>
     <div class="row2" style="margin-top:8px;">
       <button class="btn small secondary" id="analyze-cancel">取消</button>
       <button class="btn small" id="analyze-confirm">＋ 追加</button>
     </div>
   </div>`;
+  const tagsEl = document.getElementById("analyze-tags");
+  const renderTags = () => {
+    tagsEl.innerHTML = MEAL_TAGS.map(t => `
+      <button type="button" class="chip${activeTags.has(t.id) ? " on" : ""}" data-tag="${t.id}">${t.em} ${t.label}</button>`).join("");
+    tagsEl.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => {
+      const id = b.dataset.tag;
+      if (activeTags.has(id)) activeTags.delete(id); else activeTags.add(id);
+      renderTags();
+    }));
+  };
+  renderTags();
   const rowsEl = document.getElementById("analyze-rows");
   const renderRows = () => {
     if (items.length === 0) { rowsEl.innerHTML = '<p class="empty-note">項目がありません</p>'; return; }
@@ -1623,7 +1660,8 @@ function renderAnalyzeResult(thumb, items) {
   document.getElementById("analyze-cancel").addEventListener("click", () => { area.innerHTML = ""; });
   document.getElementById("analyze-confirm").addEventListener("click", () => {
     if (items.length === 0) { toast("追加する項目がありません"); return; }
-    items.forEach(it => addMeal(it.name, it.kcal, thumb));
+    const finalTags = Array.from(activeTags);
+    items.forEach(it => addMeal(it.name, it.kcal, thumb, finalTags));
     area.innerHTML = "";
     toast(`${items.length}件を追加しました`);
   });
