@@ -137,6 +137,7 @@
   .exercise-level-preview .elp-group { font-weight: 700; margin-top: 6px; }
   .exercise-level-preview ul { margin: 2px 0 0; padding-left: 18px; }
   .exercise-level-preview li { margin-bottom: 3px; }
+  .elp-photo { width: 100%; max-width: 100%; height: auto; border-radius: 10px; display: block; margin-bottom: 6px; }
   .doctor-input-section {
     margin-top: 16px; padding: 14px 14px 16px; background: var(--accent-soft);
     border: 1.5px solid var(--accent); border-radius: 12px;
@@ -218,6 +219,7 @@
     .advice-block li + li { margin-top: 2px; }
 
     .stat-card, .advice-block, table.lab-table { break-inside: avoid; }
+    .elp-photo { max-height: 90mm; object-fit: contain; }
     @page { size: A4; margin: 10mm; }
   }
 </style>
@@ -1347,6 +1349,7 @@ function getSelectedNutritionAdvice() {
 const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
 const EXERCISE_PROGRAM = [
   { level: 1, title: "運動の習慣づけと基礎体力づくり（初心者向け）",
+    image: "exercise-images/level1.jpg", kcal: 80,
     strength: [
       { name: "ウォール・プッシュアップ（壁立て伏せ）", reps: "8〜10回×2セット", point: "壁に向かって立ち、腕立て伏せを行います。胸と腕の筋肉を刺激します。" },
       { name: "チェア・スクワット（椅子座り立ち）", reps: "10回×2セット", point: "椅子の座面を利用し、立ち上がりと座りを繰り返します。太ももと下半身の強化に最適です。" },
@@ -1357,6 +1360,7 @@ const EXERCISE_PROGRAM = [
       { name: "フロント・トゥタップ", time: "2分間×2セット", point: "立った状態で、交互にかかとを軸にしてつま先を軽く前にトントンとタッチします。" },
     ] },
   { level: 2, title: "少し動きを大きくして代謝を高める段階",
+    image: "exercise-images/level2.jpg", kcal: 100,
     strength: [
       { name: "ニーリング・プッシュアップ（膝つき腕立て伏せ）", reps: "8回×2セット", point: "膝を床についた状態で行う腕立て伏せです。レベル1より胸・肩・腕にしっかり負荷がかかります。" },
       { name: "ワイド・スクワット", reps: "10回×2セット", point: "足幅を肩幅より広めに取り、内ももやお尻を意識しながらゆっくりスクワットします。" },
@@ -1367,6 +1371,7 @@ const EXERCISE_PROGRAM = [
       { name: "ニーアップ（その場もも上げ）", time: "2分間×2セット", point: "水平より少し低めで構わないので、リズミカルにももを軽く引き上げます。" },
     ] },
   { level: 3, title: "全身の連動性と脂肪燃焼を意識する段階",
+    image: "exercise-images/level3.jpg", kcal: 120,
     strength: [
       { name: "リバース・ランジ（後ろ引きランジ）", reps: "左右交互に各6〜8回×2セット", point: "一歩後ろに足を引き、腰を真下に落とします。バランスをとりながら下半身を強化します。" },
       { name: "プランク（ひざつき）", reps: "20秒キープ×2セット", point: "肘と膝を床につき、お腹と背中に力を入れて一直線をキープします。インナーマッスル強化に。" },
@@ -1377,6 +1382,7 @@ const EXERCISE_PROGRAM = [
       { name: "ツイスト・ステップ", time: "2分半×2セット", point: "足踏みをしながら上体を軽く左右にひねり、お腹周りも同時に刺激します。" },
     ] },
   { level: 4, title: "負荷と心拍数を一段階引き上げる段階",
+    image: "exercise-images/level4.jpg", kcal: 150,
     strength: [
       { name: "ノーマル・スクワット", reps: "10〜12回×2セット", point: "肩幅に足を開き、股関節を引いてしっかり腰を落とします。下半身全体の筋力向上に最も効果的です。" },
       { name: "インクライン・プッシュアップ", reps: "8〜10回×2セット", point: "安定した椅子や低い台に手をつき、腕立て伏せを行います。通常の腕立て伏せへのステップアップになります。" },
@@ -1387,6 +1393,7 @@ const EXERCISE_PROGRAM = [
       { name: "サイド・タップ＆リーチ", time: "2分半×2セット", point: "左右に足を出しながら、床に近い方向へ軽く手を伸ばす動作を繰り返します。全身の血流を促します。" },
     ] },
   { level: 5, title: "筋持久力と体幹の安定性を高める段階",
+    image: "exercise-images/level5.jpg", kcal: 180,
     strength: [
       { name: "サイド・ランジ", reps: "左右交互に各8回×2セット", point: "横に大きく一歩踏み出し、片側の膝を曲げてお尻を後ろに引きます。太ももの内側や外側を刺激します。" },
       { name: "プランク（ノーマル）", reps: "20〜30秒キープ×2セット", point: "つま先と前腕を床につき、頭からかかとまでを一直線に保ちます。お腹周りの引き締めに直結します。" },
@@ -1397,6 +1404,7 @@ const EXERCISE_PROGRAM = [
       { name: "ボクシング・ステップ", time: "3分×2セット", point: "前後に小さくステップを踏みながら、ワン・ツーとリズミカルにパンチを繰り出します。" },
     ] },
   { level: 6, title: "全身の連動性と運動代謝をさらに高める段階",
+    image: "exercise-images/level6.jpg", kcal: 210,
     strength: [
       { name: "ブルガリアンスクワット（低負荷版）", reps: "左右各6〜8回×2セット", point: "片足を後ろの椅子にのせ、前側の足でスクワットを行います。負荷が高いため、無理のない可動域で行います。" },
       { name: "パイク・プッシュアップ", reps: "6〜8回×2セット", point: "お尻を高く突き上げた状態で腕立て伏せを行います。肩や二の腕、上半身の筋肉をしっかり刺激します。" },
@@ -1407,6 +1415,7 @@ const EXERCISE_PROGRAM = [
       { name: "スピード・スケーター（ローインパクト版）", time: "3分×2セット", point: "スケート選手のように斜め後ろへ交互に足を交差させながら、体を左右に大きく動かします。" },
     ] },
   { level: 7, title: "高めの負荷と持続的な心拍数キープに挑戦する段階",
+    image: "exercise-images/level7.jpg", kcal: 250,
     strength: [
       { name: "ジャンピング・スクワット（低負荷版）", reps: "8〜10回×2セット", point: "スクワットから立ち上がるときに、軽くかかとを浮かせる程度の低いジャンプを挟みます。下半身の瞬発力を高めます。" },
       { name: "ノーマル・プッシュアップ", reps: "8〜10回×2セット", point: "つま先をついた通常の腕立て伏せです。胸、肩、二の腕、体幹を同時に鍛える王道の種目です。" },
@@ -1417,6 +1426,7 @@ const EXERCISE_PROGRAM = [
       { name: "クロスボディ・パンチ（ハイペース）", time: "3分×2セット", point: "立った姿勢で、左右のパンチを身体を鋭くひねりながら素早く繰り出し、心拍数を上げます。" },
     ] },
   { level: 8, title: "全身の協調性とハードな脂肪燃焼を狙う段階",
+    image: "exercise-images/level8.jpg", kcal: 290,
     strength: [
       { name: "ウォーキング・ランジ", reps: "左右交互に各8〜10歩×2セット", point: "一歩ずつ前方に大きく踏み込みながら、連続してランジ動作を行います。バランス能力も問われます。" },
       { name: "ダイヤモンド・プッシュアップ（ひざつき）", reps: "6〜8回×2セット", point: "両手の親指と人差し指で三角形を作り、腕立て伏せを行います。二の腕（上腕三頭筋）を集中的に刺激します。" },
@@ -1427,6 +1437,7 @@ const EXERCISE_PROGRAM = [
       { name: "ハイニー・ツイスト（もも上げひねり）", time: "3分×2セット", point: "ももを高く上げながら、反対側の肘を近づけるように上体をしっかりひねり、全身の代謝を高めます。" },
     ] },
   { level: 9, title: "高い代謝を維持し、全身を追い込むタフな段階",
+    image: "exercise-images/level9.jpg", kcal: 330,
     strength: [
       { name: "ブルガリアンスクワット（スタンダード）", reps: "左右各8〜10回×2セット", point: "後ろ足の甲を椅子に乗せ、前側の足に体重を乗せて深くスクワットします。下半身に対する非常に高い刺激と筋肥大効果を生みます。" },
       { name: "デクライン・プッシュアップ", reps: "6〜8回×2セット", point: "足を椅子の上にのせ、手は床について腕立て伏せを行います。上半身の高い位置に大きな負荷がかかります。" },
@@ -1437,6 +1448,7 @@ const EXERCISE_PROGRAM = [
       { name: "スピード・スケーター（ジャンプあり）", time: "3分×2セット", point: "左右へ軽快にジャンプしながら足をクロスさせ、ダイナミックに全身を動かします。" },
     ] },
   { level: 10, title: "自宅自重トレーニングの最高峰・総仕上げ段階",
+    image: "exercise-images/level10.jpg", kcal: 380,
     strength: [
       { name: "バーピージャンプ（ローインパクト版・フル）", reps: "8〜10回×2セット", point: "屈む、足を後ろに伸ばす、戻る、立ち上がる一連の動作を流れるように行います（ジャンプなしでも十分高負荷です）。" },
       { name: "スロー・パイク・プッシュアップ", reps: "8回×2セット", point: "お尻を突き上げたパイク状態での腕立て伏せを、下ろすときは3秒かけてゆっくり行います。肩と腕の限界を引き出します。" },
@@ -1463,6 +1475,8 @@ function renderExerciseLevelPreview(level) {
   const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
   el.innerHTML = `
     <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
+    <p class="muted" style="font-size:.76rem; margin:2px 0 8px;">消費カロリー目安: 1回あたり約${lv.kcal}kcal（体重60kg換算の目安です）</p>
+    <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" class="elp-photo">
     <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
     <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}`;
 }
@@ -1588,6 +1602,8 @@ function renderPlanPrint(evals) {
     const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
     html += `<div class="exercise-level-preview" style="margin-top:10px;">
       <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
+      <p class="muted" style="font-size:.76rem; margin:2px 0 8px;">消費カロリー目安: 1回あたり約${lv.kcal}kcal（体重60kg換算の目安です）</p>
+      <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" class="elp-photo">
       <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
       <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}
     </div>`;
