@@ -104,6 +104,12 @@
   .stat-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
   .stat-note { font-size: .72rem; color: var(--sub); margin-top: 4px; }
   .weight-flow-card { grid-column: 1 / -1; }
+  .record-rate-card { grid-column: 1 / -1; }
+  .mini-bars { display: flex; gap: 16px; margin-top: 8px; }
+  .mini-bar-item { flex: 1; min-width: 0; }
+  .mini-bar-top { display: flex; justify-content: space-between; font-size: .78rem; font-weight: 700; color: var(--accent-dark); margin-bottom: 3px; }
+  .stat-bar.mini { height: 5px; margin-top: 0; }
+  .mini-bar-sub { font-size: .68rem; color: var(--sub); margin-top: 2px; }
   .weight-flow { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
   .wf-point { text-align: center; min-width: 56px; }
   .wf-val { font-weight: 800; font-size: .96rem; color: var(--accent-dark); }
@@ -1281,9 +1287,26 @@ function renderPatientSummary(daily, evals, profile) {
       `${curExAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff >= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
       `前回受診期間の平均 ${prevExAvg}kcalから`, null));
   }
-  cards.push(statCard("📅 体重記録率", `${weightDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(weightDays.length, totalDays)}%の日に記録`, pct(weightDays.length, totalDays)));
-  cards.push(statCard("🍚 食事記録率", `${mealDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(mealDays.length, totalDays)}%の日に記録`, pct(mealDays.length, totalDays)));
-  cards.push(statCard("🚶 運動記録率", `${exDays.length}<span class="stat-unit">/${totalDays}日</span>`, `${pct(exDays.length, totalDays)}%の日に記録`, pct(exDays.length, totalDays)));
+  {
+    // 3つの記録率は主役級の情報ではないため、1枚のコンパクトなカードにまとめる。
+    const items = [
+      ["📅", "体重", weightDays.length],
+      ["🍚", "食事", mealDays.length],
+      ["🚶", "運動", exDays.length],
+    ];
+    const bars = items.map(([icon, label, n]) => {
+      const p = pct(n, totalDays);
+      return `<div class="mini-bar-item">
+        <div class="mini-bar-top"><span>${icon} ${label}</span><span>${p}%</span></div>
+        <div class="stat-bar mini"><div class="stat-bar-fill" style="width:${p}%"></div></div>
+        <div class="mini-bar-sub">${n}/${totalDays}日</div>
+      </div>`;
+    }).join("");
+    cards.push(`<div class="stat-card record-rate-card">
+      <div class="stat-label">記録率</div>
+      <div class="mini-bars">${bars}</div>
+    </div>`);
+  }
   document.getElementById("pd-summary").innerHTML = `<div class="stat-grid">${cards.join("")}</div>`;
 }
 
