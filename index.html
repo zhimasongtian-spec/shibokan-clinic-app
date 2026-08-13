@@ -2643,7 +2643,10 @@ function renderDoctorMessage() {
     document.getElementById("doctor-exercise-content").innerHTML = `
       <p style="font-weight:700; color:var(--accent-dark); margin:0;">レベル${lv.level}：${lv.title}</p>
       <p class="muted" style="font-size:.78rem; margin:2px 0 6px;">頻度目安: ${EXERCISE_PROGRAM_NOTE} ／ 消費カロリー目安: 1回約${lv.kcal}kcal（体重60kg換算）</p>
-      <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" style="width:100%; height:auto; border-radius:10px; display:block; margin-bottom:6px;">
+      <a href="${lv.image}" target="_blank" rel="noopener" style="position:relative; display:block; margin-bottom:6px;">
+        <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" style="width:100%; height:auto; border-radius:10px; display:block;">
+        <span style="position:absolute; right:8px; bottom:8px; background:rgba(36,49,42,.72); color:#fff; font-size:.72rem; font-weight:700; padding:4px 9px; border-radius:999px;">🔍 タップで拡大表示</span>
+      </a>
       <p style="font-weight:700; margin:6px 0 0;">【筋トレ】</p>${list(lv.strength)}
       <p style="font-weight:700; margin:6px 0 0;">【有酸素運動】</p>${list(lv.aerobic)}`;
   } else {
