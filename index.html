@@ -1395,9 +1395,10 @@ function renderMealPage() {
       <span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>
     </div>
     ${mood.msg ? `<div class="mood-msg">${mood.msg}</div>` : ""}`;
-  // history within selected period
+  // history within選択期間（当日は記録途中で合計が不当に低く見えるため対象外）
   const all = load(K.daily);
-  const mealDates = Object.keys(all).filter(d => all[d].meals && all[d].meals.length);
+  const today = todayStr();
+  const mealDates = Object.keys(all).filter(d => d !== today && all[d].meals && all[d].meals.length);
   updateRangeSegDisabled("meal-range-seg", mealDates);
   const cutoff = rangeCutoff(mealRange);
   const days = mealDates
