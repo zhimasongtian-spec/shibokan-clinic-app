@@ -160,6 +160,15 @@
     border: 1.5px solid var(--accent); border-radius: 12px;
   }
   .doctor-input-section h3 { color: var(--accent-dark); margin-top: 0; }
+  .current-goals-box {
+    background: #fff; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; margin: 8px 0 12px; font-size: .84rem;
+  }
+  .cg-title { font-weight: 700; color: var(--accent-dark); margin-bottom: 6px; }
+  .cg-list { list-style: none; margin: 0; padding: 0; }
+  .cg-list li { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
+  .cg-list li:last-child { border-bottom: none; }
+  .cg-label { color: var(--sub); flex-shrink: 0; }
 
   /* ---- 栄養・運動アドバイス ---- */
   .advice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -369,6 +378,7 @@
 
     <div class="no-print doctor-input-section">
       <h3>✍️ ここから医師が入力してください</h3>
+      <div id="pd-current-goals" class="current-goals-box"></div>
       <p class="muted" style="font-size:.76rem; margin-top:2px;">以下3項目は患者アプリの「目標設定」にも反映されます</p>
       <label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label>
       <input type="number" id="pd-goal-weight" step="0.1" min="20" max="300">
@@ -941,6 +951,7 @@ async function loadPatientDetail() {
     renderPatientLabs(visits);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
+    renderCurrentGoals(evals, profile);
     prefillEvalForm(evals, profile);
     renderGoalSuggest(daily, profile);
     statusEl.textContent = "";
@@ -1610,6 +1621,26 @@ function renderAdvice(daily, evals, visits, profile) {
 }
 
 // 印刷時に「評価・次の目標を入力」フォームの代わりに表示する、直近の確定済みプラン
+// 入力欄の上に「今、何が設定されているか」を一覧で示す（入力欄への自動反映だけだと
+// 医師が現在値に気づきにくいため）。
+function renderCurrentGoals(evals, profile) {
+  const el = document.getElementById("pd-current-goals");
+  const dates = Object.keys(evals).sort();
+  const latest = dates.length ? evals[dates[dates.length - 1]] : null;
+  const lv = latest && latest.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === latest.exerciseLevel) : null;
+  const nutritionText = (latest && latest.nutritionAdvice && latest.nutritionAdvice.length) ? latest.nutritionAdvice.join("／") : "—";
+  const rows = [
+    ["体重目標", (latest && latest.goalWeight != null) ? `${latest.goalWeight}kg` : (profile.goalWeight != null ? `${profile.goalWeight}kg` : "—")],
+    ["摂取カロリー目標", profile.goalKcal != null ? `${profile.goalKcal}kcal` : "—"],
+    ["歩数目標", profile.goalSteps != null ? `${profile.goalSteps}歩` : "—"],
+    ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : "—"],
+    ["栄養アドバイス", nutritionText],
+  ];
+  el.innerHTML = `
+    <div class="cg-title">📌 現在設定されている目標</div>
+    <ul class="cg-list">${rows.map(([l, v]) => `<li><span class="cg-label">${l}</span>${v}</li>`).join("")}</ul>`;
+}
+
 function renderPlanPrint(evals) {
   const dates = Object.keys(evals).sort();
   const el = document.getElementById("pd-plan-print");
