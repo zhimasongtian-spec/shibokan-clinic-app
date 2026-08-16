@@ -141,6 +141,18 @@
     font-weight: 400; font-size: .82rem; margin: 0; cursor: pointer; line-height: 1.4;
   }
   .advice-pick-list input[type="checkbox"] { margin-top: 3px; }
+  .exercise-pick-group { margin-top: 8px; }
+  .exercise-pick-title { font-weight: 700; font-size: .84rem; color: var(--accent-dark); margin-bottom: 4px; }
+  .exercise-pick-list { display: flex; flex-direction: column; gap: 6px; }
+  label.exercise-pick-item {
+    display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px;
+    font-weight: 400; font-size: .82rem; margin: 0; cursor: pointer; padding: 4px; border-radius: 8px;
+    text-align: left;
+  }
+  .exercise-pick-item:has(input:checked) { background: var(--accent-soft); }
+  .exercise-pick-item input[type="checkbox"] { margin: 0; }
+  .exercise-pick-thumb { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; display: block; }
+  .exercise-pick-info { display: flex; flex-direction: column; line-height: 1.35; }
   .exercise-level-preview {
     margin-top: 8px; padding: 10px 12px; background: #fbfdfc; border: 1px solid var(--line);
     border-radius: 10px; font-size: .8rem; color: var(--sub);
@@ -397,7 +409,17 @@
       <label for="pd-advice-nutrition-title">栄養アドバイス（複数選択可・患者アプリに表示予定）</label>
       <div id="pd-advice-nutrition" class="advice-pick-list"></div>
 
-      <label for="pd-exercise-level">運動プログラム（理学療法士監修・レベル1〜10）</label>
+      <label>運動を個別に選ぶ <span class="muted" style="font-size:.72rem; font-weight:400;">（複数選択可・現在はレベル1相当の種目のみ利用可能）</span></label>
+      <div class="exercise-pick-group">
+        <div class="exercise-pick-title">💪 筋トレ</div>
+        <div id="pd-strength-pick" class="exercise-pick-list"></div>
+      </div>
+      <div class="exercise-pick-group">
+        <div class="exercise-pick-title">🏃 有酸素運動</div>
+        <div id="pd-aerobic-pick" class="exercise-pick-list"></div>
+      </div>
+
+      <label for="pd-exercise-level">運動プログラム（理学療法士監修・レベル一括選択・レベル2〜10向け）</label>
       <select id="pd-exercise-level">
         <option value="">選択なし</option>
       </select>
@@ -1380,6 +1402,51 @@ function getSelectedNutritionAdvice() {
   return Array.from(document.querySelectorAll("#pd-advice-nutrition input:checked")).map(el => el.value);
 }
 
+// ------- 運動を個別に選ぶ（筋トレ・有酸素運動、種目ごとの個別写真） -------
+// 現時点ではレベル1相当の5種目のみ個別写真がある。他レベル分の写真が揃うまでは
+// 従来の「運動プログラム（レベル一括選択）」と並行運用する。
+const INDIVIDUAL_STRENGTH_EXERCISES = [
+  { id: "wall-pushup", name: "ウォール・プッシュアップ（壁立て伏せ）", image: "exercise-images/l1-wall-pushup.jpg",
+    reps: "8〜10回×2セット", point: "壁に向かって立ち、腕立て伏せを行います。胸と腕の筋肉を刺激します。" },
+  { id: "chair-squat", name: "チェア・スクワット（椅子座り立ち）", image: "exercise-images/l1-chair-squat.jpg",
+    reps: "10回×2セット", point: "椅子の座面を利用し、立ち上がりと座りを繰り返します。太ももと下半身の強化に最適です。" },
+  { id: "hip-lift", name: "ヒップリフト", image: "exercise-images/l1-hip-lift.jpg",
+    reps: "10回×2セット", point: "仰向けで膝を立て、お尻を持ち上げます。お尻と裏ももの筋肉を刺激します。" },
+];
+const INDIVIDUAL_AEROBIC_EXERCISES = [
+  { id: "slow-step", name: "スロウ・その場足踏み", image: "exercise-images/l1-slow-step.jpg",
+    reps: "2分間×2セット", point: "腕をしっかり振りながら、無理のないペースでその場で足踏みをします。" },
+  { id: "front-toe-tap", name: "フロント・トゥタップ", image: "exercise-images/l1-front-toe-tap.jpg",
+    reps: "2分間×2セット", point: "立った状態で、交互にかかとを軸にしてつま先を軽く前にトントンとタッチします。" },
+];
+function renderExercisePicker() {
+  const render = (containerId, prefix, items) => {
+    document.getElementById(containerId).innerHTML = items.map(ex => {
+      const id = `pd-ex-${prefix}-${ex.id}`;
+      return `<label class="exercise-pick-item" for="${id}">
+        <input type="checkbox" id="${id}" value="${ex.id}">
+        <a href="${ex.image}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+          <img src="${ex.image}" alt="${ex.name}" class="exercise-pick-thumb">
+        </a>
+        <span class="exercise-pick-info"><strong>${ex.name}</strong><span class="muted">${ex.reps}</span></span>
+      </label>`;
+    }).join("");
+  };
+  render("pd-strength-pick", "s", INDIVIDUAL_STRENGTH_EXERCISES);
+  render("pd-aerobic-pick", "a", INDIVIDUAL_AEROBIC_EXERCISES);
+}
+function getSelectedExercises() {
+  const pick = (prefix, items) => items.filter(ex => document.getElementById(`pd-ex-${prefix}-${ex.id}`).checked).map(ex => ex.id);
+  return { strength: pick("s", INDIVIDUAL_STRENGTH_EXERCISES), aerobic: pick("a", INDIVIDUAL_AEROBIC_EXERCISES) };
+}
+function applySelectedExercises(sel) {
+  const s = (sel && sel.strength) || [];
+  const a = (sel && sel.aerobic) || [];
+  INDIVIDUAL_STRENGTH_EXERCISES.forEach(ex => { document.getElementById(`pd-ex-s-${ex.id}`).checked = s.includes(ex.id); });
+  INDIVIDUAL_AEROBIC_EXERCISES.forEach(ex => { document.getElementById(`pd-ex-a-${ex.id}`).checked = a.includes(ex.id); });
+}
+renderExercisePicker();
+
 // ------- 運動プログラム（理学療法士監修・レベル1〜10） -------
 // 週の頻度目安: 週3〜4回（例: 月・水・金・土）、1回約15〜25分
 const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
@@ -1629,11 +1696,15 @@ function renderCurrentGoals(evals, profile) {
   const latest = dates.length ? evals[dates[dates.length - 1]] : null;
   const lv = latest && latest.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === latest.exerciseLevel) : null;
   const nutritionText = (latest && latest.nutritionAdvice && latest.nutritionAdvice.length) ? latest.nutritionAdvice.join("／") : "—";
+  const sel = (latest && latest.selectedExercises) || {};
+  const exNames = (ids, items) => (ids || []).map(id => { const ex = items.find(x => x.id === id); return ex ? ex.name : id; });
+  const individualText = [...exNames(sel.strength, INDIVIDUAL_STRENGTH_EXERCISES), ...exNames(sel.aerobic, INDIVIDUAL_AEROBIC_EXERCISES)];
   const rows = [
     ["体重目標", (latest && latest.goalWeight != null) ? `${latest.goalWeight}kg` : (profile.goalWeight != null ? `${profile.goalWeight}kg` : "—")],
     ["摂取カロリー目標", profile.goalKcal != null ? `${profile.goalKcal}kcal` : "—"],
     ["歩数目標", profile.goalSteps != null ? `${profile.goalSteps}歩` : "—"],
-    ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : "—"],
+    ["運動（個別選択）", individualText.length ? individualText.join("／") : "—"],
+    ["運動プログラム（レベル）", lv ? `レベル${lv.level}：${lv.title}` : "—"],
     ["栄養アドバイス", nutritionText],
   ];
   el.innerHTML = `
@@ -1648,15 +1719,27 @@ function renderPlanPrint(evals) {
   const latest = evals[dates[dates.length - 1]];
   const nutritionText = (latest.nutritionAdvice && latest.nutritionAdvice.length) ? latest.nutritionAdvice.join("／") : "—";
   const lv = latest.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === latest.exerciseLevel) : null;
+  const sel = latest.selectedExercises || {};
+  const strengthList = (sel.strength || []).map(id => INDIVIDUAL_STRENGTH_EXERCISES.find(x => x.id === id)).filter(Boolean);
+  const aerobicList = (sel.aerobic || []).map(id => INDIVIDUAL_AEROBIC_EXERCISES.find(x => x.id === id)).filter(Boolean);
+  const hasIndividual = strengthList.length || aerobicList.length;
   const rows = [
     ["来院日", fmtDate(latest.visitDate)],
     ["体重目標", latest.goalWeight != null ? `${latest.goalWeight}kg` : "—"],
     ["栄養アドバイス", nutritionText],
-    ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : "—"],
+    ["運動プログラム", lv ? `レベル${lv.level}：${lv.title}` : (hasIndividual ? "個別選択（下記参照）" : "—")],
     ["コメント", latest.doctorComment || "—"],
     ["次回来院予定", latest.nextVisitDate ? fmtDate(latest.nextVisitDate) : "—"],
   ];
   let html = `<table class="lab-table">${rows.map(([l, v]) => `<tr><td style="width:32%">${l}</td><td class="val" style="text-align:left">${v}</td></tr>`).join("")}</table>`;
+  if (hasIndividual) {
+    const cell = ex => `<div class="exercise-level-preview" style="margin-top:10px;">
+      <div class="elp-title">${ex.name}（${ex.reps}）</div>
+      <img src="${ex.image}" alt="${ex.name}の運動フォーム写真" class="elp-photo">
+      <p class="muted" style="font-size:.8rem;">${ex.point}</p>
+    </div>`;
+    html += strengthList.map(cell).join("") + aerobicList.map(cell).join("");
+  }
   if (lv) {
     const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
     html += `<div class="exercise-level-preview" style="margin-top:10px;">
@@ -1711,6 +1794,7 @@ function prefillEvalForm(evals, profile) {
   document.getElementById("pd-goal-steps").value = profile.goalSteps ?? "";
   document.getElementById("pd-comment").value = "";
   renderAdvicePicker(latest && latest.nutritionAdvice);
+  applySelectedExercises(latest && latest.selectedExercises);
   const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "";
   document.getElementById("pd-exercise-level").value = exLevel;
   renderExerciseLevelPreview(exLevel);
@@ -1738,6 +1822,7 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     doctorComment: document.getElementById("pd-comment").value.trim(),
     nutritionAdvice: getSelectedNutritionAdvice(),
     exerciseLevel: exerciseLevelValue,
+    selectedExercises: getSelectedExercises(),
     nextVisitDate,
     createdBy: demoMode ? "demo" : auth.currentUser.uid,
     createdAt: Date.now(),

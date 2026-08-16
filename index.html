@@ -2523,6 +2523,22 @@ function latestEval() {
   const dates = Object.keys(all).sort().reverse();
   return dates.length ? all[dates[0]] : null;
 }
+// ------- 運動を個別に選ぶ（筋トレ・有酸素運動、staff.htmlと同一データ） -------
+const INDIVIDUAL_STRENGTH_EXERCISES = [
+  { id: "wall-pushup", name: "ウォール・プッシュアップ（壁立て伏せ）", image: "exercise-images/l1-wall-pushup.jpg",
+    reps: "8〜10回×2セット", point: "壁に向かって立ち、腕立て伏せを行います。胸と腕の筋肉を刺激します。" },
+  { id: "chair-squat", name: "チェア・スクワット（椅子座り立ち）", image: "exercise-images/l1-chair-squat.jpg",
+    reps: "10回×2セット", point: "椅子の座面を利用し、立ち上がりと座りを繰り返します。太ももと下半身の強化に最適です。" },
+  { id: "hip-lift", name: "ヒップリフト", image: "exercise-images/l1-hip-lift.jpg",
+    reps: "10回×2セット", point: "仰向けで膝を立て、お尻を持ち上げます。お尻と裏ももの筋肉を刺激します。" },
+];
+const INDIVIDUAL_AEROBIC_EXERCISES = [
+  { id: "slow-step", name: "スロウ・その場足踏み", image: "exercise-images/l1-slow-step.jpg",
+    reps: "2分間×2セット", point: "腕をしっかり振りながら、無理のないペースでその場で足踏みをします。" },
+  { id: "front-toe-tap", name: "フロント・トゥタップ", image: "exercise-images/l1-front-toe-tap.jpg",
+    reps: "2分間×2セット", point: "立った状態で、交互にかかとを軸にしてつま先を軽く前にトントンとタッチします。" },
+];
+
 // ------- 運動プログラム（理学療法士監修・レベル1〜10、staff.htmlと同一データ） -------
 const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
 const EXERCISE_PROGRAM = [
@@ -2669,9 +2685,26 @@ function renderDoctorMessage() {
     nutritionCard.classList.add("hidden");
   }
 
-  // 先生が選んだ運動プログラムのレベル（患者は編集不可・表示のみ）
+  // 先生が選んだ運動（患者は編集不可・表示のみ）。個別選択があればそちらを優先し、
+  // なければ従来のレベル一括選択を表示する。
+  const sel = ev.selectedExercises || {};
+  const strengthList = (sel.strength || []).map(id => INDIVIDUAL_STRENGTH_EXERCISES.find(x => x.id === id)).filter(Boolean);
+  const aerobicList = (sel.aerobic || []).map(id => INDIVIDUAL_AEROBIC_EXERCISES.find(x => x.id === id)).filter(Boolean);
   const lv = ev.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === ev.exerciseLevel) : null;
-  if (lv) {
+  const exCard = (name, ex) => `
+      <p style="font-weight:700; color:var(--accent-dark); margin:10px 0 0;">${ex.name}（${ex.reps}）</p>
+      <a href="${ex.image}" target="_blank" rel="noopener" style="position:relative; display:block; margin:4px 0 6px;">
+        <img src="${ex.image}" alt="${ex.name}の運動フォーム写真" style="width:100%; height:auto; border-radius:10px; display:block;">
+        <span style="position:absolute; right:8px; bottom:8px; background:rgba(36,49,42,.72); color:#fff; font-size:.72rem; font-weight:700; padding:4px 9px; border-radius:999px;">🔍 タップで拡大表示</span>
+      </a>
+      <p style="font-size:.84rem; margin:0;">${ex.point}</p>`;
+  if (strengthList.length || aerobicList.length) {
+    exerciseCard.classList.remove("hidden");
+    let html = "";
+    if (strengthList.length) html += `<p style="font-weight:700; margin:0;">【筋トレ】</p>` + strengthList.map(ex => exCard("strength", ex)).join("");
+    if (aerobicList.length) html += `<p style="font-weight:700; margin:10px 0 0;">【有酸素運動】</p>` + aerobicList.map(ex => exCard("aerobic", ex)).join("");
+    document.getElementById("doctor-exercise-content").innerHTML = html;
+  } else if (lv) {
     exerciseCard.classList.remove("hidden");
     const list = items => `<ul style="margin:4px 0 0; padding-left:20px;">${items.map(it =>
       `<li style="margin-bottom:4px;"><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
