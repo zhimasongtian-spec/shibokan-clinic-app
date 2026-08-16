@@ -1350,13 +1350,10 @@ function addMeal(name, kcal, photo = null, tags = null) {
   renderMealPage();
   cheer("🍽", "記録しました！えらい！");
 }
-function mealMood(total, target, mealCount) {
+function mealMood(total, target) {
   if (!target || total === 0) return { em: "", cls: "", msg: "" };
   const ratio = total / target;
-  // 記録し始めでtotalが小さいのは当たり前なので、複数食記録されるまでは「少なすぎる」を出さない
-  if (ratio < 0.7) return mealCount >= 2
-    ? { em: "😟", cls: "over", msg: "食事量が少なすぎるかも" }
-    : { em: "", cls: "", msg: "" };
+  if (ratio < 0.7) return { em: "", cls: "", msg: "" };
   if (ratio <= 1.0) return { em: "😄", cls: "", msg: "腹八分目、ばっちりです！" };
   if (ratio <= 1.15) return { em: "😅", cls: "over", msg: "ちょっと多めかも" };
   return { em: "😮", cls: "over-hi", msg: "食べすぎに注意しましょう" };
@@ -1390,7 +1387,7 @@ function renderMealPage() {
   const total = rec.meals.reduce((s, m) => s + (m.kcal || 0), 0);
   const target = load(K.profile).goalKcal || null;
   const sumEl = document.getElementById("kcal-summary");
-  const mood = mealMood(total, target, rec.meals.length);
+  const mood = mealMood(total, target);
   sumEl.className = "kcal-summary" + (mood.cls ? " " + mood.cls : "");
   sumEl.innerHTML = `
     <div class="kcal-summary-top">
