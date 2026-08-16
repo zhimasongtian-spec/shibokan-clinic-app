@@ -393,17 +393,8 @@
       </select>
       <div id="pd-exercise-level-preview" class="exercise-level-preview"></div>
 
-      <label>次回来院</label>
-      <div class="seg-interval" id="pd-interval-seg">
-        <button type="button" data-interval="1m">1ヶ月</button>
-        <button type="button" data-interval="2m">2ヶ月</button>
-        <button type="button" data-interval="3m">3ヶ月</button>
-        <button type="button" data-interval="custom">日付指定</button>
-      </div>
-      <div id="pd-custom-date-wrap" class="hidden">
-        <label for="pd-custom-date">次回来院日</label>
-        <input type="date" id="pd-custom-date">
-      </div>
+      <label for="pd-custom-date">次回来院日</label>
+      <input type="date" id="pd-custom-date">
       <button class="btn" id="pd-save" style="margin-top:14px;">評価を保存</button>
       <p class="error" id="pd-error"></p>
       <p class="muted" id="pd-saved-msg" style="display:none;">保存しました</p>
@@ -777,12 +768,12 @@ function buildDemoStore() {
       [visitStart]: {
         type: "eval", visitDate: visitStart, goalWeight: 88,
         doctorComment: "かん活スタートです。まずは無理なく続けましょう",
-        nextVisitInterval: "3m", nextVisitDate: visit2,
+        nextVisitInterval: "12w", nextVisitDate: visit2,
       },
       [visit2]: {
         type: "eval", visitDate: visit2, goalWeight: 86,
         doctorComment: "検査値も改善しています。この調子で続けましょう",
-        nextVisitInterval: "3m", nextVisitDate: visitRecent,
+        nextVisitInterval: "12w", nextVisitDate: visitRecent,
       },
     },
     [DK.profile]: {
@@ -1648,15 +1639,6 @@ function renderPlanPrint(evals) {
   el.innerHTML = html;
 }
 
-let pdInterval = null;
-document.getElementById("pd-interval-seg").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return;
-  document.querySelectorAll("#pd-interval-seg button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on");
-  pdInterval = b.dataset.interval;
-  document.getElementById("pd-custom-date-wrap").classList.toggle("hidden", pdInterval !== "custom");
-});
-
 // 患者アプリの「目標設定」と同じ計算式で、体重目標・カロリー目標のおすすめを出す
 // （体重の-7%、標準体重×27kcal）。医師が数値を決める際の参考情報。
 // 患者がまだ体重を記録していない（新規登録直後など）場合は、その場で医師が
@@ -1701,9 +1683,6 @@ function prefillEvalForm(evals, profile) {
   const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "";
   document.getElementById("pd-exercise-level").value = exLevel;
   renderExerciseLevelPreview(exLevel);
-  document.querySelectorAll("#pd-interval-seg button").forEach(x => x.classList.remove("on"));
-  pdInterval = null;
-  document.getElementById("pd-custom-date-wrap").classList.add("hidden");
   document.getElementById("pd-custom-date").value = "";
   document.getElementById("pd-saved-msg").style.display = "none";
 }
@@ -1713,10 +1692,7 @@ document.getElementById("pd-save").addEventListener("click", async () => {
   errEl.style.display = "none";
   document.getElementById("pd-saved-msg").style.display = "none";
   const visitDate = todayStr();
-  if (!pdInterval) { errEl.textContent = "次回来院を選択してください"; errEl.style.display = "block"; return; }
-  const nextVisitDate = pdInterval === "custom"
-    ? document.getElementById("pd-custom-date").value
-    : addMonths(visitDate, Number(pdInterval[0]));
+  const nextVisitDate = document.getElementById("pd-custom-date").value;
   if (!nextVisitDate) { errEl.textContent = "次回来院日を入力してください"; errEl.style.display = "block"; return; }
 
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
@@ -1731,7 +1707,6 @@ document.getElementById("pd-save").addEventListener("click", async () => {
     doctorComment: document.getElementById("pd-comment").value.trim(),
     nutritionAdvice: getSelectedNutritionAdvice(),
     exerciseLevel: exerciseLevelValue,
-    nextVisitInterval: pdInterval,
     nextVisitDate,
     createdBy: demoMode ? "demo" : auth.currentUser.uid,
     createdAt: Date.now(),
