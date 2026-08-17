@@ -2081,9 +2081,10 @@ function renderExPage() {
   const dayKcal = rec.exercises.reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(rec.steps);
   document.getElementById("ex-kcal-summary").innerHTML =
     `<span>この日の合計</span><span><strong>${dayKcal.toLocaleString()}</strong> kcal</span>`;
-  // history within selected period
+  // history within選択期間（当日は記録途中のため対象外）
   const all = load(K.daily);
-  const exDates = Object.keys(all).filter(d => (all[d].exercises && all[d].exercises.length) || all[d].steps != null);
+  const today = todayStr();
+  const exDates = Object.keys(all).filter(d => d !== today && ((all[d].exercises && all[d].exercises.length) || all[d].steps != null));
   updateRangeSegDisabled("ex-range-seg", exDates);
   const cutoff = rangeCutoff(exRange);
   const days = exDates
