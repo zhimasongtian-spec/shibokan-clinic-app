@@ -2113,7 +2113,8 @@ function renderExPage() {
   const all = load(K.daily);
   const today = todayStr();
   const exDates = Object.keys(all).filter(d => d !== today && ((all[d].exercises && all[d].exercises.length) || all[d].steps != null));
-  updateRangeSegDisabled("ex-range-seg", exDates);
+  // グラフは常に全履歴を表示する仕様のため、期間ボタンはデータが1件も無いとき以外は無効化しない
+  document.querySelectorAll("#ex-range-seg button").forEach(btn => { btn.disabled = exDates.length === 0; });
   const cutoff = rangeCutoff(exRange);
   const days = exDates
     .filter(d => !cutoff || d >= cutoff)
