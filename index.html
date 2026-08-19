@@ -2087,10 +2087,11 @@ document.getElementById("ex-save").addEventListener("click", () => {
   renderExPage();
 });
 let exRange = "30";
+let exHistoryShowAll = false;
 document.getElementById("ex-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   document.querySelectorAll("#ex-range-seg button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); exRange = b.dataset.range; renderExPage();
+  b.classList.add("on"); exRange = b.dataset.range; exHistoryShowAll = false; renderExPage();
 });
 function renderExPage() {
   const dateEl = document.getElementById("ex-date");
@@ -2197,7 +2198,7 @@ function renderExPage() {
     chartPoints,
     chartOpts
   );
-  const shown = days.slice(0, 10);
+  const shown = exHistoryShowAll ? days : days.slice(0, 10);
   document.getElementById("ex-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
     : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>歩数</th><th>消費kcal</th></tr>' + shown.map(d => {
@@ -2209,7 +2210,11 @@ function renderExPage() {
       const kc = dayTotalKcal(d);
       return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td><td>${kc || "—"}</td></tr>`;
     }).join("") + "</table>" +
-      (days.length > shown.length ? `<p class="muted" style="margin-top:6px; font-size:.78rem;">直近${shown.length}件を表示（期間内は${days.length}件）</p>` : "");
+      (days.length > shown.length
+        ? `<button class="btn small secondary" id="ex-history-more" style="margin-top:8px;">もっと見る（あと${days.length - shown.length}件）</button>`
+        : "");
+  const moreBtn = document.getElementById("ex-history-more");
+  if (moreBtn) moreBtn.addEventListener("click", () => { exHistoryShowAll = true; renderExPage(); });
 }
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
