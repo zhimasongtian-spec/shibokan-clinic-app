@@ -1172,8 +1172,7 @@ function isMobileDevice() {
 function rangeCutoff(range) {
   if (range === "all") return null;
   if (range === "ytd") return new Date().getFullYear() + "-01-01";
-  const c = new Date(); c.setDate(c.getDate() - Number(range));
-  return c.toISOString().slice(0, 10);
+  return todayStr(-Number(range));
 }
 function updateRangeSegDisabled(containerId, dates, minCount = 1) {
   const earliest = dates.length ? dates.reduce((a, b) => a < b ? a : b) : null;
@@ -2146,7 +2145,7 @@ function renderExPage() {
     chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
     chartOpts.monthly = true;
   } else {
-    const chartDays = exDays.slice(0, 90).reverse();
+    const chartDays = exDays.slice().reverse();
     chartPoints = chartDays.map(d => ({ x: d, y: dayTotalKcal(d) }));
     chartOpts.dowLabels = exRange === "7";
   }
