@@ -1183,6 +1183,7 @@ function updateRangeSegDisabled(containerId, dates, minCount = 1) {
 }
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
+function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
   if (!birthdate || !dateStr) return null;
@@ -2134,7 +2135,7 @@ function renderExPage() {
     document.getElementById("ex-chart-wrap"),
     document.getElementById("ex-chart-tooltip"),
     chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })),
-    { color: "#3a7ca5", yUnit: "kcal" }
+    { color: "#3a7ca5", yUnit: "kcal", dowLabels: exRange === "7" }
   );
   const shown = days.slice(0, 10);
   document.getElementById("ex-history").innerHTML = days.length === 0
@@ -2477,7 +2478,8 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     const cx = bandW * (i + 0.5);
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
-    el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDateShort(p.x)}</text>`;
+    const lbl = opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+    el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${lbl}</text>`;
     el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
   });
   barsSvg.innerHTML = el;
