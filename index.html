@@ -2132,11 +2132,15 @@ function renderExPage() {
         <div class="lbl">${fmtDate(periodStart)} 〜 ${fmtDate(periodEnd)}</div>
       </div>
     </div>`;
+  // グラフ本体は選択期間で絞り込まず、記録開始日からの全履歴をスクロールで
+  // 見られるようにする（期間ボタンは日別/月別の粒度切り替えのみに使う）
+  const allExDays = exDates.filter(d => dayTotalKcal(d) > 0).sort();
   let chartPoints, chartOpts = { color: "#3a7ca5", yUnit: "kcal" };
   if (exRange === "365") {
     // 年表示は日別ではなく月ごとの1日平均で集計する
     const monthMap = {};
-    for (let d = periodStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
+    const historyStart = allExDays.length ? allExDays[0] : periodEnd;
+    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotalKcal(d);
@@ -2145,8 +2149,7 @@ function renderExPage() {
     chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
     chartOpts.monthly = true;
   } else {
-    const chartDays = exDays.slice().reverse();
-    chartPoints = chartDays.map(d => ({ x: d, y: dayTotalKcal(d) }));
+    chartPoints = allExDays.map(d => ({ x: d, y: dayTotalKcal(d) }));
     chartOpts.dowLabels = exRange === "7";
   }
   drawBarSvgScroll(
