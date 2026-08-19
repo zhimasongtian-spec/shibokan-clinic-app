@@ -2127,8 +2127,6 @@ function renderExPage() {
   const all = load(K.daily);
   const today = todayStr();
   const exDates = Object.keys(all).filter(d => d !== today && ((all[d].exercises && all[d].exercises.length) || all[d].steps != null));
-  // グラフは常に全履歴を表示する仕様のため、期間ボタンはデータが1件も無いとき以外は無効化しない
-  document.querySelectorAll("#ex-range-seg button").forEach(btn => { btn.disabled = exDates.length === 0; });
   const cutoff = rangeCutoff(exRange);
   const days = exDates
     .filter(d => !cutoff || d >= cutoff)
@@ -2150,14 +2148,20 @@ function renderExPage() {
   // グラフ本体は選択期間で絞り込まず、記録開始日からの全履歴をスクロールで
   // 見られるようにする（期間ボタンは日別/月別の粒度切り替えのみに使う）。
   // 曜日・日付が連続するよう、運動していない日も0kcalとして含める。
-  const historyStart = exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : periodEnd;
+  // グラフは保存直後に反映されてほしいので当日も含める（上部の平均値は
+  // 記録が完了した日のみを対象にするため、引き続き当日を除く）。
+  const chartEnd = todayStr();
+  const hasAnyChartData = exDates.length > 0 || dayTotalKcal(chartEnd) > 0;
+  // グラフは常に全履歴を表示する仕様のため、期間ボタンはデータが1件も無いとき以外は無効化しない
+  document.querySelectorAll("#ex-range-seg button").forEach(btn => { btn.disabled = !hasAnyChartData; });
+  const historyStart = exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : chartEnd;
   let chartPoints, chartOpts = { color: "#3a7ca5", yUnit: "kcal" };
-  if (exDates.length === 0) {
+  if (!hasAnyChartData) {
     chartPoints = [];
   } else if (exRange === "365") {
     // 年表示は日別ではなく月ごとの1日平均で集計する
     const monthMap = {};
-    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotalKcal(d);
@@ -2169,7 +2173,7 @@ function renderExPage() {
   } else if (exRange === "90" || exRange === "180") {
     // 3か月・6か月は日別だと細くなりすぎるため、週ごとの合計で集計する
     const weekMap = {};
-    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
       const ws = weekStartStr(d);
       weekMap[ws] = (weekMap[ws] || 0) + dayTotalKcal(d);
     }
@@ -2179,7 +2183,7 @@ function renderExPage() {
   } else {
     // 週・月は日別
     chartPoints = [];
-    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotalKcal(d) });
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotalKcal(d) });
     chartOpts.dowLabels = exRange === "7";
     chartOpts.fitCount = Number(exRange);
   }
