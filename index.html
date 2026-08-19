@@ -2087,11 +2087,11 @@ document.getElementById("ex-save").addEventListener("click", () => {
   renderExPage();
 });
 let exRange = "30";
-let exHistoryShowAll = false;
+let exHistoryShownCount = 10;
 document.getElementById("ex-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   document.querySelectorAll("#ex-range-seg button").forEach(x => x.classList.remove("on"));
-  b.classList.add("on"); exRange = b.dataset.range; exHistoryShowAll = false; renderExPage();
+  b.classList.add("on"); exRange = b.dataset.range; exHistoryShownCount = 10; renderExPage();
 });
 function renderExPage() {
   const dateEl = document.getElementById("ex-date");
@@ -2200,7 +2200,7 @@ function renderExPage() {
   );
   // 履歴表は選択期間で絞り込まず、グラフと同様に全履歴を対象にする
   const allDaysSorted = exDates.slice().sort().reverse();
-  const shown = exHistoryShowAll ? allDaysSorted : allDaysSorted.slice(0, 10);
+  const shown = allDaysSorted.slice(0, exHistoryShownCount);
   document.getElementById("ex-history").innerHTML = allDaysSorted.length === 0
     ? '<p class="empty-note">まだ運動の記録がありません</p>'
     : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>歩数</th><th>消費kcal</th></tr>' + shown.map(d => {
@@ -2216,7 +2216,7 @@ function renderExPage() {
         ? `<button class="btn small secondary" id="ex-history-more" style="margin-top:8px;">もっと見る（あと${allDaysSorted.length - shown.length}件）</button>`
         : "");
   const moreBtn = document.getElementById("ex-history-more");
-  if (moreBtn) moreBtn.addEventListener("click", () => { exHistoryShowAll = true; renderExPage(); });
+  if (moreBtn) moreBtn.addEventListener("click", () => { exHistoryShownCount += 10; renderExPage(); });
 }
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
