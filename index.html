@@ -284,10 +284,20 @@
   .v-warn-note.bad { color: var(--danger); font-weight: 700; }
 
   .chart-svg { width: 100%; height: auto; display: block; }
-  .bar-chart-wrap { display: flex; align-items: stretch; }
+  .bar-chart-wrap { display: flex; align-items: stretch; position: relative; }
   .chart-axis-svg { flex: none; width: 54px; height: auto; display: block; }
   .bar-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .chart-bars-svg { height: auto; display: block; }
+  .chart-tooltip {
+    position: absolute; display: none; pointer-events: none; z-index: 5;
+    background: #33403a; color: #fff; font-size: .78rem; font-weight: 700;
+    padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+    transform: translate(-50%, -100%); margin-top: -8px;
+  }
+  .chart-tooltip::after {
+    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #33403a;
+  }
   .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
 
   .cheer {
@@ -719,11 +729,12 @@
         <button data-range="365">年</button>
       </div>
       <div id="ex-history-summary"></div>
-      <div class="bar-chart-wrap">
+      <div class="bar-chart-wrap" id="ex-chart-wrap">
         <svg id="ex-chart-axis" class="chart-axis-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         <div class="bar-chart-scroll" id="ex-chart-scroll">
           <svg id="ex-chart" class="chart-bars-svg" xmlns="http://www.w3.org/2000/svg"></svg>
         </div>
+        <div class="chart-tooltip" id="ex-chart-tooltip"></div>
       </div>
       <div id="ex-history"></div>
     </div>
@@ -2105,15 +2116,23 @@ function renderExPage() {
   const exDays = days.filter(d => dayTotalKcal(d) > 0);
   const periodKcal = exDays.reduce((s, d) => s + dayTotalKcal(d), 0);
   const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
+  const periodStart = cutoff || (exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : todayStr(-1));
+  const periodEnd = todayStr(-1);
   document.getElementById("ex-history-summary").innerHTML = days.length === 0 ? "" : `
     <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
-      <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均（${exDays.length}日分）</div></div>
+      <div class="stat blue">
+        <div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div>
+        <div class="lbl">1日の平均（運動した日 ${exDays.length}日分）</div>
+        <div class="lbl">${fmtDate(periodStart)} 〜 ${fmtDate(periodEnd)}</div>
+      </div>
     </div>`;
   const chartDays = exDays.slice(0, 90).reverse();
   drawBarSvgScroll(
     document.getElementById("ex-chart-axis"),
     document.getElementById("ex-chart"),
     document.getElementById("ex-chart-scroll"),
+    document.getElementById("ex-chart-wrap"),
+    document.getElementById("ex-chart-tooltip"),
     chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })),
     { color: "#3a7ca5", yUnit: "kcal" }
   );
@@ -2412,10 +2431,20 @@ function drawBarSvg(svg, points, opts) {
   if (n > 1) el += `<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="14" fill="#6b7a72">${fmtDate(points[n - 1].x)}</text>`;
   svg.innerHTML = el;
 }
-function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, points, opts) {
+function hideChartTooltip(tooltipEl) { tooltipEl.style.display = "none"; }
+function showChartTooltip(tooltipEl, wrapEl, barEl, label) {
+  const wrapBox = wrapEl.getBoundingClientRect();
+  const barBox = barEl.getBoundingClientRect();
+  tooltipEl.style.left = (barBox.left + barBox.width / 2 - wrapBox.left) + "px";
+  tooltipEl.style.top = (barBox.top - wrapBox.top) + "px";
+  tooltipEl.textContent = label;
+  tooltipEl.style.display = "block";
+}
+function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points, opts) {
   opts = opts || {};
   const H = 320, padT = 40, padB = 38, axisW = 54;
   axisSvg.setAttribute("viewBox", `0 0 ${axisW} ${H}`);
+  hideChartTooltip(tooltipEl);
   if (points.length === 0) {
     axisSvg.innerHTML = "";
     barsSvg.setAttribute("viewBox", "0 0 300 320");
@@ -2449,9 +2478,25 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, points, opts) {
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
     el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDateShort(p.x)}</text>`;
+    el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
   });
   barsSvg.innerHTML = el;
   scrollEl.scrollLeft = scrollEl.scrollWidth;
+  barsSvg.querySelectorAll(".bar-hit").forEach(hit => {
+    hit.style.cursor = "pointer";
+    hit.addEventListener("click", e => {
+      e.stopPropagation();
+      const p = points[Number(hit.dataset.i)];
+      showChartTooltip(tooltipEl, wrapEl, hit, `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`);
+    });
+  });
+  if (!scrollEl.dataset.tooltipBound) {
+    scrollEl.dataset.tooltipBound = "1";
+    scrollEl.addEventListener("scroll", () => hideChartTooltip(tooltipEl));
+    document.addEventListener("click", e => {
+      if (!wrapEl.contains(e.target)) hideChartTooltip(tooltipEl);
+    });
+  }
 }
 function renderChart() {
   const svg = document.getElementById("chart");
