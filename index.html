@@ -2556,9 +2556,14 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     const cx = bandW * (i + 0.5);
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
-    if (i === points.length - 1 || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
+    const isFirst = i === 0;
+    const isLast = i === points.length - 1;
+    if (isLast || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
       const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
-      el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${lbl}</text>`;
+      // 先頭・末尾のラベルは中央揃えだとグラフ領域の外にはみ出して切れるため、内側寄せにする
+      const anchor = isFirst ? "start" : isLast ? "end" : "middle";
+      const lx = isFirst ? Math.max(cx - barW / 2, 0) : isLast ? Math.min(cx + barW / 2, totalW) : cx;
+      el += `<text x="${lx}" y="${H - 8}" text-anchor="${anchor}" font-size="11" fill="#6b7a72">${lbl}</text>`;
     }
     el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
   });
