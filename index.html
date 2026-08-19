@@ -1189,6 +1189,13 @@ function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/
 function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
 function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
 function fmtMonthLabel(ym) { const [, m] = ym.split("-"); return `${Number(m)}月`; }
+function weekStartStr(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const dow = dt.getDay();
+  dt.setDate(dt.getDate() - (dow === 0 ? 6 : dow - 1));
+  return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+}
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
   if (!birthdate || !dateStr) return null;
@@ -2151,11 +2158,23 @@ function renderExPage() {
     }
     chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
     chartOpts.monthly = true;
+    chartOpts.fitCount = 12;
+  } else if (exRange === "90" || exRange === "180") {
+    // 3か月・6か月は日別だと細くなりすぎるため、週ごとの合計で集計する
+    const weekMap = {};
+    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
+      const ws = weekStartStr(d);
+      weekMap[ws] = (weekMap[ws] || 0) + dayTotalKcal(d);
+    }
+    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
+    chartOpts.weekly = true;
+    chartOpts.fitCount = Math.ceil(Number(exRange) / 7);
   } else {
+    // 週・月は日別
     chartPoints = [];
     for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotalKcal(d) });
     chartOpts.dowLabels = exRange === "7";
-    if (exRange === "7") chartOpts.fitCount = 7;
+    chartOpts.fitCount = Number(exRange);
   }
   drawBarSvgScroll(
     document.getElementById("ex-chart-axis"),
@@ -2521,6 +2540,8 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
       const p = points[Number(hit.dataset.i)];
       const label = opts.monthly
         ? `${fmtMonthLabel(p.x)}の平均　${p.y.toLocaleString()}${opts.yUnit || ""}`
+        : opts.weekly
+        ? `${fmtDate(p.x)}の週　合計 ${p.y.toLocaleString()}${opts.yUnit || ""}`
         : `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`;
       showChartTooltip(tooltipEl, wrapEl, hit, label);
     });
