@@ -2134,13 +2134,15 @@ function renderExPage() {
       </div>
     </div>`;
   // グラフ本体は選択期間で絞り込まず、記録開始日からの全履歴をスクロールで
-  // 見られるようにする（期間ボタンは日別/月別の粒度切り替えのみに使う）
-  const allExDays = exDates.filter(d => dayTotalKcal(d) > 0).sort();
+  // 見られるようにする（期間ボタンは日別/月別の粒度切り替えのみに使う）。
+  // 曜日・日付が連続するよう、運動していない日も0kcalとして含める。
+  const historyStart = exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : periodEnd;
   let chartPoints, chartOpts = { color: "#3a7ca5", yUnit: "kcal" };
-  if (exRange === "365") {
+  if (exDates.length === 0) {
+    chartPoints = [];
+  } else if (exRange === "365") {
     // 年表示は日別ではなく月ごとの1日平均で集計する
     const monthMap = {};
-    const historyStart = allExDays.length ? allExDays[0] : periodEnd;
     for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
@@ -2150,8 +2152,10 @@ function renderExPage() {
     chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
     chartOpts.monthly = true;
   } else {
-    chartPoints = allExDays.map(d => ({ x: d, y: dayTotalKcal(d) }));
+    chartPoints = [];
+    for (let d = historyStart; d <= periodEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotalKcal(d) });
     chartOpts.dowLabels = exRange === "7";
+    if (exRange === "7") chartOpts.fitCount = 7;
   }
   drawBarSvgScroll(
     document.getElementById("ex-chart-axis"),
@@ -2482,9 +2486,10 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
   const maxY = ticks[ticks.length - 1];
   const y = v => padT + (1 - v / maxY) * (H - padT - padB);
   const n = points.length;
-  const bandW = 40;
-  const barW = Math.min(bandW * 0.6, 26);
   const minW = (scrollEl.clientWidth || 300);
+  // 週表示は、画面にちょうど7本収まるようバー幅を画面幅から逆算する
+  const bandW = opts.fitCount ? minW / opts.fitCount : 40;
+  const barW = Math.min(bandW * 0.6, 26);
   const totalW = Math.max(n * bandW, minW);
 
   let axisHtml = opts.yUnit ? `<text x="4" y="18" font-size="13" fill="#6b7a72">${opts.yUnit}</text>` : "";
