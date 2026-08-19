@@ -1157,6 +1157,11 @@ function todayStr(offset = 0) {
   const d = new Date(); d.setDate(d.getDate() + offset);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
+function dateStrAdd(s, days) {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d); dt.setDate(dt.getDate() + days);
+  return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+}
 function nowTimeStr() {
   const d = new Date();
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
@@ -1184,6 +1189,7 @@ function updateRangeSegDisabled(containerId, dates, minCount = 1) {
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
 function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
+function fmtMonthLabel(ym) { const [, m] = ym.split("-"); return `${Number(m)}月`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
   if (!birthdate || !dateStr) return null;
@@ -2113,7 +2119,7 @@ function renderExPage() {
   const days = exDates
     .filter(d => !cutoff || d >= cutoff)
     .sort().reverse();
-  const dayTotalKcal = d => (all[d].exercises || []).reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(all[d].steps);
+  const dayTotalKcal = d => { const r = all[d]; return r ? (r.exercises || []).reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(r.steps) : 0; };
   const exDays = days.filter(d => dayTotalKcal(d) > 0);
   const periodKcal = exDays.reduce((s, d) => s + dayTotalKcal(d), 0);
   const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
@@ -2127,15 +2133,31 @@ function renderExPage() {
         <div class="lbl">${fmtDate(periodStart)} 〜 ${fmtDate(periodEnd)}</div>
       </div>
     </div>`;
-  const chartDays = exDays.slice(0, 90).reverse();
+  let chartPoints, chartOpts = { color: "#3a7ca5", yUnit: "kcal" };
+  if (exRange === "365") {
+    // 年表示は日別ではなく月ごとの1日平均で集計する
+    const monthMap = {};
+    for (let d = periodStart; d <= periodEnd; d = dateStrAdd(d, 1)) {
+      const ym = d.slice(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
+      monthMap[ym].sum += dayTotalKcal(d);
+      monthMap[ym].count++;
+    }
+    chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
+    chartOpts.monthly = true;
+  } else {
+    const chartDays = exDays.slice(0, 90).reverse();
+    chartPoints = chartDays.map(d => ({ x: d, y: dayTotalKcal(d) }));
+    chartOpts.dowLabels = exRange === "7";
+  }
   drawBarSvgScroll(
     document.getElementById("ex-chart-axis"),
     document.getElementById("ex-chart"),
     document.getElementById("ex-chart-scroll"),
     document.getElementById("ex-chart-wrap"),
     document.getElementById("ex-chart-tooltip"),
-    chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })),
-    { color: "#3a7ca5", yUnit: "kcal", dowLabels: exRange === "7" }
+    chartPoints,
+    chartOpts
   );
   const shown = days.slice(0, 10);
   document.getElementById("ex-history").innerHTML = days.length === 0
@@ -2478,7 +2500,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     const cx = bandW * (i + 0.5);
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
-    const lbl = opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+    const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
     el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${lbl}</text>`;
     el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
   });
@@ -2489,7 +2511,10 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     hit.addEventListener("click", e => {
       e.stopPropagation();
       const p = points[Number(hit.dataset.i)];
-      showChartTooltip(tooltipEl, wrapEl, hit, `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`);
+      const label = opts.monthly
+        ? `${fmtMonthLabel(p.x)}の平均　${p.y.toLocaleString()}${opts.yUnit || ""}`
+        : `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`;
+      showChartTooltip(tooltipEl, wrapEl, hit, label);
     });
   });
   if (!scrollEl.dataset.tooltipBound) {
