@@ -284,6 +284,10 @@
   .v-warn-note.bad { color: var(--danger); font-weight: 700; }
 
   .chart-svg { width: 100%; height: auto; display: block; }
+  .bar-chart-wrap { display: flex; align-items: stretch; }
+  .chart-axis-svg { flex: none; width: 54px; height: auto; display: block; }
+  .bar-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .chart-bars-svg { height: auto; display: block; }
   .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
 
   .cheer {
@@ -716,7 +720,12 @@
         <button data-range="all">全期間</button>
       </div>
       <div id="ex-history-summary"></div>
-      <svg id="ex-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="bar-chart-wrap">
+        <svg id="ex-chart-axis" class="chart-axis-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="bar-chart-scroll" id="ex-chart-scroll">
+          <svg id="ex-chart" class="chart-bars-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+      </div>
       <div id="ex-history"></div>
     </div>
   </section>
@@ -1163,6 +1172,7 @@ function updateRangeSegDisabled(containerId, dates, minCount = 1) {
   });
 }
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
+function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
 function ageAtDate(birthdate, dateStr) {
   if (!birthdate || !dateStr) return null;
@@ -2100,8 +2110,14 @@ function renderExPage() {
     <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
       <div class="stat blue"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">運動した日の1日平均（${exDays.length}日分）</div></div>
     </div>`;
-  const chartDays = exDays.slice(0, 30).reverse();
-  drawBarSvg(document.getElementById("ex-chart"), chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })), { color: "#3a7ca5", yUnit: "kcal" });
+  const chartDays = exDays.slice(0, 90).reverse();
+  drawBarSvgScroll(
+    document.getElementById("ex-chart-axis"),
+    document.getElementById("ex-chart"),
+    document.getElementById("ex-chart-scroll"),
+    chartDays.map(d => ({ x: d, y: dayTotalKcal(d) })),
+    { color: "#3a7ca5", yUnit: "kcal" }
+  );
   const shown = days.slice(0, 10);
   document.getElementById("ex-history").innerHTML = days.length === 0
     ? '<p class="empty-note">この期間の記録はまだありません</p>'
@@ -2396,6 +2412,47 @@ function drawBarSvg(svg, points, opts) {
   el += `<text x="${padL}" y="${H - 8}" text-anchor="start" font-size="14" fill="#6b7a72">${fmtDate(points[0].x)}</text>`;
   if (n > 1) el += `<text x="${W - padR}" y="${H - 8}" text-anchor="end" font-size="14" fill="#6b7a72">${fmtDate(points[n - 1].x)}</text>`;
   svg.innerHTML = el;
+}
+function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, points, opts) {
+  opts = opts || {};
+  const H = 320, padT = 40, padB = 38, axisW = 54;
+  axisSvg.setAttribute("viewBox", `0 0 ${axisW} ${H}`);
+  if (points.length === 0) {
+    axisSvg.innerHTML = "";
+    barsSvg.setAttribute("viewBox", "0 0 300 320");
+    barsSvg.removeAttribute("width");
+    barsSvg.innerHTML = '<text x="150" y="160" text-anchor="middle" fill="#6b7a72" font-size="15">記録がたまるとグラフが表示されます</text>';
+    return;
+  }
+  const ticks = niceAxisTicks(0, Math.max(...points.map(p => p.y), 1) * 1.08);
+  const maxY = ticks[ticks.length - 1];
+  const y = v => padT + (1 - v / maxY) * (H - padT - padB);
+  const n = points.length;
+  const bandW = 40;
+  const barW = Math.min(bandW * 0.6, 26);
+  const minW = (scrollEl.clientWidth || 300);
+  const totalW = Math.max(n * bandW, minW);
+
+  let axisHtml = opts.yUnit ? `<text x="4" y="18" font-size="13" fill="#6b7a72">${opts.yUnit}</text>` : "";
+  ticks.forEach(v => {
+    axisHtml += `<text x="${axisW - 8}" y="${y(v) + 5}" text-anchor="end" font-size="15" fill="#6b7a72">${v.toLocaleString()}</text>`;
+  });
+  axisSvg.innerHTML = axisHtml;
+
+  barsSvg.setAttribute("viewBox", `0 0 ${totalW} ${H}`);
+  barsSvg.setAttribute("width", totalW);
+  let el = "";
+  ticks.forEach(v => {
+    el += `<line x1="0" y1="${y(v)}" x2="${totalW}" y2="${y(v)}" stroke="#e2e9e5"/>`;
+  });
+  points.forEach((p, i) => {
+    const cx = bandW * (i + 0.5);
+    const barY = y(p.y);
+    el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
+    el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${fmtDateShort(p.x)}</text>`;
+  });
+  barsSvg.innerHTML = el;
+  scrollEl.scrollLeft = scrollEl.scrollWidth;
 }
 function renderChart() {
   const svg = document.getElementById("chart");
