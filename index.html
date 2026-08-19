@@ -2495,10 +2495,17 @@ function hideChartTooltip(tooltipEl) { tooltipEl.style.display = "none"; }
 function showChartTooltip(tooltipEl, wrapEl, barEl, label) {
   const wrapBox = wrapEl.getBoundingClientRect();
   const barBox = barEl.getBoundingClientRect();
-  tooltipEl.style.left = (barBox.left + barBox.width / 2 - wrapBox.left) + "px";
-  tooltipEl.style.top = (barBox.top - wrapBox.top) + "px";
   tooltipEl.textContent = label;
   tooltipEl.style.display = "block";
+  tooltipEl.style.left = "0px";
+  const tipWidth = tooltipEl.getBoundingClientRect().width;
+  const halfTip = tipWidth / 2;
+  const desiredLeft = barBox.left + barBox.width / 2 - wrapBox.left;
+  const minLeft = halfTip + 4;
+  const maxLeft = wrapBox.width - halfTip - 4;
+  const left = Math.max(minLeft, Math.min(desiredLeft, maxLeft));
+  tooltipEl.style.left = left + "px";
+  tooltipEl.style.top = (barBox.top - wrapBox.top) + "px";
 }
 function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points, opts) {
   opts = opts || {};
@@ -2534,12 +2541,17 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
   ticks.forEach(v => {
     el += `<line x1="0" y1="${y(v)}" x2="${totalW}" y2="${y(v)}" stroke="#e2e9e5"/>`;
   });
+  // ラベルが重ならないよう、バー幅が狭いときは間引いて表示する
+  const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
+  const labelStep = Math.max(1, Math.ceil((labelCharCount * 7 + 6) / bandW));
   points.forEach((p, i) => {
     const cx = bandW * (i + 0.5);
     const barY = y(p.y);
     el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
-    const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
-    el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${lbl}</text>`;
+    if (i === points.length - 1 || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
+      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+      el += `<text x="${cx}" y="${H - 8}" text-anchor="middle" font-size="11" fill="#6b7a72">${lbl}</text>`;
+    }
     el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
   });
   barsSvg.innerHTML = el;
