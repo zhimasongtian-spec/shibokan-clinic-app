@@ -1189,6 +1189,7 @@ function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/
 function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
 function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
 function fmtMonthLabel(ym) { const [, m] = ym.split("-"); return `${Number(m)}月`; }
+function fmtYearMonthLabel(ym) { const [y, m] = ym.split("-"); return `${y}年${Number(m)}月`; }
 function weekStartStr(s) {
   const [y, m, d] = s.split("-").map(Number);
   const dt = new Date(y, m - 1, d);
@@ -2562,7 +2563,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
       e.stopPropagation();
       const p = points[Number(hit.dataset.i)];
       const label = opts.monthly
-        ? `${fmtMonthLabel(p.x)}の平均　${p.y.toLocaleString()}${opts.yUnit || ""}`
+        ? `${fmtYearMonthLabel(p.x)}の平均　${p.y.toLocaleString()}${opts.yUnit || ""}`
         : opts.weekly
         ? `${fmtWeekRange(p.x)}　合計 ${p.y.toLocaleString()}${opts.yUnit || ""}`
         : `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`;
