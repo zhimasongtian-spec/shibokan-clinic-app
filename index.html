@@ -860,8 +860,8 @@ function seedGuestDemoData() {
   const round1 = n => Math.round(n * 10) / 10;
 
   const daily = {};
-  for (let i = 90; i >= 0; ) {
-    const progress = (90 - i) / 90; // 0(開始)〜1(今日)
+  for (let i = 400; i >= 0; ) {
+    const progress = (400 - i) / 400; // 0(開始)〜1(今日)
     const d = todayStr(-i);
     const weight = round1(92.0 - 4.5 * progress + rnd(-0.4, 0.4));
     const steps = Math.round(6000 + 3200 * progress + rnd(-800, 800));
