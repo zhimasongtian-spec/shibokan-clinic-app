@@ -2213,7 +2213,7 @@ function renderExPage() {
       return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td><td>${kc || "—"}</td></tr>`;
     }).join("") + "</table>" +
       (allDaysSorted.length > shown.length
-        ? `<button class="btn small secondary" id="ex-history-more" style="margin-top:8px;">もっと見る（あと${allDaysSorted.length - shown.length}件）</button>`
+        ? `<button class="btn small secondary" id="ex-history-more" style="margin-top:8px;">さらに${Math.min(10, allDaysSorted.length - shown.length)}件を表示（残り${allDaysSorted.length - shown.length}件）</button>`
         : "");
   const moreBtn = document.getElementById("ex-history-more");
   if (moreBtn) moreBtn.addEventListener("click", () => { exHistoryShownCount += 10; renderExPage(); });
