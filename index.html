@@ -877,6 +877,24 @@ const save = (k, v) => {
 function seedGuestDemoData() {
   const rnd = (min, max) => Math.random() * (max - min) + min;
   const round1 = n => Math.round(n * 10) / 10;
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const randTime = (hMin, hMax) => {
+    const h = Math.floor(rnd(hMin, hMax));
+    const m = Math.floor(rnd(0, 60));
+    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+  };
+  const BREAKFAST = ["トースト", "ご飯と味噌汁", "オムレツ", "シリアル", "おにぎり", "パンとヨーグルト"];
+  const LUNCH = ["社員食堂の定食", "コンビニ弁当", "うどん", "パスタ", "牛丼", "サンドイッチ"];
+  const DINNER = ["焼き魚定食", "カレーライス", "鍋料理", "唐揚げ定食", "野菜炒め定食", "焼肉"];
+  const SNACK = ["コーヒー", "チョコレート", "おせんべい", "アイスクリーム", "ポテトチップス", "菓子パン"];
+  const genMeals = kcalBase => {
+    const meals = [];
+    if (Math.random() < 0.88) meals.push({ name: pick(BREAKFAST), kcal: Math.round(kcalBase * 0.28 + rnd(-60, 60)), time: randTime(6, 9.5) });
+    if (Math.random() < 0.95) meals.push({ name: pick(LUNCH), kcal: Math.round(kcalBase * 0.34 + rnd(-60, 60)), time: randTime(11.5, 13.5) });
+    if (Math.random() < 0.95) meals.push({ name: pick(DINNER), kcal: Math.round(kcalBase * 0.38 + rnd(-60, 60)), time: randTime(18, 21) });
+    if (Math.random() < 0.3) meals.push({ name: pick(SNACK), kcal: Math.round(rnd(50, 250)), time: randTime(14, 23), tags: ["snack"] });
+    return meals;
+  };
 
   const daily = {};
   for (let i = 400; i >= 0; ) {
@@ -885,18 +903,14 @@ function seedGuestDemoData() {
     const weight = round1(92.0 - 4.5 * progress + rnd(-0.4, 0.4));
     const steps = Math.round(6000 + 3200 * progress + rnd(-800, 800));
     const kcalBase = 2050 - 380 * progress;
-    const meals = [
-      { name: "朝食", kcal: Math.round(kcalBase * 0.28 + rnd(-40, 40)), time: "07:30" },
-      { name: "昼食", kcal: Math.round(kcalBase * 0.34 + rnd(-40, 40)), time: "12:30" },
-      { name: "夕食", kcal: Math.round(kcalBase * 0.38 + rnd(-40, 40)), time: "19:00" },
-    ];
+    const meals = genMeals(kcalBase);
     const exercises = Math.random() < 0.55 ? [{ name: "ウォーキング", min: Math.round(rnd(15, 40)), kcal: Math.round(rnd(80, 200)) }] : [];
     daily[d] = { weight, steps, meals, exercises };
     i -= Math.round(rnd(2, 4));
   }
   daily[todayStr(-1)] = {
     weight: round1(87.5 + rnd(-0.3, 0.3)), steps: Math.round(9200 + rnd(-500, 500)),
-    meals: [{ name: "朝食", kcal: 480, time: "07:30" }, { name: "昼食", kcal: 620, time: "12:30" }, { name: "夕食", kcal: 560, time: "19:00" }],
+    meals: genMeals(1670),
     exercises: [{ name: "ウォーキング", min: 25, kcal: 130 }],
   };
 
