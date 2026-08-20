@@ -623,17 +623,22 @@
     <div class="card">
       <h2>食事カロリー履歴</h2>
       <div class="seg" id="meal-range-seg">
-        <button data-range="30" class="on">1か月</button>
+        <button data-range="7">週</button>
+        <button data-range="30" class="on">月</button>
         <button data-range="90">3か月</button>
-        <button data-range="180">半年</button>
-        <button data-range="365">1年</button>
-        <button data-range="ytd">年初来</button>
-        <button data-range="all">全期間</button>
+        <button data-range="180">6か月</button>
+        <button data-range="365">年</button>
       </div>
       <div id="meal-history-summary"></div>
       <div id="meal-chart-summary" style="font-size:.86rem; margin-bottom:6px;"></div>
-      <svg id="meal-chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
-      <p class="muted" style="font-size:.76rem; margin-top:4px;">ピンクの帯は目標カロリーの70〜115%の範囲です。</p>
+      <div class="bar-chart-wrap" id="meal-chart-wrap">
+        <svg id="meal-chart-axis" class="chart-axis-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="bar-chart-scroll" id="meal-chart-scroll">
+          <svg id="meal-chart" class="chart-bars-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="chart-tooltip" id="meal-chart-tooltip"></div>
+      </div>
+      <p class="muted" style="font-size:.76rem; margin-top:4px;">点線は目標カロリーの目安です。</p>
       <div id="meal-history"></div>
     </div>
   </section>
@@ -1438,29 +1443,23 @@ function renderMealPage() {
       <span><strong>${total.toLocaleString()}</strong> kcal${target ? ` / 目標 ${target.toLocaleString()}` : ""}</span>
     </div>
     ${mood.msg ? `<div class="mood-msg">${mood.msg}</div>` : ""}`;
-  // history within選択期間（当日は記録途中で合計が不当に低く見えるため対象外）
+  // 上部の「1日の平均」は選択期間のみが対象（当日は記録途中のため除く）。
+  // グラフ・履歴表は運動タブと同様、全履歴を対象に横スクロール／もっと見るで見られるようにする。
   const all = load(K.daily);
   const today = todayStr();
   const mealDates = Object.keys(all).filter(d => d !== today && all[d].meals && all[d].meals.length);
-  updateRangeSegDisabled("meal-range-seg", mealDates);
   const cutoff = rangeCutoff(mealRange);
   const days = mealDates
     .filter(d => !cutoff || d >= cutoff)
     .sort().reverse();
-  const dayTotal = d => all[d].meals.reduce((s, m) => s + (m.kcal || 0), 0);
+  const dayTotal = d => { const r = all[d]; return r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0; };
   const periodTotal = days.reduce((s, d) => s + dayTotal(d), 0);
   const periodAvg = days.length ? Math.round(periodTotal / days.length) : 0;
   document.getElementById("meal-history-summary").innerHTML = days.length === 0 ? "" : `
     <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
       <div class="stat"><div class="val">${periodAvg.toLocaleString()}<span class="u"> kcal</span></div><div class="lbl">記録日の1日平均（${days.length}日分）</div></div>
     </div>`;
-  const mealSeries = [{ label: "合計kcal", color: "#2e8b6d", pts: days.map(d => ({ x: d, y: dayTotal(d) })) }];
-  const band = target ? { low: target * 0.7, high: target * 1.15, color: "#e88bab" } : null;
   const COLOR_LOW = "#3a7ca5", COLOR_GOOD = "#2e8b6d", COLOR_HIGH = "#d9822b";
-  const pointColor = target
-    ? p => (p.y < target * 0.7 ? COLOR_LOW : p.y > target * 1.15 ? COLOR_HIGH : COLOR_GOOD)
-    : null;
-  drawTrendSvg(document.getElementById("meal-chart"), mealSeries, target, null, cutoff, band, { hideLine: true, hideLegend: true, pointColor, yUnit: "kcal" });
   const summaryEl = document.getElementById("meal-chart-summary");
   if (target && days.length) {
     let low = 0, good = 0, high = 0;
@@ -1472,17 +1471,80 @@ function renderMealPage() {
   } else {
     summaryEl.innerHTML = "";
   }
-  const shown = days.slice(0, 10);
-  document.getElementById("meal-history").innerHTML = days.length === 0
-    ? '<p class="empty-note">この期間の記録はまだありません</p>'
+
+  // グラフ本体（保存直後の当日分も反映、全履歴を横スクロールで表示）
+  const chartEnd = today;
+  const hasAnyMealChartData = mealDates.length > 0 || dayTotal(chartEnd) > 0;
+  document.querySelectorAll("#meal-range-seg button").forEach(btn => { btn.disabled = !hasAnyMealChartData; });
+  const historyStart = mealDates.length ? mealDates.reduce((a, b) => a < b ? a : b) : chartEnd;
+  const colorFor = (v, mult) => !target ? COLOR_GOOD : v < target * 0.7 * mult ? COLOR_LOW : v > target * 1.15 * mult ? COLOR_HIGH : COLOR_GOOD;
+  let chartPoints, chartOpts = { color: "#2e8b6d", yUnit: "kcal" };
+  if (!hasAnyMealChartData) {
+    chartPoints = [];
+  } else if (mealRange === "365") {
+    // 年表示は月ごとの1日平均で集計する
+    const monthMap = {};
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
+      const ym = d.slice(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
+      monthMap[ym].sum += dayTotal(d);
+      monthMap[ym].count++;
+    }
+    chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
+    chartOpts.monthly = true;
+    chartOpts.fitCount = 12;
+    chartOpts.goalLine = target || null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
+  } else if (mealRange === "90" || mealRange === "180") {
+    // 3か月・6か月は週ごとの合計で集計する
+    const weekMap = {};
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
+      const ws = weekStartStr(d);
+      weekMap[ws] = (weekMap[ws] || 0) + dayTotal(d);
+    }
+    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
+    chartOpts.weekly = true;
+    chartOpts.fitCount = Math.ceil(Number(mealRange) / 7);
+    chartOpts.goalLine = target ? target * 7 : null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 7)) : null;
+  } else {
+    // 週・月は日別
+    chartPoints = [];
+    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotal(d) });
+    chartOpts.dowLabels = mealRange === "7";
+    chartOpts.fitCount = Number(mealRange);
+    chartOpts.goalLine = target || null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
+  }
+  drawBarSvgScroll(
+    document.getElementById("meal-chart-axis"),
+    document.getElementById("meal-chart"),
+    document.getElementById("meal-chart-scroll"),
+    document.getElementById("meal-chart-wrap"),
+    document.getElementById("meal-chart-tooltip"),
+    chartPoints,
+    chartOpts
+  );
+
+  // 履歴表も全履歴を対象にし、10件ずつ追加読み込みする
+  const allMealDaysSorted = mealDates.slice().sort().reverse();
+  const shown = allMealDaysSorted.slice(0, mealHistoryShownCount);
+  document.getElementById("meal-history").innerHTML = allMealDaysSorted.length === 0
+    ? '<p class="empty-note">まだ食事の記録がありません</p>'
     : '<table class="log"><tr><th>日付</th><th>合計kcal</th></tr>' + shown.map(d =>
         `<tr><td>${fmtDate(d)}</td><td>${dayTotal(d).toLocaleString()}</td></tr>`).join("") + "</table>" +
-      (days.length > shown.length ? `<p class="muted" style="margin-top:6px; font-size:.78rem;">直近${shown.length}件を表示（期間内は${days.length}件）</p>` : "");
+      (allMealDaysSorted.length > shown.length
+        ? `<button class="btn small secondary" id="meal-history-more" style="margin-top:8px;">さらに${Math.min(10, allMealDaysSorted.length - shown.length)}件を表示（残り${allMealDaysSorted.length - shown.length}件）</button>`
+        : "");
+  const mealMoreBtn = document.getElementById("meal-history-more");
+  if (mealMoreBtn) mealMoreBtn.addEventListener("click", () => { mealHistoryShownCount += 10; renderMealPage(); });
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
 let mealRange = "30";
+let mealHistoryShownCount = 10;
 document.getElementById("meal-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
+  mealHistoryShownCount = 10;
   document.querySelectorAll("#meal-range-seg button").forEach(x => x.classList.remove("on"));
   b.classList.add("on"); mealRange = b.dataset.range; renderMealPage();
 });
@@ -2527,7 +2589,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     barsSvg.innerHTML = '<text x="150" y="160" text-anchor="middle" fill="#6b7a72" font-size="15">記録がたまるとグラフが表示されます</text>';
     return;
   }
-  const ticks = niceAxisTicks(0, Math.max(...points.map(p => p.y), 1) * 1.08);
+  const ticks = niceAxisTicks(0, Math.max(...points.map(p => p.y), opts.goalLine || 0, 1) * 1.08);
   const maxY = ticks[ticks.length - 1];
   const y = v => padT + (1 - v / maxY) * (H - padT - padB);
   const n = points.length;
@@ -2549,13 +2611,18 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
   ticks.forEach(v => {
     el += `<line x1="0" y1="${y(v)}" x2="${totalW}" y2="${y(v)}" stroke="#e2e9e5"/>`;
   });
+  if (opts.goalLine != null) {
+    const gy = y(opts.goalLine);
+    el += `<line x1="0" y1="${gy}" x2="${totalW}" y2="${gy}" stroke="#d9822b" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+  }
   // ラベルが重ならないよう、バー幅が狭いときは間引いて表示する
   const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
   const labelStep = Math.max(1, Math.ceil((labelCharCount * 7 + 6) / bandW));
   points.forEach((p, i) => {
     const cx = bandW * (i + 0.5);
     const barY = y(p.y);
-    el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${opts.color || "#2e8b6d"}" rx="3"/>`;
+    const fillColor = opts.pointColor ? opts.pointColor(p) : (opts.color || "#2e8b6d");
+    el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${fillColor}" rx="3"/>`;
     const isFirst = i === 0;
     const isLast = i === points.length - 1;
     if (isLast || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
