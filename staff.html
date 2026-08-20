@@ -66,6 +66,14 @@
   .row3 { display: flex; gap: 8px; }
   .row3 > div { flex: 1; min-width: 0; }
   .row3 label { margin: 11px 0 4px; }
+  .unit-note { font-size: .74rem; color: var(--sub); font-weight: 400; }
+  .row3 label .unit-note { display: block; }
+  table.log { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  table.log th, table.log td { padding: 8px 5px; border-bottom: 1px solid var(--line); text-align: center; }
+  table.log th { color: var(--sub); font-weight: 600; font-size: .74rem; }
+  table.log td:first-child { text-align: left; white-space: nowrap; }
+  .history-day-title { font-weight: 700; color: var(--accent-dark); margin: 18px 0 4px; font-size: .9rem; }
+  .history-day-title:first-child { margin-top: 0; }
   .summary-row {
     display: flex; justify-content: space-between; padding: 6px 0;
     border-bottom: 1px solid var(--line); font-size: .86rem;
@@ -346,6 +354,8 @@
     <button type="button" class="back-link" id="patient-detail-back">← 患者の連携画面に戻る</button>
     <div class="pd-toolbar-right">
       <button type="button" class="btn-link" id="pd-graph-btn">📈 グラフで見る</button>
+      <button type="button" class="btn-link" id="pd-history-btn">📖 記録を見る</button>
+      <button type="button" class="btn-link" id="pd-labs-entry-btn">🩸 検査データを入力</button>
       <button type="button" class="btn-link print-btn" id="pd-print-btn">🖨️ この評価をA4で印刷</button>
     </div>
   </div>
@@ -456,6 +466,71 @@
 
   <div id="graph-list"></div>
   <p class="muted print-only" id="graph-print-note" style="font-size:.7rem; margin-top:6px;"></p>
+</div>
+
+<div class="box wide hidden" id="patient-history-view">
+  <div class="pd-toolbar no-print">
+    <button type="button" class="back-link" id="patient-history-back">← 患者の評価に戻る</button>
+  </div>
+  <h2 class="no-print">📖 食事・運動の記録</h2>
+  <p class="muted no-print">患者アプリに記録された日々の内容をそのまま表示します。</p>
+  <div id="history-list"></div>
+  <button type="button" class="btn-link hidden" id="history-more" style="display:block; margin:14px auto;">さらに表示</button>
+</div>
+
+<div class="box wide hidden" id="patient-labs-entry-view">
+  <div class="pd-toolbar no-print">
+    <button type="button" class="back-link" id="patient-labs-back">← 患者の評価に戻る</button>
+  </div>
+  <h2 class="no-print">🩸 検査データを入力</h2>
+  <p class="muted no-print">患者さん自身での入力が難しい場合に、病院から渡された検査結果などをスタッフが代わりに入力します。</p>
+
+  <label for="le-date">来院日</label>
+  <input type="date" id="le-date">
+
+  <h3>バイタル・身体測定</h3>
+  <div class="row3">
+    <div><label>体重 <span class="unit-note">kg</span></label><input type="number" id="le-weight" step="0.1" min="20" max="300"></div>
+    <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="le-sbp" min="50" max="300"></div>
+    <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="le-dbp" min="30" max="200"></div>
+  </div>
+  <h3>InBody</h3>
+  <div class="row3">
+    <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="le-fat" step="0.1" min="1" max="80"></div>
+    <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="le-muscle" step="0.1" min="5" max="80"></div>
+    <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="le-visceral" step="0.5" min="1" max="30"></div>
+  </div>
+  <h3>血液検査</h3>
+  <div class="row3">
+    <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="le-ast" min="1" max="3000"></div>
+    <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="le-alt" min="1" max="3000"></div>
+    <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="le-ggtp" min="1" max="3000"></div>
+  </div>
+  <div class="row3">
+    <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="le-tg" min="10" max="3000"></div>
+    <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="le-ldl" min="10" max="500"></div>
+    <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="le-plt" step="0.1" min="1" max="100"></div>
+  </div>
+  <div class="row3">
+    <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="le-hba1c" step="0.1" min="3" max="20"></div>
+  </div>
+
+  <h3>腹部超音波検査</h3>
+  <div class="row3">
+    <div><label>肝硬度 <span class="unit-note">kPa</span></label><input type="number" id="le-kpa" step="0.1" min="1" max="80"></div>
+    <div><label>CAP値 <span class="unit-note">dB/m</span></label><input type="number" id="le-cap" min="100" max="450"></div>
+  </div>
+
+  <h3>内服薬</h3>
+  <textarea id="le-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回"></textarea>
+
+  <button class="btn" id="le-save" style="margin-top:14px;">検査データを保存</button>
+  <p class="error" id="le-error"></p>
+  <p class="muted" id="le-saved-msg" style="display:none;">保存しました</p>
+
+  <h3 style="margin-top:24px;">来院データの履歴</h3>
+  <p class="muted" style="font-size:.8rem;">行をタップすると内容を上のフォームに読み込みます。</p>
+  <div id="le-history"></div>
 </div>
 
 <div class="modal-backdrop hidden" id="changepw-modal">
@@ -1162,6 +1237,150 @@ function renderGraphs() {
   document.getElementById("graph-print-note").textContent =
     "※ 摂取カロリー・運動時間・歩数は週平均、体重・採血結果は記録日ごとの値です。すべてのグラフで横軸（期間）を揃えています。";
 }
+
+// ------- 記録を見る（患者アプリの食事・運動記録をそのまま表示） -------
+let historyShownCount = 20;
+document.getElementById("pd-history-btn").addEventListener("click", () => {
+  document.getElementById("patient-detail-view").classList.add("hidden");
+  document.getElementById("patient-history-view").classList.remove("hidden");
+  historyShownCount = 20;
+  renderHistoryView();
+});
+document.getElementById("patient-history-back").addEventListener("click", () => {
+  document.getElementById("patient-history-view").classList.add("hidden");
+  document.getElementById("patient-detail-view").classList.remove("hidden");
+});
+document.getElementById("history-more").addEventListener("click", () => {
+  historyShownCount += 20;
+  renderHistoryView();
+});
+function renderHistoryView() {
+  const daily = (pdCache && pdCache.daily) || {};
+  const dates = Object.keys(daily)
+    .filter(d => (daily[d].meals && daily[d].meals.length) || (daily[d].exercises && daily[d].exercises.length) || daily[d].weight != null)
+    .sort().reverse();
+  const list = document.getElementById("history-list");
+  const moreBtn = document.getElementById("history-more");
+  if (!dates.length) {
+    list.innerHTML = `<p class="muted">記録がまだありません</p>`;
+    moreBtn.classList.add("hidden");
+    return;
+  }
+  const shown = dates.slice(0, historyShownCount);
+  list.innerHTML = shown.map(d => {
+    const rec = daily[d];
+    const meals = rec.meals || [];
+    const exercises = rec.exercises || [];
+    const mealRows = meals.length
+      ? meals.map(m => `<tr><td>${m.time || "—"}</td><td>${m.name || "—"}</td><td>${m.kcal != null ? m.kcal + "kcal" : "—"}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="muted">記録なし</td></tr>`;
+    const exRows = exercises.length
+      ? exercises.map(x => `<tr><td>${x.name || "—"}</td><td>${x.min != null ? x.min + "分" : (x.reps != null ? x.reps + "回" : "—")}</td><td>${x.kcal != null ? x.kcal + "kcal" : "—"}</td></tr>`).join("")
+      : `<tr><td colspan="3" class="muted">記録なし</td></tr>`;
+    const meta = [
+      rec.weight != null ? `体重 ${rec.weight}kg` : null,
+      rec.steps != null ? `歩数 ${rec.steps}歩` : null,
+    ].filter(Boolean).join(" ／ ");
+    return `
+      <div class="history-day-title">${fmtDate(d)}${meta ? `　<span class="muted" style="font-weight:400;">${meta}</span>` : ""}</div>
+      <table class="log">
+        <tr><th>時刻</th><th>食事</th><th>kcal</th></tr>
+        ${mealRows}
+      </table>
+      <table class="log" style="margin-top:6px;">
+        <tr><th>運動</th><th>量</th><th>kcal</th></tr>
+        ${exRows}
+      </table>`;
+  }).join("");
+  moreBtn.classList.toggle("hidden", dates.length <= shown.length);
+}
+
+// ------- 検査データを入力（スタッフが患者に代わって来院時データを保存） -------
+function calcFib4(age, ast, alt, pltMan) {
+  if (!age || !ast || !alt || !pltMan) return null;
+  return Math.round(((age * ast) / (pltMan * 10 * Math.sqrt(alt))) * 100) / 100;
+}
+document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
+  document.getElementById("patient-detail-view").classList.add("hidden");
+  document.getElementById("patient-labs-entry-view").classList.remove("hidden");
+  document.getElementById("le-date").value = "";
+  ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ast", "le-alt", "le-ggtp",
+    "le-tg", "le-ldl", "le-plt", "le-hba1c", "le-kpa", "le-cap"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("le-meds").value = "";
+  document.getElementById("le-error").style.display = "none";
+  document.getElementById("le-saved-msg").style.display = "none";
+  renderLabsEntryHistory();
+});
+document.getElementById("patient-labs-back").addEventListener("click", () => {
+  document.getElementById("patient-labs-entry-view").classList.add("hidden");
+  document.getElementById("patient-detail-view").classList.remove("hidden");
+});
+function renderLabsEntryHistory() {
+  const visits = (pdCache && pdCache.visits) || {};
+  const dates = Object.keys(visits).sort().reverse();
+  const el = document.getElementById("le-history");
+  if (!dates.length) { el.innerHTML = `<p class="muted">来院データがまだありません</p>`; return; }
+  el.innerHTML = `<table class="log">
+      <tr><th>来院日</th><th>体重</th><th>AST</th><th>ALT</th><th>γGTP</th><th>肝硬度</th></tr>
+      ${dates.map(d => {
+        const v = visits[d];
+        return `<tr class="le-history-row" data-date="${d}" style="cursor:pointer;">
+          <td>${fmtDate(d)}</td><td>${v.weight ?? "—"}</td><td>${v.ast ?? "—"}</td>
+          <td>${v.alt ?? "—"}</td><td>${v.ggtp ?? "—"}</td><td>${v.kpa ?? "—"}</td>
+        </tr>`;
+      }).join("")}
+    </table>`;
+  el.querySelectorAll(".le-history-row").forEach(row => {
+    row.addEventListener("click", () => loadVisitToLabsForm(row.dataset.date));
+  });
+}
+function loadVisitToLabsForm(date) {
+  const visits = (pdCache && pdCache.visits) || {};
+  const v = visits[date]; if (!v) return;
+  document.getElementById("le-date").value = date;
+  const setv = (id, val) => document.getElementById(id).value = val ?? "";
+  setv("le-weight", v.weight); setv("le-sbp", v.sbp); setv("le-dbp", v.dbp);
+  setv("le-fat", v.fat); setv("le-muscle", v.muscle); setv("le-visceral", v.visceral);
+  setv("le-ast", v.ast); setv("le-alt", v.alt); setv("le-ggtp", v.ggtp); setv("le-plt", v.plt);
+  setv("le-ldl", v.ldl); setv("le-tg", v.tg); setv("le-hba1c", v.hba1c);
+  setv("le-kpa", v.kpa); setv("le-cap", v.cap);
+  document.getElementById("le-meds").value = v.meds ?? "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+document.getElementById("le-save").addEventListener("click", async () => {
+  const errEl = document.getElementById("le-error");
+  errEl.style.display = "none";
+  document.getElementById("le-saved-msg").style.display = "none";
+  const date = document.getElementById("le-date").value;
+  if (!date) { errEl.textContent = "来院日を入力してください"; errEl.style.display = "block"; return; }
+  const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+  const rec = {
+    sbp: num("le-sbp"), dbp: num("le-dbp"), weight: num("le-weight"),
+    fat: num("le-fat"), muscle: num("le-muscle"), visceral: num("le-visceral"),
+    ast: num("le-ast"), alt: num("le-alt"), ggtp: num("le-ggtp"), plt: num("le-plt"),
+    ldl: num("le-ldl"), tg: num("le-tg"), hba1c: num("le-hba1c"),
+    kpa: num("le-kpa"), cap: num("le-cap"),
+    meds: document.getElementById("le-meds").value.trim() || null,
+  };
+  const profile = (pdCache && pdCache.profile) || {};
+  rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
+  try {
+    if (demoMode) {
+      demoStore[DK.visits][date] = rec;
+    } else {
+      const visits = await fetchPatientDoc(openResearchId, DK.visits);
+      visits[date] = rec;
+      await db.collection("patients").doc(openResearchId).collection("data").doc(DK.visits)
+        .set({ value: visits, updatedAt: Date.now() });
+    }
+    if (pdCache) pdCache.visits[date] = rec;
+    document.getElementById("le-saved-msg").style.display = "block";
+    renderLabsEntryHistory();
+  } catch (err) {
+    errEl.textContent = "保存に失敗しました: " + (err.message || err);
+    errEl.style.display = "block";
+  }
+});
 
 function calcAge(birthdate, onDate) {
   if (!birthdate) return null;
