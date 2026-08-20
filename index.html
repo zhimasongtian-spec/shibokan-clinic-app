@@ -271,6 +271,20 @@
   table.log .del { color: var(--danger); cursor: pointer; border: none; background: none; }
   .table-scroll { overflow-x: auto; }
 
+  .meal-hist-day { border-bottom: 1px solid var(--line); }
+  .meal-hist-head {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 10px 2px; font: inherit; color: inherit;
+    text-align: left; cursor: pointer;
+  }
+  .meal-hist-date { flex: none; font-size: .84rem; white-space: nowrap; }
+  .meal-hist-summary { flex: 1; min-width: 0; font-size: .8rem; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meal-hist-total { flex: none; font-size: .84rem; font-weight: 700; white-space: nowrap; }
+  .meal-hist-arrow { flex: none; font-size: .68rem; color: var(--sub); transition: transform .15s; }
+  .meal-hist-day.open .meal-hist-arrow { transform: rotate(180deg); }
+  .meal-hist-detail { padding: 0 2px 10px 2px; }
+  .meal-hist-detail .item-row { padding: 6px 0; font-size: .82rem; }
+
   .fib-line {
     margin-top: 8px; padding: 11px 14px; border-radius: 10px; font-size: .92rem;
     background: var(--accent-soft); display: none;
@@ -1526,22 +1540,50 @@ function renderMealPage() {
     chartOpts
   );
 
-  // 履歴表も全履歴を対象にし、10件ずつ追加読み込みする
+  // 履歴表も全履歴を対象にし、10件ずつ追加読み込みする。
+  // 各日はタップで開閉でき、開くとその日の食事の内訳（時刻・品目・kcal）を確認できる。
   const allMealDaysSorted = mealDates.slice().sort().reverse();
   const shown = allMealDaysSorted.slice(0, mealHistoryShownCount);
   document.getElementById("meal-history").innerHTML = allMealDaysSorted.length === 0
     ? '<p class="empty-note">まだ食事の記録がありません</p>'
-    : '<table class="log"><tr><th>日付</th><th>合計kcal</th></tr>' + shown.map(d =>
-        `<tr><td>${fmtDate(d)}</td><td>${dayTotal(d).toLocaleString()}</td></tr>`).join("") + "</table>" +
+    : shown.map(d => {
+        const meals = (all[d].meals || []).slice().sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+        const names = meals.map(m => m.name);
+        const summary = names.length <= 2 ? names.join("・") : `${names.slice(0, 2).join("・")} 他${names.length - 2}件`;
+        const open = mealHistoryExpanded.has(d);
+        return `
+      <div class="meal-hist-day${open ? " open" : ""}">
+        <button type="button" class="meal-hist-head" data-d="${d}">
+          <span class="meal-hist-date">${fmtDate(d)}</span>
+          <span class="meal-hist-summary">${summary}</span>
+          <span class="meal-hist-total">${dayTotal(d).toLocaleString()} kcal</span>
+          <span class="meal-hist-arrow">▾</span>
+        </button>
+        <div class="meal-hist-detail${open ? "" : " hidden"}">
+          ${meals.map(m => `
+            <div class="item-row">
+              ${m.time ? `<span class="tm">${m.time}</span>` : ""}
+              <span class="nm">${m.name}</span>
+              <span class="kc">${m.kcal} kcal</span>
+            </div>`).join("")}
+        </div>
+      </div>`;
+      }).join("") +
       (allMealDaysSorted.length > shown.length
         ? `<button class="btn small secondary" id="meal-history-more" style="margin-top:8px;">さらに${Math.min(10, allMealDaysSorted.length - shown.length)}件を表示（残り${allMealDaysSorted.length - shown.length}件）</button>`
         : "");
+  document.querySelectorAll(".meal-hist-head").forEach(btn => btn.addEventListener("click", () => {
+    const d = btn.dataset.d;
+    if (mealHistoryExpanded.has(d)) mealHistoryExpanded.delete(d); else mealHistoryExpanded.add(d);
+    renderMealPage();
+  }));
   const mealMoreBtn = document.getElementById("meal-history-more");
   if (mealMoreBtn) mealMoreBtn.addEventListener("click", () => { mealHistoryShownCount += 10; renderMealPage(); });
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
 let mealRange = "30";
 let mealHistoryShownCount = 10;
+let mealHistoryExpanded = new Set();
 document.getElementById("meal-range-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   mealHistoryShownCount = 10;
