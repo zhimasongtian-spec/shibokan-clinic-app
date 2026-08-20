@@ -1807,8 +1807,7 @@ document.getElementById("pd-save").addEventListener("click", async () => {
   errEl.style.display = "none";
   document.getElementById("pd-saved-msg").style.display = "none";
   const visitDate = todayStr();
-  const nextVisitDate = document.getElementById("pd-custom-date").value;
-  if (!nextVisitDate) { errEl.textContent = "次回来院日を入力してください"; errEl.style.display = "block"; return; }
+  const nextVisitDate = document.getElementById("pd-custom-date").value || null;
 
   const num = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
   const goalWeight = num("pd-goal-weight");
