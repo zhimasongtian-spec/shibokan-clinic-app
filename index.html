@@ -2732,6 +2732,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
   if (opts.goalLine != null) {
     const gy = y(opts.goalLine);
     el += `<line x1="0" y1="${gy}" x2="${totalW}" y2="${gy}" stroke="#d9822b" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+    el += `<text x="${totalW - 4}" y="${gy - 6}" text-anchor="end" font-size="12" fill="#d9822b">目標 ${opts.goalLine.toLocaleString()}${opts.yUnit || ""}</text>`;
   }
   // ラベルが重ならないよう、バー幅が狭いときは間引いて表示する
   const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
@@ -2815,6 +2816,7 @@ function drawLineSvgScroll(axisSvg, lineSvg, scrollEl, wrapEl, tooltipEl, points
   if (opts.goalLine != null) {
     const gy = y(opts.goalLine);
     el += `<line x1="0" y1="${gy}" x2="${totalW}" y2="${gy}" stroke="#d9822b" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+    el += `<text x="${totalW - 4}" y="${gy - 6}" text-anchor="end" font-size="12" fill="#d9822b">目標 ${opts.goalLine.toLocaleString()}${opts.yUnit || ""}</text>`;
   }
   // 記録が無い日は線をつながず、欠測として飛ばす
   let seg = [];
