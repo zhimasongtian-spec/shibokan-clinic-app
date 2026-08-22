@@ -1236,6 +1236,21 @@ function weekStartStr(s) {
   return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
 }
 function fmtDateFull(s) { const [y, m, d] = s.split("-"); return `${y}年${Number(m)}月${Number(d)}日`; }
+function historyMoreHtml(idPrefix, totalLength, shownCount) {
+  const remaining = totalLength - shownCount;
+  if (remaining <= 0 && shownCount <= 10) return "";
+  let html = '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">';
+  if (remaining > 0) html += `<button class="btn small secondary" id="${idPrefix}-more">さらに${Math.min(10, remaining)}件を表示（残り${remaining}件）</button>`;
+  if (shownCount > 10) html += `<button class="btn small secondary" id="${idPrefix}-collapse">閉じる（10件表示に戻す）</button>`;
+  html += "</div>";
+  return html;
+}
+function bindHistoryMoreControls(idPrefix, onMore, onCollapse) {
+  const moreBtn = document.getElementById(`${idPrefix}-more`);
+  if (moreBtn) moreBtn.addEventListener("click", onMore);
+  const collapseBtn = document.getElementById(`${idPrefix}-collapse`);
+  if (collapseBtn) collapseBtn.addEventListener("click", onCollapse);
+}
 function fmtWeekRange(startStr) {
   const endStr = dateStrAdd(startStr, 6);
   const [ys, ms, ds] = startStr.split("-").map(Number);
@@ -1402,12 +1417,10 @@ function renderRecordPage() {
   document.getElementById("rec-history").innerHTML = allWeightDaysSorted.length === 0
     ? '<p class="empty-note">まだ体重の記録がありません</p>'
     : '<table class="log"><tr><th>日付</th><th>体重</th></tr>' + shown.map(d =>
-        `<tr><td>${fmtDate(d)}</td><td>${all[d].weight} kg</td></tr>`).join("") + "</table>" +
-      (allWeightDaysSorted.length > shown.length
-        ? `<button class="btn small secondary" id="rec-history-more" style="margin-top:8px;">さらに${Math.min(10, allWeightDaysSorted.length - shown.length)}件を表示（残り${allWeightDaysSorted.length - shown.length}件）</button>`
-        : "");
-  const recMoreBtn = document.getElementById("rec-history-more");
-  if (recMoreBtn) recMoreBtn.addEventListener("click", () => { recHistoryShownCount += 10; renderRecordPage(); });
+        `<tr><td>${fmtDate(d)}</td><td>${all[d].weight} kg</td></tr>`).join("") + "</table>" + historyMoreHtml("rec-history", allWeightDaysSorted.length, shown.length);
+  bindHistoryMoreControls("rec-history",
+    () => { recHistoryShownCount += 10; renderRecordPage(); },
+    () => { recHistoryShownCount = 10; renderRecordPage(); });
 }
 document.getElementById("rec-date").addEventListener("change", renderRecordPage);
 
@@ -1644,17 +1657,15 @@ function renderMealPage() {
             </div>`).join("")}
         </div>
       </div>`;
-      }).join("") +
-      (allMealDaysSorted.length > shown.length
-        ? `<button class="btn small secondary" id="meal-history-more" style="margin-top:8px;">さらに${Math.min(10, allMealDaysSorted.length - shown.length)}件を表示（残り${allMealDaysSorted.length - shown.length}件）</button>`
-        : "");
+      }).join("") + historyMoreHtml("meal-history", allMealDaysSorted.length, shown.length);
   document.querySelectorAll(".meal-hist-head").forEach(btn => btn.addEventListener("click", () => {
     const d = btn.dataset.d;
     if (mealHistoryExpanded.has(d)) mealHistoryExpanded.delete(d); else mealHistoryExpanded.add(d);
     renderMealPage();
   }));
-  const mealMoreBtn = document.getElementById("meal-history-more");
-  if (mealMoreBtn) mealMoreBtn.addEventListener("click", () => { mealHistoryShownCount += 10; renderMealPage(); });
+  bindHistoryMoreControls("meal-history",
+    () => { mealHistoryShownCount += 10; renderMealPage(); },
+    () => { mealHistoryShownCount = 10; renderMealPage(); });
 }
 document.getElementById("meal-date").addEventListener("change", renderMealPage);
 let mealRange = "30";
@@ -2391,12 +2402,10 @@ function renderExPage() {
       const amt = [min ? `${min}分` : "", reps ? `${reps}回` : ""].filter(Boolean).join(" / ");
       const kc = dayTotalKcal(d);
       return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td><td>${kc || "—"}</td></tr>`;
-    }).join("") + "</table>" +
-      (allDaysSorted.length > shown.length
-        ? `<button class="btn small secondary" id="ex-history-more" style="margin-top:8px;">さらに${Math.min(10, allDaysSorted.length - shown.length)}件を表示（残り${allDaysSorted.length - shown.length}件）</button>`
-        : "");
-  const moreBtn = document.getElementById("ex-history-more");
-  if (moreBtn) moreBtn.addEventListener("click", () => { exHistoryShownCount += 10; renderExPage(); });
+    }).join("") + "</table>" + historyMoreHtml("ex-history", allDaysSorted.length, shown.length);
+  bindHistoryMoreControls("ex-history",
+    () => { exHistoryShownCount += 10; renderExPage(); },
+    () => { exHistoryShownCount = 10; renderExPage(); });
 }
 document.getElementById("ex-date").addEventListener("change", renderExPage);
 
