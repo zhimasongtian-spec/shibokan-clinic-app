@@ -529,12 +529,6 @@
         <div><label>血圧 上 <span class="unit-note">mmHg</span></label><input type="number" id="v-sbp" min="50" max="300"></div>
         <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="v-dbp" min="30" max="200"></div>
       </div>
-      <h3>InBody</h3>
-      <div class="row3">
-        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
-        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
-        <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
-      </div>
       <h3>血液検査</h3>
       <input type="file" id="labs-photo-input" accept="image/*" capture="environment" style="display:none;">
       <button type="button" class="btn secondary small" id="labs-photo-btn">📷 採血結果を撮影して読み取る</button>
@@ -553,6 +547,45 @@
         <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
       </div>
       <div class="fib-line" id="v-fib-line"></div>
+
+      <h3>InBody</h3>
+      <input type="file" id="inbody-photo-input" accept="image/*" capture="environment" style="display:none;">
+      <button type="button" class="btn secondary small" id="inbody-photo-btn">📷 InBodyの用紙を撮影して読み取る</button>
+      <div id="inbody-analyze-area"></div>
+      <div class="row3">
+        <div><label>体水分量 <span class="unit-note">L</span></label><input type="number" id="v-ib-water" step="0.1" min="1" max="80"></div>
+        <div><label>タンパク質量 <span class="unit-note">kg</span></label><input type="number" id="v-ib-protein" step="0.1" min="1" max="30"></div>
+        <div><label>ミネラル量 <span class="unit-note">kg</span></label><input type="number" id="v-ib-minerals" step="0.01" min="1" max="10"></div>
+      </div>
+      <div class="row3">
+        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
+        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
+        <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
+      </div>
+      <div class="row3">
+        <div><label>BMI <span class="unit-note">kg/m²</span></label><input type="number" id="v-ib-bmi" step="0.1" min="10" max="50"></div>
+        <div><label>基礎代謝量 <span class="unit-note">kcal</span></label><input type="number" id="v-ib-bmr" min="500" max="3000"></div>
+      </div>
+      <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別筋肉量 <span class="unit-note">kg</span></p>
+      <div class="row3">
+        <div><label>右腕</label><input type="number" id="v-ib-musc-rarm" step="0.01" min="0" max="20"></div>
+        <div><label>左腕</label><input type="number" id="v-ib-musc-larm" step="0.01" min="0" max="20"></div>
+        <div><label>体幹</label><input type="number" id="v-ib-musc-trunk" step="0.1" min="0" max="60"></div>
+      </div>
+      <div class="row2">
+        <div><label>右脚</label><input type="number" id="v-ib-musc-rleg" step="0.01" min="0" max="30"></div>
+        <div><label>左脚</label><input type="number" id="v-ib-musc-lleg" step="0.01" min="0" max="30"></div>
+      </div>
+      <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別体脂肪量 <span class="unit-note">kg</span></p>
+      <div class="row3">
+        <div><label>右腕</label><input type="number" id="v-ib-fat-rarm" step="0.01" min="0" max="10"></div>
+        <div><label>左腕</label><input type="number" id="v-ib-fat-larm" step="0.01" min="0" max="10"></div>
+        <div><label>体幹</label><input type="number" id="v-ib-fat-trunk" step="0.1" min="0" max="40"></div>
+      </div>
+      <div class="row2">
+        <div><label>右脚</label><input type="number" id="v-ib-fat-rleg" step="0.01" min="0" max="15"></div>
+        <div><label>左脚</label><input type="number" id="v-ib-fat-lleg" step="0.01" min="0" max="15"></div>
+      </div>
 
       <h3>腹部超音波検査</h3>
       <div class="row2">
@@ -1750,6 +1783,8 @@ document.getElementById("camera-capture").addEventListener("click", () => {
     analyzeLabsPhoto(imgToDataUrl(frame, 900, 0.8), imgToDataUrl(frame, 220, 0.6));
   } else if (target === "meds") {
     analyzeMedsPhoto(imgToDataUrl(frame, 900, 0.8), imgToDataUrl(frame, 220, 0.6));
+  } else if (target === "inbody") {
+    analyzeInbodyPhoto(imgToDataUrl(frame, 900, 0.8), imgToDataUrl(frame, 220, 0.6));
   } else {
     analyzeMealPhoto(imgToDataUrl(frame, 640, 0.7), imgToDataUrl(frame, 220, 0.6));
   }
@@ -2083,6 +2118,114 @@ function applyLabsAnalyzeResult(thumb, values) {
   updateFibLine();
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="採血結果">
+    <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+  </div>`;
+  toast(`${appliedLabels.length}件を反映しました`);
+}
+
+/* ---- InBodyの写真読み取り (AI) ---- */
+document.getElementById("inbody-photo-btn").addEventListener("click", () => {
+  if (isMobileDevice()) document.getElementById("inbody-photo-input").click();
+  else openCameraModal("inbody");
+});
+document.getElementById("inbody-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await loadImageFile(file);
+    const aiImage = imgToDataUrl(img, 900, 0.8);
+    const thumb = imgToDataUrl(img, 220, 0.6);
+    analyzeInbodyPhoto(aiImage, thumb);
+  } catch {
+    toast("画像を読み込めませんでした");
+  }
+});
+const INBODY_FIELDS = [
+  { key: "water", label: "体水分量", unit: "L", target: "v-ib-water" },
+  { key: "protein", label: "タンパク質量", unit: "kg", target: "v-ib-protein" },
+  { key: "minerals", label: "ミネラル量", unit: "kg", target: "v-ib-minerals" },
+  { key: "fat_pct", label: "体脂肪率", unit: "%", target: "v-fat" },
+  { key: "muscle", label: "骨格筋量", unit: "kg", target: "v-muscle" },
+  { key: "visceral", label: "内臓脂肪Lv", unit: "レベル", target: "v-visceral" },
+  { key: "bmi", label: "BMI", unit: "kg/m²", target: "v-ib-bmi" },
+  { key: "bmr", label: "基礎代謝量", unit: "kcal", target: "v-ib-bmr" },
+  { key: "musc_rarm", label: "右腕筋肉量", unit: "kg", target: "v-ib-musc-rarm" },
+  { key: "musc_larm", label: "左腕筋肉量", unit: "kg", target: "v-ib-musc-larm" },
+  { key: "musc_trunk", label: "体幹筋肉量", unit: "kg", target: "v-ib-musc-trunk" },
+  { key: "musc_rleg", label: "右脚筋肉量", unit: "kg", target: "v-ib-musc-rleg" },
+  { key: "musc_lleg", label: "左脚筋肉量", unit: "kg", target: "v-ib-musc-lleg" },
+  { key: "fat_rarm", label: "右腕体脂肪量", unit: "kg", target: "v-ib-fat-rarm" },
+  { key: "fat_larm", label: "左腕体脂肪量", unit: "kg", target: "v-ib-fat-larm" },
+  { key: "fat_trunk", label: "体幹体脂肪量", unit: "kg", target: "v-ib-fat-trunk" },
+  { key: "fat_rleg", label: "右脚体脂肪量", unit: "kg", target: "v-ib-fat-rleg" },
+  { key: "fat_lleg", label: "左脚体脂肪量", unit: "kg", target: "v-ib-fat-lleg" },
+];
+async function analyzeInbodyPhoto(aiImage, thumb) {
+  const area = document.getElementById("inbody-analyze-area");
+  const apiKey = (load(K.profile).apiKey || window.LOCAL_GEMINI_API_KEY || "").trim();
+  const proxyReady = MEAL_PROXY_URL && !MEAL_PROXY_URL.includes("REPLACE-WITH-YOUR-PROXY-URL");
+  if (!apiKey && !proxyReady) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="InBody結果">
+      <div class="analyze-error">AIによる自動読み取りには「⚙️設定」でGoogle Gemini APIキーの登録が必要です。登録後にもう一度撮影するか、下に直接入力してください。</div>
+    </div>`;
+    return;
+  }
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="InBody結果">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目を読み取ってください。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"water\":数値またはnull,\"protein\":数値またはnull,\"minerals\":数値またはnull,\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"bmr\":数値またはnull,\"musc_rarm\":数値またはnull,\"musc_larm\":数値またはnull,\"musc_trunk\":数値またはnull,\"musc_rleg\":数値またはnull,\"musc_lleg\":数値またはnull,\"fat_rarm\":数値またはnull,\"fat_larm\":数値またはnull,\"fat_trunk\":数値またはnull,\"fat_rleg\":数値またはnull,\"fat_lleg\":数値またはnull}";
+  try {
+    const res = apiKey
+      ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        })
+      : await fetch(MEAL_PROXY_URL, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ image: base64, prompt: promptText })
+        });
+    const data = await res.json();
+    if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
+    const text = (data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) || "";
+    const jsonStr = extractFirstJsonObject(text.replace(/```json|```/g, "").trim());
+    const parsed = JSON.parse(jsonStr);
+    const values = {};
+    let found = 0;
+    INBODY_FIELDS.forEach(f => {
+      const n = Number(parsed[f.key]);
+      if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
+    });
+    if (found === 0) throw new Error("測定値を認識できませんでした");
+    applyInbodyAnalyzeResult(thumb, values);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="InBody結果">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下のフォームに直接入力してください。</div>
+    </div>`;
+  }
+}
+function applyInbodyAnalyzeResult(thumb, values) {
+  const area = document.getElementById("inbody-analyze-area");
+  const appliedLabels = [];
+  INBODY_FIELDS.forEach(f => {
+    if (values[f.key] == null) return;
+    const el = document.getElementById(f.target);
+    el.value = values[f.key];
+    flashField(el);
+    appliedLabels.push(f.label);
+  });
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="InBody結果">
     <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
   </div>`;
   toast(`${appliedLabels.length}件を反映しました`);
@@ -2488,6 +2631,12 @@ document.getElementById("v-save").addEventListener("click", () => {
   const rec = {
     sbp: vNum("v-sbp"), dbp: vNum("v-dbp"), weight: vNum("v-weight"),
     fat: vNum("v-fat"), muscle: vNum("v-muscle"), visceral: vNum("v-visceral"),
+    ibWater: vNum("v-ib-water"), ibProtein: vNum("v-ib-protein"), ibMinerals: vNum("v-ib-minerals"),
+    ibBmi: vNum("v-ib-bmi"), ibBmr: vNum("v-ib-bmr"),
+    ibMuscRArm: vNum("v-ib-musc-rarm"), ibMuscLArm: vNum("v-ib-musc-larm"), ibMuscTrunk: vNum("v-ib-musc-trunk"),
+    ibMuscRLeg: vNum("v-ib-musc-rleg"), ibMuscLLeg: vNum("v-ib-musc-lleg"),
+    ibFatRArm: vNum("v-ib-fat-rarm"), ibFatLArm: vNum("v-ib-fat-larm"), ibFatTrunk: vNum("v-ib-fat-trunk"),
+    ibFatRLeg: vNum("v-ib-fat-rleg"), ibFatLLeg: vNum("v-ib-fat-lleg"),
     ast: vNum("v-ast"), alt: vNum("v-alt"), ggtp: vNum("v-ggtp"), plt: vNum("v-plt"),
     ldl: vNum("v-ldl"), tg: vNum("v-tg"), hba1c: vNum("v-hba1c"),
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
@@ -2506,6 +2655,12 @@ function loadVisitToForm(date) {
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
   setv("v-fat", v.fat); setv("v-muscle", v.muscle); setv("v-visceral", v.visceral);
+  setv("v-ib-water", v.ibWater); setv("v-ib-protein", v.ibProtein); setv("v-ib-minerals", v.ibMinerals);
+  setv("v-ib-bmi", v.ibBmi); setv("v-ib-bmr", v.ibBmr);
+  setv("v-ib-musc-rarm", v.ibMuscRArm); setv("v-ib-musc-larm", v.ibMuscLArm); setv("v-ib-musc-trunk", v.ibMuscTrunk);
+  setv("v-ib-musc-rleg", v.ibMuscRLeg); setv("v-ib-musc-lleg", v.ibMuscLLeg);
+  setv("v-ib-fat-rarm", v.ibFatRArm); setv("v-ib-fat-larm", v.ibFatLArm); setv("v-ib-fat-trunk", v.ibFatTrunk);
+  setv("v-ib-fat-rleg", v.ibFatRLeg); setv("v-ib-fat-lleg", v.ibFatLLeg);
   setv("v-ast", v.ast); setv("v-alt", v.alt); setv("v-ggtp", v.ggtp); setv("v-plt", v.plt);
   setv("v-ldl", v.ldl); setv("v-tg", v.tg); setv("v-hba1c", v.hba1c);
   setv("v-kpa", v.kpa); setv("v-cap", v.cap);
