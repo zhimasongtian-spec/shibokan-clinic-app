@@ -537,21 +537,25 @@
       </div>
       <h3>血液検査</h3>
       <input type="file" id="labs-photo-input" accept="image/*" capture="environment" style="display:none;">
-      <button type="button" class="btn secondary small" id="labs-photo-btn">📷 採血結果を撮影して読み取る</button>
+      <button type="button" class="btn secondary" id="labs-photo-btn">📷 採血結果を撮影して読み取る</button>
+      <p class="muted" style="font-size:.78rem; margin-top:4px;">結果票を撮影するだけで、AIが数値を読み取ります（内容は反映前に確認できます）</p>
       <div id="labs-analyze-area"></div>
-      <div class="row3">
-        <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
-        <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
-        <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
-      </div>
-      <div class="row3">
-        <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
-        <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
-        <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
-      </div>
-      <div class="row3">
-        <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
-      </div>
+      <details style="margin-top:10px;" id="labs-manual-details">
+        <summary class="muted" style="cursor:pointer; font-size:.84rem;">手入力する場合はこちら</summary>
+        <div class="row3" style="margin-top:10px;">
+          <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="v-ast" min="1" max="3000"></div>
+          <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="v-alt" min="1" max="3000"></div>
+          <div><label>γGTP <span class="unit-note">U/L</span></label><input type="number" id="v-ggtp" min="1" max="3000"></div>
+        </div>
+        <div class="row3">
+          <div><label>中性脂肪 <span class="unit-note">mg/dL</span></label><input type="number" id="v-tg" min="10" max="3000"></div>
+          <div><label>LDL-C <span class="unit-note">mg/dL</span></label><input type="number" id="v-ldl" min="10" max="500"></div>
+          <div><label>血小板数 <span class="unit-note">万/µL</span></label><input type="number" id="v-plt" step="0.1" min="1" max="100"></div>
+        </div>
+        <div class="row3">
+          <div><label>HbA1c <span class="unit-note">%</span></label><input type="number" id="v-hba1c" step="0.1" min="3" max="20"></div>
+        </div>
+      </details>
       <div class="fib-line" id="v-fib-line"></div>
 
       <h3>腹部超音波検査</h3>
@@ -2062,13 +2066,41 @@ async function analyzeLabsPhoto(aiImage, thumb) {
       if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
     });
     if (found === 0) throw new Error("検査値を認識できませんでした");
-    applyLabsAnalyzeResult(thumb, values);
+    renderLabsConfirm(thumb, values);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="採血結果">
       <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下のフォームに直接入力してください。</div>
     </div>`;
   }
+}
+function renderLabsConfirm(thumb, values) {
+  const area = document.getElementById("labs-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="採血結果">
+    <p class="muted">🔍 AIの読み取り結果（反映前に確認・修正できます）</p>
+    <div id="labs-confirm-rows"></div>
+    <div class="row2" style="margin-top:8px;">
+      <button class="btn small secondary" id="labs-confirm-cancel">取消</button>
+      <button class="btn small" id="labs-confirm-apply">✓ この内容を反映</button>
+    </div>
+  </div>`;
+  const rowsEl = document.getElementById("labs-confirm-rows");
+  rowsEl.innerHTML = LABS_FIELDS.filter(f => values[f.key] != null).map(f => `
+    <div class="analyze-item-row">
+      <span style="flex:1;">${f.label}</span>
+      <div class="kcal-wrap">
+        <input type="number" data-key="${f.key}" value="${values[f.key]}" step="0.1">
+        <span class="unit-note">${f.unit}</span>
+      </div>
+    </div>`).join("");
+  rowsEl.querySelectorAll("input").forEach(inp => inp.addEventListener("input", () => {
+    const n = Number(inp.value);
+    if (inp.value !== "" && !Number.isNaN(n)) values[inp.dataset.key] = n;
+    else delete values[inp.dataset.key];
+  }));
+  document.getElementById("labs-confirm-cancel").addEventListener("click", () => { area.innerHTML = ""; });
+  document.getElementById("labs-confirm-apply").addEventListener("click", () => applyLabsAnalyzeResult(thumb, values));
 }
 function applyLabsAnalyzeResult(thumb, values) {
   const area = document.getElementById("labs-analyze-area");
@@ -2080,10 +2112,11 @@ function applyLabsAnalyzeResult(thumb, values) {
     flashField(el);
     appliedLabels.push(f.label);
   });
+  document.getElementById("labs-manual-details").open = true;
   updateFibLine();
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="採血結果">
-    <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+    <p class="muted">✅ ${appliedLabels.join("・")} を反映しました。内容を確認し、必要に応じて下で修正してください。</p>
   </div>`;
   toast(`${appliedLabels.length}件を反映しました`);
 }
