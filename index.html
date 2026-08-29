@@ -576,6 +576,16 @@
         <div><label>右脚</label><input type="number" id="v-ib-musc-rleg" step="0.01" min="0" max="30"></div>
         <div><label>左脚</label><input type="number" id="v-ib-musc-lleg" step="0.01" min="0" max="30"></div>
       </div>
+      <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別筋肉量 標準体重比 <span class="unit-note">%</span>（用紙の部位別筋肉量欄にある%表示）</p>
+      <div class="row3">
+        <div><label>右腕</label><input type="number" id="v-ib-musc-rarm-pct" step="0.1" min="0" max="250"></div>
+        <div><label>左腕</label><input type="number" id="v-ib-musc-larm-pct" step="0.1" min="0" max="250"></div>
+        <div><label>体幹</label><input type="number" id="v-ib-musc-trunk-pct" step="0.1" min="0" max="250"></div>
+      </div>
+      <div class="row2">
+        <div><label>右脚</label><input type="number" id="v-ib-musc-rleg-pct" step="0.1" min="0" max="250"></div>
+        <div><label>左脚</label><input type="number" id="v-ib-musc-lleg-pct" step="0.1" min="0" max="250"></div>
+      </div>
       <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別体脂肪量 <span class="unit-note">kg</span></p>
       <div class="row3">
         <div><label>右腕</label><input type="number" id="v-ib-fat-rarm" step="0.01" min="0" max="10"></div>
@@ -2160,6 +2170,11 @@ const INBODY_FIELDS = [
   { key: "fat_trunk", label: "体幹体脂肪量", unit: "kg", target: "v-ib-fat-trunk" },
   { key: "fat_rleg", label: "右脚体脂肪量", unit: "kg", target: "v-ib-fat-rleg" },
   { key: "fat_lleg", label: "左脚体脂肪量", unit: "kg", target: "v-ib-fat-lleg" },
+  { key: "musc_rarm_pct", label: "右腕筋肉量%", unit: "%", target: "v-ib-musc-rarm-pct" },
+  { key: "musc_larm_pct", label: "左腕筋肉量%", unit: "%", target: "v-ib-musc-larm-pct" },
+  { key: "musc_trunk_pct", label: "体幹筋肉量%", unit: "%", target: "v-ib-musc-trunk-pct" },
+  { key: "musc_rleg_pct", label: "右脚筋肉量%", unit: "%", target: "v-ib-musc-rleg-pct" },
+  { key: "musc_lleg_pct", label: "左脚筋肉量%", unit: "%", target: "v-ib-musc-lleg-pct" },
 ];
 async function analyzeInbodyPhoto(aiImage, thumb) {
   const area = document.getElementById("inbody-analyze-area");
@@ -2177,7 +2192,7 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目を読み取ってください。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"water\":数値またはnull,\"protein\":数値またはnull,\"minerals\":数値またはnull,\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"bmr\":数値またはnull,\"musc_rarm\":数値またはnull,\"musc_larm\":数値またはnull,\"musc_trunk\":数値またはnull,\"musc_rleg\":数値またはnull,\"musc_lleg\":数値またはnull,\"fat_rarm\":数値またはnull,\"fat_larm\":数値またはnull,\"fat_trunk\":数値またはnull,\"fat_rleg\":数値またはnull,\"fat_lleg\":数値またはnull}";
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目を読み取ってください。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれているので、両方読み取ってください（%は標準体重を100%とした相対値です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"water\":数値またはnull,\"protein\":数値またはnull,\"minerals\":数値またはnull,\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"bmr\":数値またはnull,\"musc_rarm\":数値またはnull,\"musc_larm\":数値またはnull,\"musc_trunk\":数値またはnull,\"musc_rleg\":数値またはnull,\"musc_lleg\":数値またはnull,\"fat_rarm\":数値またはnull,\"fat_larm\":数値またはnull,\"fat_trunk\":数値またはnull,\"fat_rleg\":数値またはnull,\"fat_lleg\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -2635,6 +2650,8 @@ document.getElementById("v-save").addEventListener("click", () => {
     ibBmi: vNum("v-ib-bmi"), ibBmr: vNum("v-ib-bmr"),
     ibMuscRArm: vNum("v-ib-musc-rarm"), ibMuscLArm: vNum("v-ib-musc-larm"), ibMuscTrunk: vNum("v-ib-musc-trunk"),
     ibMuscRLeg: vNum("v-ib-musc-rleg"), ibMuscLLeg: vNum("v-ib-musc-lleg"),
+    ibMuscRArmPct: vNum("v-ib-musc-rarm-pct"), ibMuscLArmPct: vNum("v-ib-musc-larm-pct"), ibMuscTrunkPct: vNum("v-ib-musc-trunk-pct"),
+    ibMuscRLegPct: vNum("v-ib-musc-rleg-pct"), ibMuscLLegPct: vNum("v-ib-musc-lleg-pct"),
     ibFatRArm: vNum("v-ib-fat-rarm"), ibFatLArm: vNum("v-ib-fat-larm"), ibFatTrunk: vNum("v-ib-fat-trunk"),
     ibFatRLeg: vNum("v-ib-fat-rleg"), ibFatLLeg: vNum("v-ib-fat-lleg"),
     ast: vNum("v-ast"), alt: vNum("v-alt"), ggtp: vNum("v-ggtp"), plt: vNum("v-plt"),
@@ -2659,6 +2676,8 @@ function loadVisitToForm(date) {
   setv("v-ib-bmi", v.ibBmi); setv("v-ib-bmr", v.ibBmr);
   setv("v-ib-musc-rarm", v.ibMuscRArm); setv("v-ib-musc-larm", v.ibMuscLArm); setv("v-ib-musc-trunk", v.ibMuscTrunk);
   setv("v-ib-musc-rleg", v.ibMuscRLeg); setv("v-ib-musc-lleg", v.ibMuscLLeg);
+  setv("v-ib-musc-rarm-pct", v.ibMuscRArmPct); setv("v-ib-musc-larm-pct", v.ibMuscLArmPct); setv("v-ib-musc-trunk-pct", v.ibMuscTrunkPct);
+  setv("v-ib-musc-rleg-pct", v.ibMuscRLegPct); setv("v-ib-musc-lleg-pct", v.ibMuscLLegPct);
   setv("v-ib-fat-rarm", v.ibFatRArm); setv("v-ib-fat-larm", v.ibFatLArm); setv("v-ib-fat-trunk", v.ibFatTrunk);
   setv("v-ib-fat-rleg", v.ibFatRLeg); setv("v-ib-fat-lleg", v.ibFatLLeg);
   setv("v-ast", v.ast); setv("v-alt", v.alt); setv("v-ggtp", v.ggtp); setv("v-plt", v.plt);
