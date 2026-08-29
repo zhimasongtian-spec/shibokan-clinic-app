@@ -9,7 +9,7 @@
     --bg: #f4f7f5; --card: #ffffff; --ink: #24312a; --sub: #566158;
     --accent: #2e8b6d; --accent-soft: #e3f2ec; --accent-dark: #1f6b52;
     --danger: #c0504d; --danger-soft: #faeceb; --line: #e2e9e5;
-    --warn: #d9822b; --blue: #3a7ca5;
+    --warn: #d9822b; --blue: #3a7ca5; --blue-soft: #e7f1f7;
     --radius: 14px; --shadow: 0 2px 10px rgba(36, 49, 42, .07);
   }
   html { font-size: 118%; }
@@ -103,6 +103,8 @@
   .pd-period-line { margin-bottom: 4px; }
   .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 4px; }
   .stat-card { background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; }
+  .stat-card.blue { background: var(--blue-soft); }
+  .stat-card.blue .stat-value { color: var(--blue); }
   .stat-label { font-size: .78rem; color: var(--sub); font-weight: 700; }
   .stat-value { font-size: 1.15rem; font-weight: 800; color: var(--accent-dark); margin-top: 2px; }
   .stat-unit { font-size: .74rem; font-weight: 600; color: var(--sub); }
@@ -129,6 +131,43 @@
   .wf-tag { font-size: .66rem; color: var(--sub); margin-top: 1px; white-space: nowrap; }
   .wf-arrow { display: flex; flex-direction: column; align-items: center; font-size: .8rem; color: var(--sub); line-height: 1.3; }
   .wf-arrow .stat-delta { font-size: .68rem; margin-left: 0; }
+  .seg-interval button:disabled { color: var(--line); cursor: not-allowed; background: #f4f7f5; }
+
+  /* ---- 食事・運動履歴（棒グラフ＋履歴表） ---- */
+  .bar-chart-wrap { display: flex; align-items: stretch; position: relative; }
+  .chart-axis-svg { flex: none; width: 54px; height: auto; display: block; }
+  .bar-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .chart-bars-svg { height: auto; display: block; }
+  .chart-tooltip {
+    position: absolute; display: none; pointer-events: none; z-index: 5;
+    background: #33403a; color: #fff; font-size: .78rem; font-weight: 700;
+    padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+    transform: translate(-50%, -100%); margin-top: -8px;
+  }
+  .chart-tooltip::after {
+    content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #33403a;
+  }
+  .item-row {
+    display: flex; align-items: center; gap: 8px; padding: 9px 4px;
+    border-bottom: 1px solid var(--line); font-size: .92rem;
+  }
+  .item-row .tm { font-size: .92rem; color: var(--ink); white-space: nowrap; flex-shrink: 0; }
+  .item-row .nm { flex: 1; }
+  .item-row .kc { font-weight: 700; white-space: nowrap; }
+  .meal-hist-day { border-bottom: 1px solid var(--line); }
+  .meal-hist-head {
+    display: flex; align-items: center; gap: 8px; width: 100%;
+    background: none; border: none; padding: 10px 2px; font: inherit; color: inherit;
+    text-align: left; cursor: pointer;
+  }
+  .meal-hist-date { flex: none; font-size: .84rem; white-space: nowrap; }
+  .meal-hist-summary { flex: 1; min-width: 0; font-size: .8rem; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .meal-hist-total { flex: none; font-size: .84rem; font-weight: 700; white-space: nowrap; }
+  .meal-hist-arrow { flex: none; font-size: .68rem; color: var(--sub); transition: transform .15s; }
+  .meal-hist-day.open .meal-hist-arrow { transform: rotate(180deg); }
+  .meal-hist-detail { padding: 0 2px 10px 2px; }
+  .meal-hist-detail .item-row { padding: 6px 0; font-size: .82rem; }
 
   /* ---- 写真からのAI読み取り ---- */
   .analyze-box { margin-top: 10px; }
@@ -525,9 +564,42 @@
     <button type="button" class="back-link" id="patient-history-back">← 患者の評価に戻る</button>
   </div>
   <h2 class="no-print">📖 食事・運動の記録</h2>
-  <p class="muted no-print">患者アプリに記録された日々の内容をそのまま表示します。</p>
-  <div id="history-list"></div>
-  <button type="button" class="btn-link hidden" id="history-more" style="display:block; margin:14px auto;">さらに表示</button>
+
+  <h3>🍽 食事カロリー履歴</h3>
+  <div class="seg-interval" id="hist-meal-range-seg">
+    <button type="button" data-range="7">週</button>
+    <button type="button" data-range="30" class="on">月</button>
+    <button type="button" data-range="90">3か月</button>
+    <button type="button" data-range="180">6か月</button>
+    <button type="button" data-range="365">年</button>
+  </div>
+  <div id="hist-meal-summary"></div>
+  <div class="bar-chart-wrap" id="hist-meal-chart-wrap">
+    <svg id="hist-meal-chart-axis" class="chart-axis-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="bar-chart-scroll" id="hist-meal-chart-scroll">
+      <svg id="hist-meal-chart" class="chart-bars-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="chart-tooltip" id="hist-meal-chart-tooltip"></div>
+  </div>
+  <div id="hist-meal-history"></div>
+
+  <h3 style="margin-top:24px;">🏃 運動消費カロリー履歴</h3>
+  <div class="seg-interval" id="hist-ex-range-seg">
+    <button type="button" data-range="7">週</button>
+    <button type="button" data-range="30" class="on">月</button>
+    <button type="button" data-range="90">3か月</button>
+    <button type="button" data-range="180">6か月</button>
+    <button type="button" data-range="365">年</button>
+  </div>
+  <div id="hist-ex-summary"></div>
+  <div class="bar-chart-wrap" id="hist-ex-chart-wrap">
+    <svg id="hist-ex-chart-axis" class="chart-axis-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="bar-chart-scroll" id="hist-ex-chart-scroll">
+      <svg id="hist-ex-chart" class="chart-bars-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+    <div class="chart-tooltip" id="hist-ex-chart-tooltip"></div>
+  </div>
+  <div id="hist-ex-history"></div>
 </div>
 
 <div class="box wide hidden" id="patient-labs-entry-view">
@@ -1318,61 +1390,372 @@ function renderGraphs() {
     "※ 摂取カロリー・運動時間・歩数は週平均、体重・採血結果は記録日ごとの値です。すべてのグラフで横軸（期間）を揃えています。";
 }
 
-// ------- 記録を見る（患者アプリの食事・運動記録をそのまま表示） -------
-let historyShownCount = 20;
+// ------- 記録を見る（患者アプリの食事・運動記録を同じ棒グラフ・履歴表で表示） -------
+function rangeCutoff(range) {
+  if (range === "all") return null;
+  if (range === "ytd") return new Date().getFullYear() + "-01-01";
+  return addDays(todayStr(), -Number(range));
+}
+function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
+function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
+function fmtMonthLabel(ym) { const [, m] = ym.split("-"); return `${Number(m)}月`; }
+function fmtYearMonthLabel(ym) { const [y, m] = ym.split("-"); return `${y}年${Number(m)}月`; }
+function weekStartStr(s) {
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  const dow = dt.getDay();
+  dt.setDate(dt.getDate() - (dow === 0 ? 6 : dow - 1));
+  return dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0") + "-" + String(dt.getDate()).padStart(2, "0");
+}
+function fmtWeekRange(startStr) {
+  const endStr = addDays(startStr, 6);
+  const [ys, ms, ds] = startStr.split("-").map(Number);
+  const [ye, me, de] = endStr.split("-").map(Number);
+  if (ys === ye && ms === me) return `${ys}/${ms}/${ds}〜${de}`;
+  return `${fmtDate(startStr)}〜${fmtDate(endStr)}`;
+}
+function niceAxisTicks(rawMin, rawMax) {
+  if (rawMin === rawMax) { rawMin -= 1; rawMax += 1; }
+  const rawStep = (rawMax - rawMin) / 4;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const niceNorm = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 5 ? 5 : 10;
+  const step = niceNorm * mag;
+  const niceMin = Math.floor(rawMin / step) * step;
+  const ticks = [];
+  for (let v = niceMin; v < rawMax + step * 0.5; v += step) ticks.push(Math.round(v * 100) / 100);
+  return ticks;
+}
+function historyMoreHtml(idPrefix, totalLength, shownCount) {
+  const remaining = totalLength - shownCount;
+  if (remaining <= 0 && shownCount <= 10) return "";
+  let html = '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">';
+  if (remaining > 0) html += `<button class="btn secondary" id="${idPrefix}-more" style="width:auto; padding:8px 16px;">さらに${Math.min(10, remaining)}件を表示（残り${remaining}件）</button>`;
+  if (shownCount > 10) html += `<button class="btn secondary" id="${idPrefix}-collapse" style="width:auto; padding:8px 16px;">閉じる（10件表示に戻す）</button>`;
+  html += "</div>";
+  return html;
+}
+function bindHistoryMoreControls(idPrefix, onMore, onCollapse) {
+  const moreBtn = document.getElementById(`${idPrefix}-more`);
+  if (moreBtn) moreBtn.addEventListener("click", onMore);
+  const collapseBtn = document.getElementById(`${idPrefix}-collapse`);
+  if (collapseBtn) collapseBtn.addEventListener("click", onCollapse);
+}
+function hideChartTooltip(tooltipEl) { tooltipEl.style.display = "none"; }
+function showChartTooltip(tooltipEl, wrapEl, barEl, label) {
+  const wrapBox = wrapEl.getBoundingClientRect();
+  const barBox = barEl.getBoundingClientRect();
+  tooltipEl.textContent = label;
+  tooltipEl.style.display = "block";
+  tooltipEl.style.left = "0px";
+  const tipWidth = tooltipEl.getBoundingClientRect().width;
+  const halfTip = tipWidth / 2;
+  const desiredLeft = barBox.left + barBox.width / 2 - wrapBox.left;
+  const minLeft = halfTip + 4;
+  const maxLeft = wrapBox.width - halfTip - 4;
+  const left = Math.max(minLeft, Math.min(desiredLeft, maxLeft));
+  tooltipEl.style.left = left + "px";
+  tooltipEl.style.top = (barBox.top - wrapBox.top) + "px";
+}
+function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points, opts) {
+  opts = opts || {};
+  const H = 320, padT = 40, padB = 38, axisW = 54;
+  axisSvg.setAttribute("viewBox", `0 0 ${axisW} ${H}`);
+  hideChartTooltip(tooltipEl);
+  if (points.length === 0) {
+    axisSvg.innerHTML = "";
+    barsSvg.setAttribute("viewBox", "0 0 300 320");
+    barsSvg.removeAttribute("width");
+    barsSvg.innerHTML = '<text x="150" y="160" text-anchor="middle" fill="#6b7a72" font-size="15">記録がたまるとグラフが表示されます</text>';
+    return;
+  }
+  const ticks = niceAxisTicks(0, Math.max(...points.map(p => p.y), opts.goalLine || 0, 1) * 1.08);
+  const maxY = ticks[ticks.length - 1];
+  const y = v => padT + (1 - v / maxY) * (H - padT - padB);
+  const n = points.length;
+  const minW = (scrollEl.clientWidth || 300);
+  const bandW = opts.fitCount ? minW / opts.fitCount : 40;
+  const barW = Math.min(bandW * 0.6, 26);
+  const totalW = Math.max(n * bandW, minW);
+
+  let axisHtml = opts.yUnit ? `<text x="4" y="18" font-size="13" fill="#6b7a72">${opts.yUnit}</text>` : "";
+  ticks.forEach(v => {
+    axisHtml += `<text x="${axisW - 8}" y="${y(v) + 5}" text-anchor="end" font-size="15" fill="#6b7a72">${v.toLocaleString()}</text>`;
+  });
+  axisSvg.innerHTML = axisHtml;
+
+  barsSvg.setAttribute("viewBox", `0 0 ${totalW} ${H}`);
+  barsSvg.setAttribute("width", totalW);
+  let el = "";
+  ticks.forEach(v => {
+    el += `<line x1="0" y1="${y(v)}" x2="${totalW}" y2="${y(v)}" stroke="#e2e9e5"/>`;
+  });
+  if (opts.goalLine != null) {
+    const gy = y(opts.goalLine);
+    el += `<line x1="0" y1="${gy}" x2="${totalW}" y2="${gy}" stroke="#d9822b" stroke-width="1.5" stroke-dasharray="6 5"/>`;
+    el += `<text x="${totalW - 4}" y="${gy - 6}" text-anchor="end" font-size="12" fill="#d9822b">目標 ${opts.goalLine.toLocaleString()}${opts.yUnit || ""}</text>`;
+  }
+  const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
+  const labelStep = Math.max(1, Math.ceil((labelCharCount * 7 + 6) / bandW));
+  points.forEach((p, i) => {
+    const cx = bandW * (i + 0.5);
+    const barY = y(p.y);
+    const fillColor = opts.pointColor ? opts.pointColor(p) : (opts.color || "#2e8b6d");
+    el += `<rect x="${cx - barW / 2}" y="${barY}" width="${barW}" height="${Math.max((H - padB) - barY, 0)}" fill="${fillColor}" rx="3"/>`;
+    const isFirst = i === 0;
+    const isLast = i === points.length - 1;
+    if (isLast || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
+      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+      const anchor = isFirst ? "start" : isLast ? "end" : "middle";
+      const lx = isFirst ? Math.max(cx - barW / 2, 0) : isLast ? Math.min(cx + barW / 2, totalW) : cx;
+      el += `<text x="${lx}" y="${H - 8}" text-anchor="${anchor}" font-size="11" fill="#6b7a72">${lbl}</text>`;
+    }
+    el += `<rect class="bar-hit" data-i="${i}" x="${cx - bandW / 2}" y="${padT}" width="${bandW}" height="${H - padT - padB}" fill="transparent"/>`;
+  });
+  barsSvg.innerHTML = el;
+  scrollEl.scrollLeft = scrollEl.scrollWidth;
+  barsSvg.querySelectorAll(".bar-hit").forEach(hit => {
+    hit.style.cursor = "pointer";
+    hit.addEventListener("click", e => {
+      e.stopPropagation();
+      const p = points[Number(hit.dataset.i)];
+      const label = opts.monthly
+        ? `${fmtYearMonthLabel(p.x)}の平均　${p.y.toLocaleString()}${opts.yUnit || ""}`
+        : opts.weekly
+        ? `${fmtWeekRange(p.x)}　合計 ${p.y.toLocaleString()}${opts.yUnit || ""}`
+        : `${fmtDate(p.x)}　${p.y.toLocaleString()}${opts.yUnit || ""}`;
+      showChartTooltip(tooltipEl, wrapEl, hit, label);
+    });
+  });
+  if (!scrollEl.dataset.tooltipBound) {
+    scrollEl.dataset.tooltipBound = "1";
+    scrollEl.addEventListener("scroll", () => hideChartTooltip(tooltipEl));
+    document.addEventListener("click", e => {
+      if (!wrapEl.contains(e.target)) hideChartTooltip(tooltipEl);
+    });
+  }
+}
+function estimateKcal(mets, min) {
+  const daily = (pdCache && pdCache.daily) || {};
+  const dates = Object.keys(daily).sort().reverse();
+  let w = null;
+  for (const d of dates) if (daily[d].weight != null) { w = daily[d].weight; break; }
+  if (w == null) w = (pdCache && pdCache.profile && pdCache.profile.startWeight) || 60;
+  return Math.round(mets * w * (min / 60) * 1.05);
+}
+function stepsKcal(steps) {
+  if (!steps) return 0;
+  return estimateKcal(3.5, steps / 100);
+}
+
 document.getElementById("pd-history-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-history-view").classList.remove("hidden");
-  historyShownCount = 20;
-  renderHistoryView();
+  histMealRange = "30"; histMealHistoryShownCount = 10; histMealHistoryExpanded = new Set();
+  histExRange = "30"; histExHistoryShownCount = 10;
+  document.querySelectorAll("#hist-meal-range-seg button").forEach(x => x.classList.toggle("on", x.dataset.range === "30"));
+  document.querySelectorAll("#hist-ex-range-seg button").forEach(x => x.classList.toggle("on", x.dataset.range === "30"));
+  renderHistMealSection();
+  renderHistExSection();
 });
 document.getElementById("patient-history-back").addEventListener("click", () => {
   document.getElementById("patient-history-view").classList.add("hidden");
   document.getElementById("patient-detail-view").classList.remove("hidden");
 });
-document.getElementById("history-more").addEventListener("click", () => {
-  historyShownCount += 20;
-  renderHistoryView();
+
+let histMealRange = "30", histMealHistoryShownCount = 10, histMealHistoryExpanded = new Set();
+document.getElementById("hist-meal-range-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  histMealHistoryShownCount = 10;
+  document.querySelectorAll("#hist-meal-range-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); histMealRange = b.dataset.range; renderHistMealSection();
 });
-function renderHistoryView() {
-  const daily = (pdCache && pdCache.daily) || {};
-  const dates = Object.keys(daily)
-    .filter(d => (daily[d].meals && daily[d].meals.length) || (daily[d].exercises && daily[d].exercises.length) || daily[d].weight != null)
-    .sort().reverse();
-  const list = document.getElementById("history-list");
-  const moreBtn = document.getElementById("history-more");
-  if (!dates.length) {
-    list.innerHTML = `<p class="muted">記録がまだありません</p>`;
-    moreBtn.classList.add("hidden");
-    return;
+function renderHistMealSection() {
+  const all = (pdCache && pdCache.daily) || {};
+  const today = todayStr();
+  const mealDates = Object.keys(all).filter(d => d !== today && all[d].meals && all[d].meals.length);
+  const cutoff = rangeCutoff(histMealRange);
+  const days = mealDates.filter(d => !cutoff || d >= cutoff).sort().reverse();
+  const dayTotal = d => { const r = all[d]; return r && r.meals ? r.meals.reduce((s, m) => s + (m.kcal || 0), 0) : 0; };
+  const periodTotal = days.reduce((s, d) => s + dayTotal(d), 0);
+  const periodAvg = days.length ? Math.round(periodTotal / days.length) : 0;
+  document.getElementById("hist-meal-summary").innerHTML = days.length === 0 ? "" : `
+    <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
+      <div class="stat-card"><div class="stat-label">記録日の1日平均（${days.length}日分）</div><div class="stat-value">${periodAvg.toLocaleString()}<span class="stat-unit">kcal</span></div></div>
+    </div>`;
+  const target = (pdCache && pdCache.profile && pdCache.profile.goalKcal) || null;
+  const COLOR_LOW = "#3a7ca5", COLOR_GOOD = "#2e8b6d", COLOR_HIGH = "#d9822b";
+  const colorFor = (v, mult) => !target ? COLOR_GOOD : v < target * 0.7 * mult ? COLOR_LOW : v > target * 1.15 * mult ? COLOR_HIGH : COLOR_GOOD;
+  const chartEnd = today;
+  const hasAnyMealChartData = mealDates.length > 0 || dayTotal(chartEnd) > 0;
+  document.querySelectorAll("#hist-meal-range-seg button").forEach(btn => { btn.disabled = !hasAnyMealChartData; });
+  const historyStart = mealDates.length ? mealDates.reduce((a, b) => a < b ? a : b) : chartEnd;
+  let chartPoints, chartOpts = { color: "#2e8b6d", yUnit: "kcal" };
+  if (!hasAnyMealChartData) {
+    chartPoints = [];
+  } else if (histMealRange === "365") {
+    const monthMap = {};
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      const ym = d.slice(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
+      monthMap[ym].sum += dayTotal(d);
+      monthMap[ym].count++;
+    }
+    chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
+    chartOpts.monthly = true;
+    chartOpts.fitCount = 12;
+    chartOpts.goalLine = target || null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
+  } else if (histMealRange === "90" || histMealRange === "180") {
+    const weekMap = {};
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      const ws = weekStartStr(d);
+      weekMap[ws] = (weekMap[ws] || 0) + dayTotal(d);
+    }
+    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
+    chartOpts.weekly = true;
+    chartOpts.fitCount = Math.ceil(Number(histMealRange) / 7);
+    chartOpts.goalLine = target ? target * 7 : null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 7)) : null;
+  } else {
+    chartPoints = [];
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) chartPoints.push({ x: d, y: dayTotal(d) });
+    chartOpts.dowLabels = histMealRange === "7";
+    chartOpts.fitCount = Number(histMealRange);
+    chartOpts.goalLine = target || null;
+    chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
   }
-  const shown = dates.slice(0, historyShownCount);
-  list.innerHTML = shown.map(d => {
-    const rec = daily[d];
-    const meals = rec.meals || [];
-    const exercises = rec.exercises || [];
-    const mealRows = meals.length
-      ? meals.map(m => `<tr><td>${m.time || "—"}</td><td>${m.name || "—"}</td><td>${m.kcal != null ? m.kcal + "kcal" : "—"}</td></tr>`).join("")
-      : `<tr><td colspan="3" class="muted">記録なし</td></tr>`;
-    const exRows = exercises.length
-      ? exercises.map(x => `<tr><td>${x.name || "—"}</td><td>${x.min != null ? x.min + "分" : (x.reps != null ? x.reps + "回" : "—")}</td><td>${x.kcal != null ? x.kcal + "kcal" : "—"}</td></tr>`).join("")
-      : `<tr><td colspan="3" class="muted">記録なし</td></tr>`;
-    const meta = [
-      rec.weight != null ? `体重 ${rec.weight}kg` : null,
-      rec.steps != null ? `歩数 ${rec.steps}歩` : null,
-    ].filter(Boolean).join(" ／ ");
-    return `
-      <div class="history-day-title">${fmtDate(d)}${meta ? `　<span class="muted" style="font-weight:400;">${meta}</span>` : ""}</div>
-      <table class="log">
-        <tr><th>時刻</th><th>食事</th><th>kcal</th></tr>
-        ${mealRows}
-      </table>
-      <table class="log" style="margin-top:6px;">
-        <tr><th>運動</th><th>量</th><th>kcal</th></tr>
-        ${exRows}
-      </table>`;
-  }).join("");
-  moreBtn.classList.toggle("hidden", dates.length <= shown.length);
+  drawBarSvgScroll(
+    document.getElementById("hist-meal-chart-axis"),
+    document.getElementById("hist-meal-chart"),
+    document.getElementById("hist-meal-chart-scroll"),
+    document.getElementById("hist-meal-chart-wrap"),
+    document.getElementById("hist-meal-chart-tooltip"),
+    chartPoints,
+    chartOpts
+  );
+  const allMealDaysSorted = mealDates.slice().sort().reverse();
+  const shown = allMealDaysSorted.slice(0, histMealHistoryShownCount);
+  document.getElementById("hist-meal-history").innerHTML = allMealDaysSorted.length === 0
+    ? '<p class="muted">まだ食事の記録がありません</p>'
+    : shown.map(d => {
+        const meals = (all[d].meals || []).slice().sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+        const names = meals.map(m => m.name);
+        const summary = names.length <= 2 ? names.join("・") : `${names.slice(0, 2).join("・")} 他${names.length - 2}件`;
+        const open = histMealHistoryExpanded.has(d);
+        return `
+      <div class="meal-hist-day${open ? " open" : ""}">
+        <button type="button" class="meal-hist-head" data-d="${d}">
+          <span class="meal-hist-date">${fmtDate(d)}</span>
+          <span class="meal-hist-summary">${summary}</span>
+          <span class="meal-hist-total">${dayTotal(d).toLocaleString()} kcal</span>
+          <span class="meal-hist-arrow">▾</span>
+        </button>
+        <div class="meal-hist-detail${open ? "" : " hidden"}">
+          ${meals.map(m => `
+            <div class="item-row">
+              ${m.time ? `<span class="tm">${m.time}</span>` : ""}
+              <span class="nm">${m.name}</span>
+              <span class="kc">${m.kcal} kcal</span>
+            </div>`).join("")}
+        </div>
+      </div>`;
+      }).join("") + historyMoreHtml("hist-meal-history", allMealDaysSorted.length, shown.length);
+  document.querySelectorAll("#hist-meal-history .meal-hist-head").forEach(btn => btn.addEventListener("click", () => {
+    const d = btn.dataset.d;
+    if (histMealHistoryExpanded.has(d)) histMealHistoryExpanded.delete(d); else histMealHistoryExpanded.add(d);
+    renderHistMealSection();
+  }));
+  bindHistoryMoreControls("hist-meal-history",
+    () => { histMealHistoryShownCount += 10; renderHistMealSection(); },
+    () => { histMealHistoryShownCount = 10; renderHistMealSection(); });
+}
+
+let histExRange = "30", histExHistoryShownCount = 10;
+document.getElementById("hist-ex-range-seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  histExHistoryShownCount = 10;
+  document.querySelectorAll("#hist-ex-range-seg button").forEach(x => x.classList.remove("on"));
+  b.classList.add("on"); histExRange = b.dataset.range; renderHistExSection();
+});
+function renderHistExSection() {
+  const all = (pdCache && pdCache.daily) || {};
+  const today = todayStr();
+  const exDates = Object.keys(all).filter(d => d !== today && ((all[d].exercises && all[d].exercises.length) || all[d].steps != null));
+  const cutoff = rangeCutoff(histExRange);
+  const days = exDates.filter(d => !cutoff || d >= cutoff).sort().reverse();
+  const dayTotalKcal = d => { const r = all[d]; return r ? (r.exercises || []).reduce((s, e) => s + (e.kcal || 0), 0) + stepsKcal(r.steps) : 0; };
+  const exDays = days.filter(d => dayTotalKcal(d) > 0);
+  const periodKcal = exDays.reduce((s, d) => s + dayTotalKcal(d), 0);
+  const periodAvg = exDays.length ? Math.round(periodKcal / exDays.length) : 0;
+  const periodStart = cutoff || (exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : addDays(today, -1));
+  const periodEnd = addDays(today, -1);
+  document.getElementById("hist-ex-summary").innerHTML = days.length === 0 ? "" : `
+    <div class="stat-grid" style="grid-template-columns:1fr; margin-bottom:10px;">
+      <div class="stat-card blue">
+        <div class="stat-label">1日の平均（運動した日 ${exDays.length}日分）</div>
+        <div class="stat-value">${periodAvg.toLocaleString()}<span class="stat-unit">kcal</span></div>
+        <div class="stat-note">${fmtDate(periodStart)} 〜 ${fmtDate(periodEnd)}</div>
+      </div>
+    </div>`;
+  const chartEnd = today;
+  const hasAnyChartData = exDates.length > 0 || dayTotalKcal(chartEnd) > 0;
+  document.querySelectorAll("#hist-ex-range-seg button").forEach(btn => { btn.disabled = !hasAnyChartData; });
+  const historyStart = exDates.length ? exDates.reduce((a, b) => a < b ? a : b) : chartEnd;
+  let chartPoints, chartOpts = { color: "#3a7ca5", yUnit: "kcal" };
+  if (!hasAnyChartData) {
+    chartPoints = [];
+  } else if (histExRange === "365") {
+    const monthMap = {};
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      const ym = d.slice(0, 7);
+      if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
+      monthMap[ym].sum += dayTotalKcal(d);
+      monthMap[ym].count++;
+    }
+    chartPoints = Object.keys(monthMap).sort().map(ym => ({ x: ym, y: Math.round(monthMap[ym].sum / monthMap[ym].count) }));
+    chartOpts.monthly = true;
+    chartOpts.fitCount = 12;
+  } else if (histExRange === "90" || histExRange === "180") {
+    const weekMap = {};
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      const ws = weekStartStr(d);
+      weekMap[ws] = (weekMap[ws] || 0) + dayTotalKcal(d);
+    }
+    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
+    chartOpts.weekly = true;
+    chartOpts.fitCount = Math.ceil(Number(histExRange) / 7);
+  } else {
+    chartPoints = [];
+    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) chartPoints.push({ x: d, y: dayTotalKcal(d) });
+    chartOpts.dowLabels = histExRange === "7";
+    chartOpts.fitCount = Number(histExRange);
+  }
+  drawBarSvgScroll(
+    document.getElementById("hist-ex-chart-axis"),
+    document.getElementById("hist-ex-chart"),
+    document.getElementById("hist-ex-chart-scroll"),
+    document.getElementById("hist-ex-chart-wrap"),
+    document.getElementById("hist-ex-chart-tooltip"),
+    chartPoints,
+    chartOpts
+  );
+  const allDaysSorted = exDates.slice().sort().reverse();
+  const shown = allDaysSorted.slice(0, histExHistoryShownCount);
+  document.getElementById("hist-ex-history").innerHTML = allDaysSorted.length === 0
+    ? '<p class="muted">まだ運動の記録がありません</p>'
+    : '<table class="log"><tr><th>日付</th><th>運動</th><th>量</th><th>歩数</th><th>消費kcal</th></tr>' + shown.map(d => {
+      const r = all[d];
+      const names = (r.exercises || []).map(e => e.name).join("、") || "—";
+      const min = (r.exercises || []).reduce((s, e) => s + (e.min || 0), 0);
+      const reps = (r.exercises || []).reduce((s, e) => s + (e.reps || 0), 0);
+      const amt = [min ? `${min}分` : "", reps ? `${reps}回` : ""].filter(Boolean).join(" / ");
+      const kc = dayTotalKcal(d);
+      return `<tr><td>${fmtDate(d)}</td><td style="text-align:left;">${names}</td><td>${amt || "—"}</td><td>${r.steps != null ? r.steps.toLocaleString() : "—"}</td><td>${kc || "—"}</td></tr>`;
+    }).join("") + "</table>" + historyMoreHtml("hist-ex-history", allDaysSorted.length, shown.length);
+  bindHistoryMoreControls("hist-ex-history",
+    () => { histExHistoryShownCount += 10; renderHistExSection(); },
+    () => { histExHistoryShownCount = 10; renderHistExSection(); });
 }
 
 // ------- 検査データを入力（スタッフが患者に代わって来院時データを保存） -------
