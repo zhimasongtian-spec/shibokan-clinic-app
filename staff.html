@@ -446,16 +446,18 @@
       <h3>✍️ ここから医師が入力してください</h3>
       <div id="pd-current-goals" class="current-goals-box"></div>
       <p class="muted" style="font-size:.76rem; margin-top:2px;">以下3項目は患者アプリの「目標設定」にも反映されます</p>
-      <label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label>
-      <input type="number" id="pd-goal-weight" step="0.1" min="20" max="300">
+      <div class="row3">
+        <div>
+          <label for="pd-goal-weight">体重目標 <span class="unit-note">kg</span></label>
+          <input type="number" id="pd-goal-weight" step="0.1" min="20" max="300">
+        </div>
+        <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
+        <div><label for="pd-goal-steps">歩数目標 <span class="unit-note">歩</span></label><input type="number" id="pd-goal-steps" step="500" min="1000" max="30000"></div>
+      </div>
       <p class="muted" id="pd-goal-suggest" style="font-size:.78rem; margin-top:6px;"></p>
       <div id="pd-current-weight-prompt" class="hidden" style="margin-top:4px;">
         <label for="pd-current-weight-input" style="font-size:.78rem;">まだ体重記録がありません。現在の体重を入力するとおすすめが出ます <span class="unit-note">kg</span></label>
         <input type="number" id="pd-current-weight-input" step="0.1" min="20" max="300" style="max-width:140px;">
-      </div>
-      <div class="row3">
-        <div><label for="pd-goal-kcal">摂取カロリー目標 <span class="unit-note">kcal</span></label><input type="number" id="pd-goal-kcal" step="50" min="800" max="4000"></div>
-        <div><label for="pd-goal-steps">歩数目標 <span class="unit-note">歩</span></label><input type="number" id="pd-goal-steps" step="500" min="1000" max="30000"></div>
       </div>
       <label for="pd-comment">患者さんへのコメント（アプリのホーム画面に表示されます）</label>
       <textarea id="pd-comment" rows="2" placeholder="例: よく頑張りました！次は86kg台を目指しましょう"></textarea>
