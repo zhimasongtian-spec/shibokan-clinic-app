@@ -963,12 +963,17 @@ function seedGuestDemoData() {
   const ageAt = d => ageAtDate(profile.birthdate, d);
 
   const visitStart = todayStr(-90), visitMid = todayStr(-49), visitRecent = todayStr(-9);
-  const mkVisit = (age, ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap) =>
-    ({ ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap, fib4: calcFib4(age, ast, alt, plt) });
+  const mkVisit = (age, ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap, ib) =>
+    ({ ast, alt, ggtp, tg, ldl, plt, hba1c, kpa, cap, fib4: calcFib4(age, ast, alt, plt), ...ib });
+  const mkIb = (fat, muscle, visceral, ibBmi, rarm, larm, trunk, rleg, lleg) =>
+    ({ fat, muscle, visceral, ibBmi, ibMuscRArmPct: rarm, ibMuscLArmPct: larm, ibMuscTrunkPct: trunk, ibMuscRLegPct: rleg, ibMuscLLegPct: lleg });
   const visits = {
-    [visitStart]: mkVisit(ageAt(visitStart), 42, 35, 55, 185, 130, 18.5, 6.1, 8.2, 285),
-    [visitMid]: mkVisit(ageAt(visitMid), 34, 28, 46, 160, 122, 19.2, 6.0, 7.6, 260),
-    [visitRecent]: mkVisit(ageAt(visitRecent), 28, 22, 38, 142, 110, 20.1, 5.8, 7.1, 232),
+    [visitStart]: mkVisit(ageAt(visitStart), 42, 35, 55, 185, 130, 18.5, 6.1, 8.2, 285,
+      mkIb(33.5, 24.2, 11, 29.9, 83, 84, 88, 90, 91)),
+    [visitMid]: mkVisit(ageAt(visitMid), 34, 28, 46, 160, 122, 19.2, 6.0, 7.6, 260,
+      mkIb(30.8, 25.0, 10, 29.7, 87, 88, 91, 93, 93)),
+    [visitRecent]: mkVisit(ageAt(visitRecent), 28, 22, 38, 142, 110, 20.1, 5.8, 7.1, 232,
+      mkIb(27.6, 26.1, 8, 29.6, 92, 93, 96, 97, 98)),
   };
 
   const evalData = {
