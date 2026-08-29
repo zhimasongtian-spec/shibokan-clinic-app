@@ -314,6 +314,21 @@
   }
   .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
 
+  .ib-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+  .ib-stat { background: var(--bg); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .ib-stat span { display: block; font-size: .68rem; color: var(--sub); margin-bottom: 2px; }
+  .ib-stat b { font-size: 1rem; color: var(--ink); }
+  .ib-shape-wrap { display: flex; gap: 18px; align-items: flex-start; }
+  .ib-shape-svg { width: 130px; height: auto; flex: none; }
+  .ib-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: .74rem; color: var(--sub); margin: 10px 0; }
+  .ib-legend span { display: flex; align-items: center; gap: 4px; }
+  .ib-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .ib-detail-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .ib-detail-list div { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+  .ib-detail-list span { color: var(--sub); }
+  .ib-detail-list b { font-size: .96rem; }
+  .ib-detail-list i { font-style: normal; font-size: .74rem; color: var(--sub); }
+
   .cheer {
     position: fixed; top: 30%; left: 50%; transform: translate(-50%, -50%) scale(.8);
     background: var(--card); border-radius: 18px; box-shadow: 0 8px 30px rgba(0,0,0,.18);
@@ -584,6 +599,11 @@
       <textarea id="v-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回" style="margin-top:8px;"></textarea>
 
       <button class="btn" id="v-save">来院データを保存</button>
+    </div>
+
+    <div class="card">
+      <h2>🧍 体型バランス（InBody）</h2>
+      <div id="inbody-shape-wrap"></div>
     </div>
 
     <div class="card">
@@ -2663,7 +2683,70 @@ function renderVisitTable() {
   }));
 }
 
-function renderVisitPage() { renderVisitTable(); renderChart(); }
+/* ============ 体型バランス（InBody部位別筋肉量%のシルエット表示） ============ */
+function pctBand(pct) {
+  if (pct == null) return { color: "var(--line)", label: "データなし" };
+  if (pct < 90) return { color: "var(--warn)", label: "不足" };
+  if (pct > 110) return { color: "var(--blue)", label: "発達" };
+  return { color: "var(--accent)", label: "標準" };
+}
+function latestInbodyVisit() {
+  const visits = load(K.visits);
+  const dates = Object.keys(visits).sort().reverse();
+  for (const d of dates) {
+    const v = visits[d];
+    if (v.fat != null || v.muscle != null || v.visceral != null || v.ibBmi != null
+      || v.ibMuscRArmPct != null || v.ibMuscLArmPct != null || v.ibMuscTrunkPct != null
+      || v.ibMuscRLegPct != null || v.ibMuscLLegPct != null) {
+      return { date: d, v };
+    }
+  }
+  return null;
+}
+function renderInbodyShape() {
+  const wrap = document.getElementById("inbody-shape-wrap");
+  const latest = latestInbodyVisit();
+  if (!latest) { wrap.innerHTML = '<p class="empty-note">まだInBodyのデータがありません</p>'; return; }
+  const { date, v } = latest;
+  const rarm = pctBand(v.ibMuscRArmPct), larm = pctBand(v.ibMuscLArmPct), trunk = pctBand(v.ibMuscTrunkPct),
+    rleg = pctBand(v.ibMuscRLegPct), lleg = pctBand(v.ibMuscLLegPct);
+  const fmtPct = p => p == null ? "—" : p + "%";
+  const row = (label, pct, band) => `<div><span>${label}</span><b>${fmtPct(pct)}</b><i>${pct != null ? band.label : ""}</i></div>`;
+  wrap.innerHTML = `
+    <p class="muted" style="font-size:.82rem; margin-bottom:8px;">${fmtDate(date)}時点</p>
+    <div class="ib-stat-row">
+      <div class="ib-stat"><span>体脂肪率</span><b>${v.fat != null ? v.fat + "%" : "—"}</b></div>
+      <div class="ib-stat"><span>骨格筋量</span><b>${v.muscle != null ? v.muscle + "kg" : "—"}</b></div>
+      <div class="ib-stat"><span>内臓脂肪Lv</span><b>${v.visceral ?? "—"}</b></div>
+      <div class="ib-stat"><span>BMI</span><b>${v.ibBmi ?? "—"}</b></div>
+    </div>
+    <div class="ib-shape-wrap">
+      <svg viewBox="0 0 220 300" class="ib-shape-svg" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="110" cy="26" r="20" fill="#dfe6e1"/>
+        <rect x="80" y="50" width="60" height="100" rx="18" fill="${trunk.color}"/>
+        <rect x="48" y="55" width="26" height="95" rx="13" fill="${rarm.color}"/>
+        <rect x="146" y="55" width="26" height="95" rx="13" fill="${larm.color}"/>
+        <rect x="82" y="152" width="28" height="130" rx="14" fill="${rleg.color}"/>
+        <rect x="110" y="152" width="28" height="130" rx="14" fill="${lleg.color}"/>
+      </svg>
+      <div class="ib-detail-list">
+        ${row("右腕", v.ibMuscRArmPct, rarm)}
+        ${row("左腕", v.ibMuscLArmPct, larm)}
+        ${row("体幹", v.ibMuscTrunkPct, trunk)}
+        ${row("右脚", v.ibMuscRLegPct, rleg)}
+        ${row("左脚", v.ibMuscLLegPct, lleg)}
+      </div>
+    </div>
+    <div class="ib-legend">
+      <span><i style="background:var(--warn)"></i>不足（90%未満）</span>
+      <span><i style="background:var(--accent)"></i>標準（90〜110%）</span>
+      <span><i style="background:var(--blue)"></i>発達（110%超）</span>
+    </div>
+    <p class="muted" style="font-size:.74rem;">部位別筋肉量は標準体重比。100%が標準的な筋肉量の目安です。</p>
+  `;
+}
+
+function renderVisitPage() { renderVisitTable(); renderChart(); renderInbodyShape(); }
 
 /* ============ グラフ（記録タブ内） ============ */
 let chartMetric = "weight", chartRange = "90";
