@@ -593,10 +593,6 @@
   <button class="btn" id="le-save" style="margin-top:14px;">検査データを保存</button>
   <p class="error" id="le-error"></p>
   <p class="muted" id="le-saved-msg" style="display:none;">保存しました</p>
-
-  <h3 style="margin-top:24px;">来院データの履歴</h3>
-  <p class="muted" style="font-size:.8rem;">行をタップすると内容を上のフォームに読み込みます。</p>
-  <div id="le-history"></div>
 </div>
 
 <div class="modal-backdrop hidden" id="changepw-modal">
@@ -1563,48 +1559,11 @@ document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("le-inbody-analyze-area").innerHTML = "";
   document.getElementById("le-error").style.display = "none";
   document.getElementById("le-saved-msg").style.display = "none";
-  renderLabsEntryHistory();
 });
 document.getElementById("patient-labs-back").addEventListener("click", () => {
   document.getElementById("patient-labs-entry-view").classList.add("hidden");
   document.getElementById("patient-detail-view").classList.remove("hidden");
 });
-function renderLabsEntryHistory() {
-  const visits = (pdCache && pdCache.visits) || {};
-  const dates = Object.keys(visits).sort().reverse();
-  const el = document.getElementById("le-history");
-  if (!dates.length) { el.innerHTML = `<p class="muted">来院データがまだありません</p>`; return; }
-  el.innerHTML = `<table class="log">
-      <tr><th>来院日</th><th>体重</th><th>AST</th><th>ALT</th><th>γGTP</th><th>肝硬度</th></tr>
-      ${dates.map(d => {
-        const v = visits[d];
-        return `<tr class="le-history-row" data-date="${d}" style="cursor:pointer;">
-          <td>${fmtDate(d)}</td><td>${v.weight ?? "—"}</td><td>${v.ast ?? "—"}</td>
-          <td>${v.alt ?? "—"}</td><td>${v.ggtp ?? "—"}</td><td>${v.kpa ?? "—"}</td>
-        </tr>`;
-      }).join("")}
-    </table>`;
-  el.querySelectorAll(".le-history-row").forEach(row => {
-    row.addEventListener("click", () => loadVisitToLabsForm(row.dataset.date));
-  });
-}
-function loadVisitToLabsForm(date) {
-  const visits = (pdCache && pdCache.visits) || {};
-  const v = visits[date]; if (!v) return;
-  document.getElementById("le-date").value = date;
-  const setv = (id, val) => document.getElementById(id).value = val ?? "";
-  setv("le-weight", v.weight); setv("le-sbp", v.sbp); setv("le-dbp", v.dbp);
-  setv("le-fat", v.fat); setv("le-muscle", v.muscle); setv("le-visceral", v.visceral);
-  setv("le-ib-bmi", v.ibBmi);
-  setv("le-ib-musc-rarm-pct", v.ibMuscRArmPct); setv("le-ib-musc-larm-pct", v.ibMuscLArmPct);
-  setv("le-ib-musc-trunk-pct", v.ibMuscTrunkPct);
-  setv("le-ib-musc-rleg-pct", v.ibMuscRLegPct); setv("le-ib-musc-lleg-pct", v.ibMuscLLegPct);
-  setv("le-ast", v.ast); setv("le-alt", v.alt); setv("le-ggtp", v.ggtp); setv("le-plt", v.plt);
-  setv("le-ldl", v.ldl); setv("le-tg", v.tg); setv("le-hba1c", v.hba1c);
-  setv("le-kpa", v.kpa); setv("le-cap", v.cap);
-  document.getElementById("le-meds").value = v.meds ?? "";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-}
 document.getElementById("le-save").addEventListener("click", async () => {
   const errEl = document.getElementById("le-error");
   errEl.style.display = "none";
@@ -1643,7 +1602,6 @@ document.getElementById("le-save").addEventListener("click", async () => {
     }
     if (pdCache) pdCache.visits[date] = rec;
     document.getElementById("le-saved-msg").style.display = "block";
-    renderLabsEntryHistory();
   } catch (err) {
     errEl.textContent = "保存に失敗しました: " + (err.message || err);
     errEl.style.display = "block";
