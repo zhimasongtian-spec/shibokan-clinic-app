@@ -9,6 +9,7 @@
     --bg: #f4f7f5; --card: #ffffff; --ink: #24312a; --sub: #566158;
     --accent: #2e8b6d; --accent-soft: #e3f2ec; --accent-dark: #1f6b52;
     --danger: #c0504d; --danger-soft: #faeceb; --line: #e2e9e5;
+    --warn: #d9822b; --blue: #3a7ca5;
     --radius: 14px; --shadow: 0 2px 10px rgba(36, 49, 42, .07);
   }
   html { font-size: 118%; }
@@ -125,6 +126,24 @@
   .wf-tag { font-size: .66rem; color: var(--sub); margin-top: 1px; white-space: nowrap; }
   .wf-arrow { display: flex; flex-direction: column; align-items: center; font-size: .8rem; color: var(--sub); line-height: 1.3; }
   .wf-arrow .stat-delta { font-size: .68rem; margin-left: 0; }
+
+  /* ---- 体型バランス（InBody） ---- */
+  .ib-shape-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
+  .ib-shape-date { font-size: .78rem; color: var(--sub); margin-bottom: 8px; }
+  .ib-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .ib-stat { background: var(--bg); border-radius: 10px; padding: 8px 6px; text-align: center; }
+  .ib-stat span { display: block; font-size: .68rem; color: var(--sub); margin-bottom: 2px; }
+  .ib-stat b { font-size: 1rem; color: var(--ink); }
+  .ib-shape-wrap { display: flex; gap: 18px; align-items: flex-start; }
+  .ib-shape-svg { width: 120px; height: auto; flex: none; }
+  .ib-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: .74rem; color: var(--sub); margin: 10px 0 4px; }
+  .ib-legend span { display: flex; align-items: center; gap: 4px; }
+  .ib-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .ib-detail-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .ib-detail-list div { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
+  .ib-detail-list span { color: var(--sub); }
+  .ib-detail-list b { font-size: .96rem; }
+  .ib-detail-list i { font-style: normal; font-size: .74rem; color: var(--sub); }
 
   /* ---- 検査値テーブル ---- */
   .lab-card-date { font-size: .8rem; color: var(--sub); margin-bottom: 6px; }
@@ -266,6 +285,18 @@
 
     .stat-card, .advice-block, table.lab-table { break-inside: avoid; }
     .elp-photo { max-height: 90mm; object-fit: contain; }
+
+    .ib-shape-card { break-inside: avoid; padding: 8px 10px; }
+    .ib-shape-date { font-size: .68rem; margin-bottom: 4px; }
+    .ib-stat-row { gap: 5px; margin-bottom: 8px; }
+    .ib-stat { padding: 5px 4px; border-radius: 6px; }
+    .ib-stat span { font-size: .6rem; }
+    .ib-stat b { font-size: .84rem; }
+    .ib-shape-svg { width: 90px; }
+    .ib-legend { font-size: .62rem; gap: 6px; margin: 6px 0 2px; }
+    .ib-detail-list div { font-size: .74rem; padding-bottom: 3px; }
+    .ib-detail-list b { font-size: .8rem; }
+    .ib-detail-list i { font-size: .62rem; }
     @page { size: A4; margin: 10mm; }
   }
 </style>
@@ -386,6 +417,9 @@
 
     <h3>🏅 ここまでのがんばり</h3>
     <div id="pd-summary"></div>
+
+    <h3>🧍 体型バランス（InBody）</h3>
+    <div id="pd-inbody-shape"></div>
 
     <details class="cumulative-details no-print">
       <summary>💡 次に頑張りたいこと（医師向け参考ヒント・自動生成）</summary>
@@ -862,9 +896,15 @@ function buildDemoStore() {
   return {
     [DK.daily]: daily,
     [DK.visits]: {
-      [visitStart]: { ast: 48, alt: 40, ggtp: 62, tg: 210, ldl: 142, hba1c: 6.4, kpa: 9.1, plt: 17.8, cap: 300 },
-      [visit2]: { ast: 36, alt: 30, ggtp: 48, tg: 168, ldl: 124, hba1c: 6.0, kpa: 7.8, plt: 19.0, cap: 268 },
-      [visitRecent]: { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1, plt: 20.1, cap: 232 },
+      [visitStart]: { ast: 48, alt: 40, ggtp: 62, tg: 210, ldl: 142, hba1c: 6.4, kpa: 9.1, plt: 17.8, cap: 300,
+        fat: 33.5, muscle: 24.2, visceral: 11, ibBmi: 29.9,
+        ibMuscRArmPct: 83, ibMuscLArmPct: 84, ibMuscTrunkPct: 88, ibMuscRLegPct: 90, ibMuscLLegPct: 91 },
+      [visit2]: { ast: 36, alt: 30, ggtp: 48, tg: 168, ldl: 124, hba1c: 6.0, kpa: 7.8, plt: 19.0, cap: 268,
+        fat: 30.8, muscle: 25.0, visceral: 10, ibBmi: 29.7,
+        ibMuscRArmPct: 87, ibMuscLArmPct: 88, ibMuscTrunkPct: 91, ibMuscRLegPct: 93, ibMuscLLegPct: 93 },
+      [visitRecent]: { ast: 28, alt: 22, ggtp: 38, tg: 142, ldl: 110, hba1c: 5.8, kpa: 7.1, plt: 20.1, cap: 232,
+        fat: 27.6, muscle: 26.1, visceral: 8, ibBmi: 29.6,
+        ibMuscRArmPct: 92, ibMuscLArmPct: 93, ibMuscTrunkPct: 96, ibMuscRLegPct: 97, ibMuscLLegPct: 98 },
     },
     // evalは「まだ保存されていない今日の分」を含めない（来院時に医師が保存するまでは
     // 前回＝visit2が最新のevalのまま。がんばり度の集計期間もvisit2〜今日になる）。
@@ -1042,6 +1082,7 @@ async function loadPatientDetail() {
     pdCache = { daily, visits, evals, profile };
     document.getElementById("pd-print-date").textContent = `評価日: ${fmtDate(todayStr())}`;
     renderPatientSummary(daily, evals, profile);
+    renderPdInbodyShape(visits);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
     renderCurrentGoals(evals, profile);
@@ -1389,6 +1430,70 @@ function calcAge(birthdate, onDate) {
   let age = ey - by;
   if (em < bm || (em === bm && ed < bd)) age--;
   return age;
+}
+
+/* ---- 体型バランス（InBody部位別筋肉量%のシルエット表示） ---- */
+function pctBand(pct) {
+  if (pct == null) return { color: "var(--line)", label: "データなし" };
+  if (pct < 90) return { color: "var(--warn)", label: "不足" };
+  if (pct > 110) return { color: "var(--blue)", label: "発達" };
+  return { color: "var(--accent)", label: "標準" };
+}
+function latestInbodyVisit(visits) {
+  const dates = Object.keys(visits || {}).sort().reverse();
+  for (const d of dates) {
+    const v = visits[d];
+    if (v.fat != null || v.muscle != null || v.visceral != null || v.ibBmi != null
+      || v.ibMuscRArmPct != null || v.ibMuscLArmPct != null || v.ibMuscTrunkPct != null
+      || v.ibMuscRLegPct != null || v.ibMuscLLegPct != null) {
+      return { date: d, v };
+    }
+  }
+  return null;
+}
+function renderPdInbodyShape(visits) {
+  const wrap = document.getElementById("pd-inbody-shape");
+  const latest = latestInbodyVisit(visits);
+  if (!latest) { wrap.innerHTML = '<p class="muted">まだInBodyのデータがありません</p>'; return; }
+  const { date, v } = latest;
+  const rarm = pctBand(v.ibMuscRArmPct), larm = pctBand(v.ibMuscLArmPct), trunk = pctBand(v.ibMuscTrunkPct),
+    rleg = pctBand(v.ibMuscRLegPct), lleg = pctBand(v.ibMuscLLegPct);
+  const fmtPct = p => p == null ? "—" : p + "%";
+  const row = (label, pct, band) => `<div><span>${label}</span><b>${fmtPct(pct)}</b><i>${pct != null ? band.label : ""}</i></div>`;
+  wrap.innerHTML = `
+    <div class="ib-shape-card">
+      <p class="ib-shape-date">${fmtDate(date)}時点</p>
+      <div class="ib-stat-row">
+        <div class="ib-stat"><span>体脂肪率</span><b>${v.fat != null ? v.fat + "%" : "—"}</b></div>
+        <div class="ib-stat"><span>骨格筋量</span><b>${v.muscle != null ? v.muscle + "kg" : "—"}</b></div>
+        <div class="ib-stat"><span>内臓脂肪Lv</span><b>${v.visceral ?? "—"}</b></div>
+        <div class="ib-stat"><span>BMI</span><b>${v.ibBmi ?? "—"}</b></div>
+      </div>
+      <div class="ib-shape-wrap">
+        <svg viewBox="0 0 220 300" class="ib-shape-svg" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="110" cy="26" r="20" fill="#dfe6e1"/>
+          <rect x="80" y="50" width="60" height="100" rx="18" fill="${trunk.color}"/>
+          <rect x="48" y="55" width="26" height="95" rx="13" fill="${rarm.color}"/>
+          <rect x="146" y="55" width="26" height="95" rx="13" fill="${larm.color}"/>
+          <rect x="82" y="152" width="28" height="130" rx="14" fill="${rleg.color}"/>
+          <rect x="110" y="152" width="28" height="130" rx="14" fill="${lleg.color}"/>
+        </svg>
+        <div class="ib-detail-list">
+          ${row("右腕", v.ibMuscRArmPct, rarm)}
+          ${row("左腕", v.ibMuscLArmPct, larm)}
+          ${row("体幹", v.ibMuscTrunkPct, trunk)}
+          ${row("右脚", v.ibMuscRLegPct, rleg)}
+          ${row("左脚", v.ibMuscLLegPct, lleg)}
+        </div>
+      </div>
+      <div class="ib-legend">
+        <span><i style="background:var(--warn)"></i>不足（90%未満）</span>
+        <span><i style="background:var(--accent)"></i>標準（90〜110%）</span>
+        <span><i style="background:var(--blue)"></i>発達（110%超）</span>
+      </div>
+      <p class="muted" style="font-size:.74rem;">部位別筋肉量は標準体重比。100%が標準的な筋肉量の目安です。</p>
+    </div>
+  `;
 }
 
 function pct(n, d) { return d > 0 ? Math.round((n / d) * 100) : 0; }
