@@ -588,7 +588,10 @@
   </div>
 
   <h3>内服薬</h3>
-  <textarea id="le-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回"></textarea>
+  <input type="file" id="le-meds-photo-input" accept="image/*" capture="environment" style="display:none;">
+  <button type="button" class="btn secondary" id="le-meds-photo-btn">📷 処方箋を撮影・アップロードして読み取る</button>
+  <div id="le-meds-analyze-area"></div>
+  <textarea id="le-meds" rows="2" placeholder="例: ビタミンE 300mg 1日1回" style="margin-top:8px;"></textarea>
 
   <button class="btn" id="le-save" style="margin-top:14px;">検査データを保存</button>
   <p class="error" id="le-error"></p>
@@ -1545,6 +1548,46 @@ document.getElementById("le-inbody-photo-input").addEventListener("change", asyn
     document.getElementById("le-inbody-analyze-area").innerHTML = `<div class="analyze-error">画像を読み込めませんでした</div>`;
   }
 });
+async function leAnalyzeMedsPhoto(aiImage, thumb) {
+  const area = document.getElementById("le-meds-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="処方箋">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\"}";
+  try {
+    const parsed = await leCallGemini(promptText, base64);
+    const meds = String(parsed.meds || "").trim();
+    if (!meds) throw new Error("薬剤情報を認識できませんでした");
+    const medsEl = document.getElementById("le-meds");
+    medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${meds}` : meds;
+    leFlashField(medsEl);
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="処方箋">
+      <p class="muted">✅ 読み取った内容を内服薬欄に追加しました。内容を確認し、必要に応じて下で修正してください。</p>
+    </div>`;
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="処方箋">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下に直接入力してください。</div>
+    </div>`;
+  }
+}
+document.getElementById("le-meds-photo-btn").addEventListener("click", () => {
+  document.getElementById("le-meds-photo-input").click();
+});
+document.getElementById("le-meds-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await leLoadImageFile(file);
+    leAnalyzeMedsPhoto(leImgToDataUrl(img, 900, 0.8), leImgToDataUrl(img, 220, 0.6));
+  } catch {
+    document.getElementById("le-meds-analyze-area").innerHTML = `<div class="analyze-error">画像を読み込めませんでした</div>`;
+  }
+});
 
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
@@ -1557,6 +1600,7 @@ document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("le-meds").value = "";
   document.getElementById("le-labs-analyze-area").innerHTML = "";
   document.getElementById("le-inbody-analyze-area").innerHTML = "";
+  document.getElementById("le-meds-analyze-area").innerHTML = "";
   document.getElementById("le-error").style.display = "none";
   document.getElementById("le-saved-msg").style.display = "none";
 });
