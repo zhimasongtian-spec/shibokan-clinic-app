@@ -106,9 +106,12 @@
   .stat-label { font-size: .78rem; color: var(--sub); font-weight: 700; }
   .stat-value { font-size: 1.15rem; font-weight: 800; color: var(--accent-dark); margin-top: 2px; }
   .stat-unit { font-size: .74rem; font-weight: 600; color: var(--sub); }
-  .stat-delta { font-size: .82rem; font-weight: 700; margin-left: 4px; }
-  .stat-delta.good { color: var(--accent-dark); }
-  .stat-delta.bad { color: var(--danger); }
+  .stat-delta {
+    font-size: .82rem; font-weight: 800; margin-left: 4px;
+    padding: 2px 8px; border-radius: 999px; white-space: nowrap; display: inline-block;
+  }
+  .stat-delta.good { background: var(--accent-soft); color: var(--accent-dark); }
+  .stat-delta.bad { background: var(--danger-soft); color: var(--danger); }
   .stat-bar { height: 7px; border-radius: 999px; background: #dfeae4; margin-top: 6px; overflow: hidden; }
   .stat-bar-fill { height: 100%; background: var(--accent); border-radius: 999px; }
   .stat-note { font-size: .72rem; color: var(--sub); margin-top: 4px; }
@@ -1747,6 +1750,7 @@ function statCard(label, valueHtml, note, ratio) {
     </div>`;
 }
 
+function deltaIcon(diff) { return diff > 0 ? "▲" : diff < 0 ? "▼" : ""; }
 function renderPatientSummary(daily, evals, profile) {
   const evalDates = Object.keys(evals).sort();
   const sinceDate = reportSinceDate(evals);
@@ -1839,7 +1843,7 @@ function renderPatientSummary(daily, evals, profile) {
         </div>`;
         if (i === 0) return point;
         const diff = Math.round((p.val - points[i - 1].val) * 10) / 10;
-        const arrow = `<div class="wf-arrow">→<span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kg</span></div>`;
+        const arrow = `<div class="wf-arrow">→<span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${deltaIcon(diff)}${diff >= 0 ? "+" : ""}${diff}kg</span></div>`;
         return arrow + point;
       }).join("");
       const note = goalNote(nowW);
@@ -1853,13 +1857,13 @@ function renderPatientSummary(daily, evals, profile) {
   if (sinceDate && curMealAvg != null && prevMealAvg != null) {
     const diff = curMealAvg - prevMealAvg;
     cards.push(statCard("🍚 平均摂取カロリー（1日）",
-      `${curMealAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
+      `${curMealAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff <= 0 ? 'good' : 'bad'}">${deltaIcon(diff)}${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
       `前回受診期間の平均 ${prevMealAvg}kcalから`, null));
   }
   if (sinceDate && curExAvg != null && prevExAvg != null) {
     const diff = curExAvg - prevExAvg;
     cards.push(statCard("🏃 平均運動消費カロリー（1日）",
-      `${curExAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff >= 0 ? 'good' : 'bad'}">${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
+      `${curExAvg}<span class="stat-unit">kcal</span> <span class="stat-delta ${diff >= 0 ? 'good' : 'bad'}">${deltaIcon(diff)}${diff >= 0 ? "+" : ""}${diff}kcal</span>`,
       `前回受診期間の平均 ${prevExAvg}kcalから`, null));
   }
   {
