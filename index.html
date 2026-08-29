@@ -553,28 +553,12 @@
       <button type="button" class="btn secondary small" id="inbody-photo-btn">📷 InBodyの用紙を撮影して読み取る</button>
       <div id="inbody-analyze-area"></div>
       <div class="row3">
-        <div><label>体水分量 <span class="unit-note">L</span></label><input type="number" id="v-ib-water" step="0.1" min="1" max="80"></div>
-        <div><label>タンパク質量 <span class="unit-note">kg</span></label><input type="number" id="v-ib-protein" step="0.1" min="1" max="30"></div>
-        <div><label>ミネラル量 <span class="unit-note">kg</span></label><input type="number" id="v-ib-minerals" step="0.01" min="1" max="10"></div>
-      </div>
-      <div class="row3">
         <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
         <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
         <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
       </div>
       <div class="row3">
         <div><label>BMI <span class="unit-note">kg/m²</span></label><input type="number" id="v-ib-bmi" step="0.1" min="10" max="50"></div>
-        <div><label>基礎代謝量 <span class="unit-note">kcal</span></label><input type="number" id="v-ib-bmr" min="500" max="3000"></div>
-      </div>
-      <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別筋肉量 <span class="unit-note">kg</span></p>
-      <div class="row3">
-        <div><label>右腕</label><input type="number" id="v-ib-musc-rarm" step="0.01" min="0" max="20"></div>
-        <div><label>左腕</label><input type="number" id="v-ib-musc-larm" step="0.01" min="0" max="20"></div>
-        <div><label>体幹</label><input type="number" id="v-ib-musc-trunk" step="0.1" min="0" max="60"></div>
-      </div>
-      <div class="row2">
-        <div><label>右脚</label><input type="number" id="v-ib-musc-rleg" step="0.01" min="0" max="30"></div>
-        <div><label>左脚</label><input type="number" id="v-ib-musc-lleg" step="0.01" min="0" max="30"></div>
       </div>
       <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別筋肉量 標準体重比 <span class="unit-note">%</span>（用紙の部位別筋肉量欄にある%表示）</p>
       <div class="row3">
@@ -585,16 +569,6 @@
       <div class="row2">
         <div><label>右脚</label><input type="number" id="v-ib-musc-rleg-pct" step="0.1" min="0" max="250"></div>
         <div><label>左脚</label><input type="number" id="v-ib-musc-lleg-pct" step="0.1" min="0" max="250"></div>
-      </div>
-      <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別体脂肪量 <span class="unit-note">kg</span></p>
-      <div class="row3">
-        <div><label>右腕</label><input type="number" id="v-ib-fat-rarm" step="0.01" min="0" max="10"></div>
-        <div><label>左腕</label><input type="number" id="v-ib-fat-larm" step="0.01" min="0" max="10"></div>
-        <div><label>体幹</label><input type="number" id="v-ib-fat-trunk" step="0.1" min="0" max="40"></div>
-      </div>
-      <div class="row2">
-        <div><label>右脚</label><input type="number" id="v-ib-fat-rleg" step="0.01" min="0" max="15"></div>
-        <div><label>左脚</label><input type="number" id="v-ib-fat-lleg" step="0.01" min="0" max="15"></div>
       </div>
 
       <h3>腹部超音波検査</h3>
@@ -2632,14 +2606,9 @@ document.getElementById("v-save").addEventListener("click", () => {
   const rec = {
     sbp: vNum("v-sbp"), dbp: vNum("v-dbp"), weight: vNum("v-weight"),
     fat: vNum("v-fat"), muscle: vNum("v-muscle"), visceral: vNum("v-visceral"),
-    ibWater: vNum("v-ib-water"), ibProtein: vNum("v-ib-protein"), ibMinerals: vNum("v-ib-minerals"),
-    ibBmi: vNum("v-ib-bmi"), ibBmr: vNum("v-ib-bmr"),
-    ibMuscRArm: vNum("v-ib-musc-rarm"), ibMuscLArm: vNum("v-ib-musc-larm"), ibMuscTrunk: vNum("v-ib-musc-trunk"),
-    ibMuscRLeg: vNum("v-ib-musc-rleg"), ibMuscLLeg: vNum("v-ib-musc-lleg"),
+    ibBmi: vNum("v-ib-bmi"),
     ibMuscRArmPct: vNum("v-ib-musc-rarm-pct"), ibMuscLArmPct: vNum("v-ib-musc-larm-pct"), ibMuscTrunkPct: vNum("v-ib-musc-trunk-pct"),
     ibMuscRLegPct: vNum("v-ib-musc-rleg-pct"), ibMuscLLegPct: vNum("v-ib-musc-lleg-pct"),
-    ibFatRArm: vNum("v-ib-fat-rarm"), ibFatLArm: vNum("v-ib-fat-larm"), ibFatTrunk: vNum("v-ib-fat-trunk"),
-    ibFatRLeg: vNum("v-ib-fat-rleg"), ibFatLLeg: vNum("v-ib-fat-lleg"),
     ast: vNum("v-ast"), alt: vNum("v-alt"), ggtp: vNum("v-ggtp"), plt: vNum("v-plt"),
     ldl: vNum("v-ldl"), tg: vNum("v-tg"), hba1c: vNum("v-hba1c"),
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
@@ -2658,14 +2627,9 @@ function loadVisitToForm(date) {
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
   setv("v-fat", v.fat); setv("v-muscle", v.muscle); setv("v-visceral", v.visceral);
-  setv("v-ib-water", v.ibWater); setv("v-ib-protein", v.ibProtein); setv("v-ib-minerals", v.ibMinerals);
-  setv("v-ib-bmi", v.ibBmi); setv("v-ib-bmr", v.ibBmr);
-  setv("v-ib-musc-rarm", v.ibMuscRArm); setv("v-ib-musc-larm", v.ibMuscLArm); setv("v-ib-musc-trunk", v.ibMuscTrunk);
-  setv("v-ib-musc-rleg", v.ibMuscRLeg); setv("v-ib-musc-lleg", v.ibMuscLLeg);
+  setv("v-ib-bmi", v.ibBmi);
   setv("v-ib-musc-rarm-pct", v.ibMuscRArmPct); setv("v-ib-musc-larm-pct", v.ibMuscLArmPct); setv("v-ib-musc-trunk-pct", v.ibMuscTrunkPct);
   setv("v-ib-musc-rleg-pct", v.ibMuscRLegPct); setv("v-ib-musc-lleg-pct", v.ibMuscLLegPct);
-  setv("v-ib-fat-rarm", v.ibFatRArm); setv("v-ib-fat-larm", v.ibFatLArm); setv("v-ib-fat-trunk", v.ibFatTrunk);
-  setv("v-ib-fat-rleg", v.ibFatRLeg); setv("v-ib-fat-lleg", v.ibFatLLeg);
   setv("v-ast", v.ast); setv("v-alt", v.alt); setv("v-ggtp", v.ggtp); setv("v-plt", v.plt);
   setv("v-ldl", v.ldl); setv("v-tg", v.tg); setv("v-hba1c", v.hba1c);
   setv("v-kpa", v.kpa); setv("v-cap", v.cap);
