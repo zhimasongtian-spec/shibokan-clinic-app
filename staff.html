@@ -1592,7 +1592,7 @@ document.getElementById("le-meds-photo-input").addEventListener("change", async 
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-labs-entry-view").classList.remove("hidden");
-  document.getElementById("le-date").value = "";
+  document.getElementById("le-date").value = todayStr();
   ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
     "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
     "le-ast", "le-alt", "le-ggtp",
