@@ -1650,7 +1650,7 @@ function renderMealPage() {
     chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
     chartOpts.weekly = true;
     chartOpts.fitCount = Math.ceil(Number(mealRange) / 7);
-    chartOpts.goalLine = target ? target * 7 : null;
+    chartOpts.goalLine = target || null;
     chartOpts.pointColor = target ? (p => colorFor(p.y, 7)) : null;
   } else {
     // 週・月は日別
