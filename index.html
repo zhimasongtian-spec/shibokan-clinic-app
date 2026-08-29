@@ -1627,9 +1627,10 @@ function renderMealPage() {
   if (!hasAnyMealChartData) {
     chartPoints = [];
   } else if (mealRange === "365") {
-    // 年表示は月ごとの1日平均で集計する
+    // 年表示は月ごとの1日平均で集計する（記録のある日だけを対象にする）
     const monthMap = {};
     for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
+      if (!all[d] || !all[d].meals || !all[d].meals.length) continue;
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotal(d);
@@ -2483,9 +2484,10 @@ function renderExPage() {
   if (!hasAnyChartData) {
     chartPoints = [];
   } else if (exRange === "365") {
-    // 年表示は日別ではなく月ごとの1日平均で集計する
+    // 年表示は日別ではなく月ごとの1日平均で集計する（記録のある日だけを対象にする）
     const monthMap = {};
     for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
+      if (!all[d] || !((all[d].exercises && all[d].exercises.length) || all[d].steps != null)) continue;
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotalKcal(d);

@@ -1594,8 +1594,10 @@ function renderHistMealSection() {
   if (!hasAnyMealChartData) {
     chartPoints = [];
   } else if (histMealRange === "365") {
+    // 記録のある日だけを対象に月ごとの1日平均を計算する
     const monthMap = {};
     for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      if (!all[d] || !all[d].meals || !all[d].meals.length) continue;
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotal(d);
@@ -1695,8 +1697,10 @@ function renderHistExSection() {
   if (!hasAnyChartData) {
     chartPoints = [];
   } else if (histExRange === "365") {
+    // 記録のある日だけを対象に月ごとの1日平均を計算する
     const monthMap = {};
     for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
+      if (!all[d] || !((all[d].exercises && all[d].exercises.length) || all[d].steps != null)) continue;
       const ym = d.slice(0, 7);
       if (!monthMap[ym]) monthMap[ym] = { sum: 0, count: 0 };
       monthMap[ym].sum += dayTotalKcal(d);
