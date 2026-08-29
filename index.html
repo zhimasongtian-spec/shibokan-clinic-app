@@ -2152,24 +2152,10 @@ document.getElementById("inbody-photo-input").addEventListener("change", async e
   }
 });
 const INBODY_FIELDS = [
-  { key: "water", label: "体水分量", unit: "L", target: "v-ib-water" },
-  { key: "protein", label: "タンパク質量", unit: "kg", target: "v-ib-protein" },
-  { key: "minerals", label: "ミネラル量", unit: "kg", target: "v-ib-minerals" },
   { key: "fat_pct", label: "体脂肪率", unit: "%", target: "v-fat" },
   { key: "muscle", label: "骨格筋量", unit: "kg", target: "v-muscle" },
   { key: "visceral", label: "内臓脂肪Lv", unit: "レベル", target: "v-visceral" },
   { key: "bmi", label: "BMI", unit: "kg/m²", target: "v-ib-bmi" },
-  { key: "bmr", label: "基礎代謝量", unit: "kcal", target: "v-ib-bmr" },
-  { key: "musc_rarm", label: "右腕筋肉量", unit: "kg", target: "v-ib-musc-rarm" },
-  { key: "musc_larm", label: "左腕筋肉量", unit: "kg", target: "v-ib-musc-larm" },
-  { key: "musc_trunk", label: "体幹筋肉量", unit: "kg", target: "v-ib-musc-trunk" },
-  { key: "musc_rleg", label: "右脚筋肉量", unit: "kg", target: "v-ib-musc-rleg" },
-  { key: "musc_lleg", label: "左脚筋肉量", unit: "kg", target: "v-ib-musc-lleg" },
-  { key: "fat_rarm", label: "右腕体脂肪量", unit: "kg", target: "v-ib-fat-rarm" },
-  { key: "fat_larm", label: "左腕体脂肪量", unit: "kg", target: "v-ib-fat-larm" },
-  { key: "fat_trunk", label: "体幹体脂肪量", unit: "kg", target: "v-ib-fat-trunk" },
-  { key: "fat_rleg", label: "右脚体脂肪量", unit: "kg", target: "v-ib-fat-rleg" },
-  { key: "fat_lleg", label: "左脚体脂肪量", unit: "kg", target: "v-ib-fat-lleg" },
   { key: "musc_rarm_pct", label: "右腕筋肉量%", unit: "%", target: "v-ib-musc-rarm-pct" },
   { key: "musc_larm_pct", label: "左腕筋肉量%", unit: "%", target: "v-ib-musc-larm-pct" },
   { key: "musc_trunk_pct", label: "体幹筋肉量%", unit: "%", target: "v-ib-musc-trunk-pct" },
@@ -2192,7 +2178,7 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目を読み取ってください。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれているので、両方読み取ってください（%は標準体重を100%とした相対値です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"water\":数値またはnull,\"protein\":数値またはnull,\"minerals\":数値またはnull,\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"bmr\":数値またはnull,\"musc_rarm\":数値またはnull,\"musc_larm\":数値またはnull,\"musc_trunk\":数値またはnull,\"musc_rleg\":数値またはnull,\"musc_lleg\":数値またはnull,\"fat_rarm\":数値またはnull,\"fat_larm\":数値またはnull,\"fat_trunk\":数値またはnull,\"fat_rleg\":数値またはnull,\"fat_lleg\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull}";
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
