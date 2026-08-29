@@ -1606,17 +1606,6 @@ function renderHistMealSection() {
     chartOpts.fitCount = 12;
     chartOpts.goalLine = target || null;
     chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
-  } else if (histMealRange === "90" || histMealRange === "180") {
-    const weekMap = {};
-    for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) {
-      const ws = weekStartStr(d);
-      weekMap[ws] = (weekMap[ws] || 0) + dayTotal(d);
-    }
-    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
-    chartOpts.weekly = true;
-    chartOpts.fitCount = Math.ceil(Number(histMealRange) / 7);
-    chartOpts.goalLine = target || null;
-    chartOpts.pointColor = target ? (p => colorFor(p.y, 7)) : null;
   } else {
     chartPoints = [];
     for (let d = historyStart; d <= chartEnd; d = addDays(d, 1)) chartPoints.push({ x: d, y: dayTotal(d) });

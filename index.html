@@ -1640,20 +1640,8 @@ function renderMealPage() {
     chartOpts.fitCount = 12;
     chartOpts.goalLine = target || null;
     chartOpts.pointColor = target ? (p => colorFor(p.y, 1)) : null;
-  } else if (mealRange === "90" || mealRange === "180") {
-    // 3か月・6か月は週ごとの合計で集計する
-    const weekMap = {};
-    for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) {
-      const ws = weekStartStr(d);
-      weekMap[ws] = (weekMap[ws] || 0) + dayTotal(d);
-    }
-    chartPoints = Object.keys(weekMap).sort().map(ws => ({ x: ws, y: weekMap[ws] }));
-    chartOpts.weekly = true;
-    chartOpts.fitCount = Math.ceil(Number(mealRange) / 7);
-    chartOpts.goalLine = target || null;
-    chartOpts.pointColor = target ? (p => colorFor(p.y, 7)) : null;
   } else {
-    // 週・月は日別
+    // 週・月・3か月・6か月は日別（1日の摂取量）
     chartPoints = [];
     for (let d = historyStart; d <= chartEnd; d = dateStrAdd(d, 1)) chartPoints.push({ x: d, y: dayTotal(d) });
     chartOpts.dowLabels = mealRange === "7";
