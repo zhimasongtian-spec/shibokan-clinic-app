@@ -127,6 +127,19 @@
   .wf-arrow { display: flex; flex-direction: column; align-items: center; font-size: .8rem; color: var(--sub); line-height: 1.3; }
   .wf-arrow .stat-delta { font-size: .68rem; margin-left: 0; }
 
+  /* ---- 写真からのAI読み取り ---- */
+  .analyze-box { margin-top: 10px; }
+  .analyze-preview { max-width: 160px; border-radius: 10px; display: block; margin-bottom: 8px; }
+  .analyze-status { font-size: .88rem; color: var(--sub); display: flex; align-items: center; gap: 6px; }
+  .spinner {
+    width: 14px; height: 14px; border: 2px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .7s linear infinite; display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fieldFlash { 0% { background: var(--accent-soft); border-color: var(--accent); } 100% { background: #fbfdfc; border-color: var(--line); } }
+  .field-flash { animation: fieldFlash 1.6s ease; }
+  .analyze-error { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-size: .88rem; }
+
   /* ---- 体型バランス（InBody） ---- */
   .ib-shape-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
   .ib-shape-date { font-size: .78rem; color: var(--sub); margin-bottom: 8px; }
@@ -337,12 +350,12 @@
   <h2>患者の連携</h2>
 
   <div class="tabs">
-    <button type="button" class="tab-btn active" id="tab-register">新規登録</button>
+    <button type="button" class="tab-btn active" id="tab-open">患者を開く</button>
+    <button type="button" class="tab-btn" id="tab-register">新規登録</button>
     <button type="button" class="tab-btn" id="tab-relink">再連携</button>
-    <button type="button" class="tab-btn" id="tab-open">患者を開く</button>
   </div>
 
-  <div id="form-register">
+  <div id="form-register" class="hidden">
     <p class="muted">カルテIDを入力し、その場でQRコードを患者さんにスキャンしてもらってください。</p>
     <div id="reg-fields">
       <label for="reg-chart-id">カルテID</label>
@@ -360,7 +373,7 @@
     </div>
   </div>
 
-  <div id="form-open" class="hidden">
+  <div id="form-open">
     <p class="muted">診察する患者さんのカルテIDを入力してください。</p>
     <div id="open-fields">
       <label for="open-chart-id">カルテID</label>
@@ -529,12 +542,31 @@
     <div><label>血圧 下 <span class="unit-note">mmHg</span></label><input type="number" id="le-dbp" min="30" max="200"></div>
   </div>
   <h3>InBody</h3>
+  <input type="file" id="le-inbody-photo-input" accept="image/*" capture="environment" style="display:none;">
+  <button type="button" class="btn secondary" id="le-inbody-photo-btn">📷 InBodyの用紙を撮影・アップロードして読み取る</button>
+  <div id="le-inbody-analyze-area"></div>
   <div class="row3">
     <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="le-fat" step="0.1" min="1" max="80"></div>
     <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="le-muscle" step="0.1" min="5" max="80"></div>
     <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="le-visceral" step="0.5" min="1" max="30"></div>
   </div>
+  <div class="row3">
+    <div><label>BMI <span class="unit-note">kg/m²</span></label><input type="number" id="le-ib-bmi" step="0.1" min="10" max="50"></div>
+  </div>
+  <p class="muted" style="font-size:.78rem; margin-top:10px;">部位別筋肉量 標準体重比 <span class="unit-note">%</span>（用紙の部位別筋肉量欄にある%表示）</p>
+  <div class="row3">
+    <div><label>右腕</label><input type="number" id="le-ib-musc-rarm-pct" step="0.1" min="0" max="250"></div>
+    <div><label>左腕</label><input type="number" id="le-ib-musc-larm-pct" step="0.1" min="0" max="250"></div>
+    <div><label>体幹</label><input type="number" id="le-ib-musc-trunk-pct" step="0.1" min="0" max="250"></div>
+  </div>
+  <div class="row3">
+    <div><label>右脚</label><input type="number" id="le-ib-musc-rleg-pct" step="0.1" min="0" max="250"></div>
+    <div><label>左脚</label><input type="number" id="le-ib-musc-lleg-pct" step="0.1" min="0" max="250"></div>
+  </div>
   <h3>血液検査</h3>
+  <input type="file" id="le-labs-photo-input" accept="image/*" capture="environment" style="display:none;">
+  <button type="button" class="btn secondary" id="le-labs-photo-btn">📷 採血結果を撮影・アップロードして読み取る</button>
+  <div id="le-labs-analyze-area"></div>
   <div class="row3">
     <div><label>AST(GOT) <span class="unit-note">U/L</span></label><input type="number" id="le-ast" min="1" max="3000"></div>
     <div><label>ALT(GPT) <span class="unit-note">U/L</span></label><input type="number" id="le-alt" min="1" max="3000"></div>
@@ -598,6 +630,9 @@
   </div>
 </div>
 
+<!-- local-config.js is a git-ignored, PC-only file that pre-fills the Gemini API key.
+     It is intentionally absent from the public repo/GitHub Pages build, so this 404s there. -->
+<script src="local-config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -934,7 +969,7 @@ function enterDemoMode() {
   document.getElementById("panel-view").classList.remove("hidden");
   document.getElementById("panel-demo-badge").classList.remove("hidden");
   document.getElementById("detail-demo-badge").classList.remove("hidden");
-  switchTab("register");
+  switchTab("open");
 }
 function exitDemoMode() {
   demoMode = false;
@@ -1341,13 +1376,191 @@ function calcFib4(age, ast, alt, pltMan) {
   if (!age || !ast || !alt || !pltMan) return null;
   return Math.round(((age * ast) / (pltMan * 10 * Math.sqrt(alt))) * 100) / 100;
 }
+
+/* ---- 検査データ入力：写真のAI読み取り ---- */
+// スマホなど、APIキー未設定の端末からのアクセスは、この中継サーバー経由でGemini APIを呼びます。
+const LE_MEAL_PROXY_URL = "https://asia-northeast1-kancare-8a0d1.cloudfunctions.net/mealProxy";
+function leLoadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+function leImgToDataUrl(img, maxDim, quality) {
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(img.width * scale));
+  cv.height = Math.max(1, Math.round(img.height * scale));
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", quality);
+}
+function leExtractFirstJsonObject(str) {
+  const start = str.indexOf("{");
+  if (start === -1) return str;
+  let depth = 0;
+  for (let i = start; i < str.length; i++) {
+    if (str[i] === "{") depth++;
+    else if (str[i] === "}") { depth--; if (depth === 0) return str.slice(start, i + 1); }
+  }
+  return str.slice(start);
+}
+function leFlashField(el) {
+  el.classList.remove("field-flash");
+  void el.offsetWidth;
+  el.classList.add("field-flash");
+  el.addEventListener("animationend", () => el.classList.remove("field-flash"), { once: true });
+}
+async function leCallGemini(promptText, base64) {
+  const apiKey = (window.LOCAL_GEMINI_API_KEY || "").trim();
+  const proxyReady = LE_MEAL_PROXY_URL && !LE_MEAL_PROXY_URL.includes("REPLACE-WITH-YOUR-PROXY-URL");
+  if (!apiKey && !proxyReady) throw new Error("Gemini APIキーが未設定です");
+  const res = apiKey
+    ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: "image/jpeg", data: base64 } }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+      })
+    : await fetch(LE_MEAL_PROXY_URL, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ image: base64, prompt: promptText })
+      });
+  const data = await res.json();
+  if (!res.ok) throw new Error((data.error && data.error.message) || `APIエラー (${res.status})`);
+  const text = (data.candidates && data.candidates[0] && data.candidates[0].content
+    && data.candidates[0].content.parts && data.candidates[0].content.parts[0].text) || "";
+  return JSON.parse(leExtractFirstJsonObject(text.replace(/```json|```/g, "").trim()));
+}
+const LE_LABS_FIELDS = [
+  { key: "ast", label: "AST(GOT)", target: "le-ast" },
+  { key: "alt", label: "ALT(GPT)", target: "le-alt" },
+  { key: "ggtp", label: "γGTP", target: "le-ggtp" },
+  { key: "tg", label: "中性脂肪", target: "le-tg" },
+  { key: "ldl", label: "LDL-C", target: "le-ldl" },
+  { key: "plt", label: "血小板数", target: "le-plt" },
+  { key: "hba1c", label: "HbA1c", target: "le-hba1c" },
+];
+const LE_INBODY_FIELDS = [
+  { key: "fat_pct", label: "体脂肪率", target: "le-fat" },
+  { key: "muscle", label: "骨格筋量", target: "le-muscle" },
+  { key: "visceral", label: "内臓脂肪Lv", target: "le-visceral" },
+  { key: "bmi", label: "BMI", target: "le-ib-bmi" },
+  { key: "musc_rarm_pct", label: "右腕筋肉量%", target: "le-ib-musc-rarm-pct" },
+  { key: "musc_larm_pct", label: "左腕筋肉量%", target: "le-ib-musc-larm-pct" },
+  { key: "musc_trunk_pct", label: "体幹筋肉量%", target: "le-ib-musc-trunk-pct" },
+  { key: "musc_rleg_pct", label: "右脚筋肉量%", target: "le-ib-musc-rleg-pct" },
+  { key: "musc_lleg_pct", label: "左脚筋肉量%", target: "le-ib-musc-lleg-pct" },
+];
+function leApplyAnalyzeResult(areaId, thumb, altText, fields, values) {
+  const area = document.getElementById(areaId);
+  const appliedLabels = [];
+  fields.forEach(f => {
+    if (values[f.key] == null) return;
+    const el = document.getElementById(f.target);
+    el.value = values[f.key];
+    leFlashField(el);
+    appliedLabels.push(f.label);
+  });
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="${altText}">
+    <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+  </div>`;
+}
+async function leAnalyzeLabsPhoto(aiImage, thumb) {
+  const area = document.getElementById("le-labs-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="採血結果">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この写真は病院で発行された血液検査結果の用紙です。次の項目の数値を読み取ってください。単位に注意し、指定の単位に揃えてください（血小板数は「万/µL」。検査表に10^3/µLや10^4/µLで書かれている場合はそのまま数値を使い、10^9/Lで書かれている場合は10で割って万/µLに変換してください）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"ast\":数値またはnull,\"alt\":数値またはnull,\"ggtp\":数値またはnull,\"plt\":数値またはnull,\"ldl\":数値またはnull,\"tg\":数値またはnull,\"hba1c\":数値またはnull}";
+  try {
+    const parsed = await leCallGemini(promptText, base64);
+    const values = {};
+    let found = 0;
+    LE_LABS_FIELDS.forEach(f => {
+      const n = Number(parsed[f.key]);
+      if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
+    });
+    if (found === 0) throw new Error("検査値を認識できませんでした");
+    leApplyAnalyzeResult("le-labs-analyze-area", thumb, "採血結果", LE_LABS_FIELDS, values);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="採血結果">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下のフォームに直接入力してください。</div>
+    </div>`;
+  }
+}
+async function leAnalyzeInbodyPhoto(aiImage, thumb) {
+  const area = document.getElementById("le-inbody-analyze-area");
+  area.innerHTML = `<div class="analyze-box">
+    <img src="${thumb}" class="analyze-preview" alt="InBody結果">
+    <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
+  </div>`;
+  const base64 = aiImage.split(",")[1];
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull}";
+  try {
+    const parsed = await leCallGemini(promptText, base64);
+    const values = {};
+    let found = 0;
+    LE_INBODY_FIELDS.forEach(f => {
+      const n = Number(parsed[f.key]);
+      if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
+    });
+    if (found === 0) throw new Error("測定値を認識できませんでした");
+    leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values);
+  } catch (err) {
+    area.innerHTML = `<div class="analyze-box">
+      <img src="${thumb}" class="analyze-preview" alt="InBody結果">
+      <div class="analyze-error">読み取りに失敗しました: ${String(err.message || err).slice(0, 200)}<br>下のフォームに直接入力してください。</div>
+    </div>`;
+  }
+}
+document.getElementById("le-labs-photo-btn").addEventListener("click", () => {
+  document.getElementById("le-labs-photo-input").click();
+});
+document.getElementById("le-labs-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await leLoadImageFile(file);
+    leAnalyzeLabsPhoto(leImgToDataUrl(img, 900, 0.8), leImgToDataUrl(img, 220, 0.6));
+  } catch {
+    document.getElementById("le-labs-analyze-area").innerHTML = `<div class="analyze-error">画像を読み込めませんでした</div>`;
+  }
+});
+document.getElementById("le-inbody-photo-btn").addEventListener("click", () => {
+  document.getElementById("le-inbody-photo-input").click();
+});
+document.getElementById("le-inbody-photo-input").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await leLoadImageFile(file);
+    leAnalyzeInbodyPhoto(leImgToDataUrl(img, 900, 0.8), leImgToDataUrl(img, 220, 0.6));
+  } catch {
+    document.getElementById("le-inbody-analyze-area").innerHTML = `<div class="analyze-error">画像を読み込めませんでした</div>`;
+  }
+});
+
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-labs-entry-view").classList.remove("hidden");
   document.getElementById("le-date").value = "";
-  ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ast", "le-alt", "le-ggtp",
+  ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
+    "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
+    "le-ast", "le-alt", "le-ggtp",
     "le-tg", "le-ldl", "le-plt", "le-hba1c", "le-kpa", "le-cap"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("le-meds").value = "";
+  document.getElementById("le-labs-analyze-area").innerHTML = "";
+  document.getElementById("le-inbody-analyze-area").innerHTML = "";
   document.getElementById("le-error").style.display = "none";
   document.getElementById("le-saved-msg").style.display = "none";
   renderLabsEntryHistory();
@@ -1382,6 +1595,10 @@ function loadVisitToLabsForm(date) {
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("le-weight", v.weight); setv("le-sbp", v.sbp); setv("le-dbp", v.dbp);
   setv("le-fat", v.fat); setv("le-muscle", v.muscle); setv("le-visceral", v.visceral);
+  setv("le-ib-bmi", v.ibBmi);
+  setv("le-ib-musc-rarm-pct", v.ibMuscRArmPct); setv("le-ib-musc-larm-pct", v.ibMuscLArmPct);
+  setv("le-ib-musc-trunk-pct", v.ibMuscTrunkPct);
+  setv("le-ib-musc-rleg-pct", v.ibMuscRLegPct); setv("le-ib-musc-lleg-pct", v.ibMuscLLegPct);
   setv("le-ast", v.ast); setv("le-alt", v.alt); setv("le-ggtp", v.ggtp); setv("le-plt", v.plt);
   setv("le-ldl", v.ldl); setv("le-tg", v.tg); setv("le-hba1c", v.hba1c);
   setv("le-kpa", v.kpa); setv("le-cap", v.cap);
@@ -1398,6 +1615,10 @@ document.getElementById("le-save").addEventListener("click", async () => {
   const rec = {
     sbp: num("le-sbp"), dbp: num("le-dbp"), weight: num("le-weight"),
     fat: num("le-fat"), muscle: num("le-muscle"), visceral: num("le-visceral"),
+    ibBmi: num("le-ib-bmi"),
+    ibMuscRArmPct: num("le-ib-musc-rarm-pct"), ibMuscLArmPct: num("le-ib-musc-larm-pct"),
+    ibMuscTrunkPct: num("le-ib-musc-trunk-pct"),
+    ibMuscRLegPct: num("le-ib-musc-rleg-pct"), ibMuscLLegPct: num("le-ib-musc-lleg-pct"),
     ast: num("le-ast"), alt: num("le-alt"), ggtp: num("le-ggtp"), plt: num("le-plt"),
     ldl: num("le-ldl"), tg: num("le-tg"), hba1c: num("le-hba1c"),
     kpa: num("le-kpa"), cap: num("le-cap"),
@@ -1405,11 +1626,17 @@ document.getElementById("le-save").addEventListener("click", async () => {
   };
   const profile = (pdCache && pdCache.profile) || {};
   rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
+  // フォームで空欄のまま（未編集）のInBody項目は、既存データを消さないよう前回値を引き継ぐ
+  const ibFields = ["fat", "muscle", "visceral", "ibBmi", "ibMuscRArmPct", "ibMuscLArmPct", "ibMuscTrunkPct", "ibMuscRLegPct", "ibMuscLLegPct"];
   try {
     if (demoMode) {
+      const prev = demoStore[DK.visits][date] || {};
+      ibFields.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       demoStore[DK.visits][date] = rec;
     } else {
       const visits = await fetchPatientDoc(openResearchId, DK.visits);
+      const prev = visits[date] || {};
+      ibFields.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       visits[date] = rec;
       await db.collection("patients").doc(openResearchId).collection("data").doc(DK.visits)
         .set({ value: visits, updatedAt: Date.now() });
