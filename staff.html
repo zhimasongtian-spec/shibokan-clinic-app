@@ -2003,6 +2003,20 @@ document.getElementById("patient-labs-back").addEventListener("click", () => {
   document.getElementById("patient-labs-entry-view").classList.add("hidden");
   document.getElementById("patient-detail-view").classList.remove("hidden");
 });
+const VISIT_FIELD_LABELS = {
+  sbp: "血圧(上)", dbp: "血圧(下)", weight: "体重",
+  fat: "体脂肪率", muscle: "骨格筋量", visceral: "内臓脂肪Lv", ibBmi: "BMI",
+  ibMuscRArmPct: "右腕筋肉量%", ibMuscLArmPct: "左腕筋肉量%", ibMuscTrunkPct: "体幹筋肉量%",
+  ibMuscRLegPct: "右脚筋肉量%", ibMuscLLegPct: "左脚筋肉量%",
+  ast: "AST", alt: "ALT", ggtp: "γGTP", plt: "血小板数", ldl: "LDL-C", tg: "中性脂肪", hba1c: "HbA1c",
+  kpa: "肝硬度", cap: "CAP値",
+};
+// 保存済みの値と異なる値で上書きしようとしていないかを確認する（読み取りミス等の見落とし防止）
+function detectVisitConflicts(rec, prev) {
+  return Object.keys(VISIT_FIELD_LABELS)
+    .filter(k => rec[k] != null && prev[k] != null && rec[k] !== prev[k])
+    .map(k => `${VISIT_FIELD_LABELS[k]}: ${prev[k]} → ${rec[k]}`);
+}
 document.getElementById("le-save").addEventListener("click", async () => {
   const errEl = document.getElementById("le-error");
   errEl.style.display = "none";
@@ -2029,12 +2043,16 @@ document.getElementById("le-save").addEventListener("click", async () => {
   try {
     if (demoMode) {
       const prev = demoStore[DK.visits][date] || {};
+      const conflicts = detectVisitConflicts(rec, prev);
+      if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
       recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
       demoStore[DK.visits][date] = rec;
     } else {
       const visits = await fetchPatientDoc(openResearchId, DK.visits);
       const prev = visits[date] || {};
+      const conflicts = detectVisitConflicts(rec, prev);
+      if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
       recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
       visits[date] = rec;

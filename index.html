@@ -2639,6 +2639,20 @@ Object.keys(REF_RANGES).forEach(id => {
   updateRangeWarning(id);
 });
 const vNum = id => { const v = document.getElementById(id).value; return v === "" ? null : Number(v); };
+const VISIT_FIELD_LABELS = {
+  sbp: "血圧(上)", dbp: "血圧(下)", weight: "体重",
+  fat: "体脂肪率", muscle: "骨格筋量", visceral: "内臓脂肪Lv", ibBmi: "BMI",
+  ibMuscRArmPct: "右腕筋肉量%", ibMuscLArmPct: "左腕筋肉量%", ibMuscTrunkPct: "体幹筋肉量%",
+  ibMuscRLegPct: "右脚筋肉量%", ibMuscLLegPct: "左脚筋肉量%",
+  ast: "AST", alt: "ALT", ggtp: "γGTP", plt: "血小板数", ldl: "LDL-C", tg: "中性脂肪", hba1c: "HbA1c",
+  kpa: "肝硬度", cap: "CAP値",
+};
+// 保存済みの値と異なる値で上書きしようとしていないかを確認する（読み取りミス等の見落とし防止）
+function detectVisitConflicts(rec, prev) {
+  return Object.keys(VISIT_FIELD_LABELS)
+    .filter(k => rec[k] != null && prev[k] != null && rec[k] !== prev[k])
+    .map(k => `${VISIT_FIELD_LABELS[k]}: ${prev[k]} → ${rec[k]}`);
+}
 document.getElementById("v-save").addEventListener("click", () => {
   const date = document.getElementById("v-date").value;
   if (!date) { toast("来院日を入力してください"); return; }
@@ -2656,6 +2670,14 @@ document.getElementById("v-save").addEventListener("click", () => {
   };
   const visits = load(K.visits);
   const prev = visits[date] || {};
+  // このフォームで実際にこの日付の既存データを読み込んで編集した場合は、
+  // 意図的な修正とみなして確認をスキップする
+  if (vFormLoadedDate !== date) {
+    const conflicts = detectVisitConflicts(rec, prev);
+    if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) {
+      return;
+    }
+  }
   // フォームで空欄のまま（未入力）の項目は、スタッフが別途入力済みのデータを
   // 消してしまわないよう、既存の値を引き継ぐ
   Object.keys(rec).forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
@@ -2665,8 +2687,10 @@ document.getElementById("v-save").addEventListener("click", () => {
   toast("来院データを保存しました 🏥");
   renderVisitPage();
 });
+let vFormLoadedDate = null;
 function loadVisitToForm(date) {
   const v = load(K.visits)[date]; if (!v) return;
+  vFormLoadedDate = date;
   document.getElementById("v-date").value = date;
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
