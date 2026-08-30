@@ -1786,6 +1786,12 @@ function leExtractFirstJsonObject(str) {
   }
   return str.slice(start);
 }
+function leIsValidDateStr(s) {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+}
 function leFlashField(el) {
   el.classList.remove("field-flash");
   void el.offsetWidth;
@@ -1836,9 +1842,15 @@ const LE_INBODY_FIELDS = [
   { key: "musc_rleg_pct", label: "右脚筋肉量%", target: "le-ib-musc-rleg-pct" },
   { key: "musc_lleg_pct", label: "左脚筋肉量%", target: "le-ib-musc-lleg-pct" },
 ];
-function leApplyAnalyzeResult(areaId, thumb, altText, fields, values) {
+function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDate) {
   const area = document.getElementById(areaId);
   const appliedLabels = [];
+  if (measuredDate) {
+    const dateEl = document.getElementById("le-date");
+    dateEl.value = measuredDate;
+    leFlashField(dateEl);
+    appliedLabels.push("来院日");
+  }
   fields.forEach(f => {
     if (values[f.key] == null) return;
     const el = document.getElementById(f.target);
@@ -1858,7 +1870,7 @@ async function leAnalyzeLabsPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真は病院で発行された血液検査結果の用紙です。次の項目の数値を読み取ってください。単位に注意し、指定の単位に揃えてください（血小板数は「万/µL」。検査表に10^3/µLや10^4/µLで書かれている場合はそのまま数値を使い、10^9/Lで書かれている場合は10で割って万/µLに変換してください）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"ast\":数値またはnull,\"alt\":数値またはnull,\"ggtp\":数値またはnull,\"plt\":数値またはnull,\"ldl\":数値またはnull,\"tg\":数値またはnull,\"hba1c\":数値またはnull}";
+  const promptText = "この写真は病院で発行された血液検査結果の用紙です。次の項目の数値を読み取ってください。単位に注意し、指定の単位に揃えてください（血小板数は「万/µL」。検査表に10^3/µLや10^4/µLで書かれている場合はそのまま数値を使い、10^9/Lで書かれている場合は10で割って万/µLに変換してください）。また、採血日・検査日として印字されている日付があれば、YYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"ast\":数値またはnull,\"alt\":数値またはnull,\"ggtp\":数値またはnull,\"plt\":数値またはnull,\"ldl\":数値またはnull,\"tg\":数値またはnull,\"hba1c\":数値またはnull,\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const parsed = await leCallGemini(promptText, base64);
     const values = {};
@@ -1867,8 +1879,9 @@ async function leAnalyzeLabsPhoto(aiImage, thumb) {
       const n = Number(parsed[f.key]);
       if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
     });
-    if (found === 0) throw new Error("検査値を認識できませんでした");
-    leApplyAnalyzeResult("le-labs-analyze-area", thumb, "採血結果", LE_LABS_FIELDS, values);
+    const measuredDate = leIsValidDateStr(parsed.date) ? parsed.date : null;
+    if (found === 0 && !measuredDate) throw new Error("検査値を認識できませんでした");
+    leApplyAnalyzeResult("le-labs-analyze-area", thumb, "採血結果", LE_LABS_FIELDS, values, measuredDate);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="採血結果">
@@ -1883,7 +1896,7 @@ async function leAnalyzeInbodyPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull}";
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。また、用紙上部に印字されている「測定日時」をYYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull,\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const parsed = await leCallGemini(promptText, base64);
     const values = {};
@@ -1892,8 +1905,9 @@ async function leAnalyzeInbodyPhoto(aiImage, thumb) {
       const n = Number(parsed[f.key]);
       if (parsed[f.key] != null && !Number.isNaN(n)) { values[f.key] = n; found++; }
     });
-    if (found === 0) throw new Error("測定値を認識できませんでした");
-    leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values);
+    const measuredDate = leIsValidDateStr(parsed.date) ? parsed.date : null;
+    if (found === 0 && !measuredDate) throw new Error("測定値を認識できませんでした");
+    leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values, measuredDate);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="InBody結果">
