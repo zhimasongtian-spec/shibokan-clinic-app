@@ -500,6 +500,11 @@
       <div id="doctor-exercise-content" style="font-size:.86rem;"></div>
     </div>
 
+    <div class="card hidden" id="home-inbody-shape-card">
+      <h2>🧍 体型バランス</h2>
+      <div id="home-inbody-shape-wrap"></div>
+    </div>
+
   </section>
 
   <!-- ================= 記録（体重） ================= -->
@@ -2698,8 +2703,8 @@ function latestInbodyVisit() {
   }
   return null;
 }
-function renderInbodyShape() {
-  const wrap = document.getElementById("inbody-shape-wrap");
+function renderInbodyShape(wrapId) {
+  const wrap = document.getElementById(wrapId || "inbody-shape-wrap");
   const latest = latestInbodyVisit();
   if (!latest) { wrap.innerHTML = '<p class="empty-note">まだInBodyのデータがありません</p>'; return; }
   const { date, v } = latest;
@@ -3501,6 +3506,10 @@ function renderHome() {
   });
   const doneCount = checklist.filter(it => it.done).length;
   document.getElementById("today-checklist-summary").textContent = `${doneCount} / ${checklist.length} 完了`;
+
+  const hasInbodyData = latestInbodyVisit() != null;
+  document.getElementById("home-inbody-shape-card").classList.toggle("hidden", !hasInbodyData);
+  if (hasInbodyData) renderInbodyShape("home-inbody-shape-wrap");
 }
 
 /* ============ init ============ */
