@@ -2634,8 +2634,12 @@ document.getElementById("v-save").addEventListener("click", () => {
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
     meds: document.getElementById("v-meds").value.trim() || null,
   };
-  rec.fib4 = calcFib4(ageAtDate(p.birthdate, date), rec.ast, rec.alt, rec.plt);
   const visits = load(K.visits);
+  const prev = visits[date] || {};
+  // フォームで空欄のまま（未入力）の項目は、スタッフが別途入力済みのデータを
+  // 消してしまわないよう、既存の値を引き継ぐ
+  Object.keys(rec).forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
+  rec.fib4 = calcFib4(ageAtDate(p.birthdate, date), rec.ast, rec.alt, rec.plt);
   visits[date] = rec;
   save(K.visits, visits);
   toast("来院データを保存しました 🏥");

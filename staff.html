@@ -2009,18 +2009,20 @@ document.getElementById("le-save").addEventListener("click", async () => {
     meds: document.getElementById("le-meds").value.trim() || null,
   };
   const profile = (pdCache && pdCache.profile) || {};
-  rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
-  // フォームで空欄のまま（未編集）のInBody項目は、既存データを消さないよう前回値を引き継ぐ
-  const ibFields = ["fat", "muscle", "visceral", "ibBmi", "ibMuscRArmPct", "ibMuscLArmPct", "ibMuscTrunkPct", "ibMuscRLegPct", "ibMuscLLegPct"];
+  // フォームで空欄のまま（未編集）の項目は、患者アプリ側で既に入力済みのデータを
+  // 消してしまわないよう、既存の値を引き継ぐ
+  const recKeys = Object.keys(rec);
   try {
     if (demoMode) {
       const prev = demoStore[DK.visits][date] || {};
-      ibFields.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
+      recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
+      rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
       demoStore[DK.visits][date] = rec;
     } else {
       const visits = await fetchPatientDoc(openResearchId, DK.visits);
       const prev = visits[date] || {};
-      ibFields.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
+      recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
+      rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
       visits[date] = rec;
       await db.collection("patients").doc(openResearchId).collection("data").doc(DK.visits)
         .set({ value: visits, updatedAt: Date.now() });
