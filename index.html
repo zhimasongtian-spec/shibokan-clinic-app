@@ -1273,6 +1273,7 @@ function updateRangeSegDisabled(containerId, dates, minCount = 1) {
 function fmtDate(s) { const [y, m, d] = s.split("-"); return `${y}/${Number(m)}/${Number(d)}`; }
 function fmtDateShort(s) { const [, m, d] = s.split("-"); return `${Number(m)}/${Number(d)}`; }
 function fmtDayOfWeek(s) { return ["日", "月", "火", "水", "木", "金", "土"][new Date(s + "T00:00:00").getDay()]; }
+function fmtDayOfWeekDate(s) { return `${fmtDayOfWeek(s)}${fmtDateShort(s)}`; }
 function fmtMonthLabel(ym) { const [, m] = ym.split("-"); return `${Number(m)}月`; }
 function fmtYearMonthLabel(ym) { const [y, m] = ym.split("-"); return `${y}年${Number(m)}月`; }
 function weekStartStr(s) {
@@ -2999,7 +3000,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     el += `<text x="${totalW - 4}" y="${gy - 6}" text-anchor="end" font-size="12" fill="#d9822b">目標 ${opts.goalLine.toLocaleString()}${opts.yUnit || ""}</text>`;
   }
   // ラベルが重ならないよう、バー幅が狭いときは間引いて表示する
-  const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
+  const labelCharCount = opts.monthly ? 3 : 5;
   const labelStep = Math.max(1, Math.ceil((labelCharCount * 7 + 6) / bandW));
   points.forEach((p, i) => {
     const cx = bandW * (i + 0.5);
@@ -3009,7 +3010,7 @@ function drawBarSvgScroll(axisSvg, barsSvg, scrollEl, wrapEl, tooltipEl, points,
     const isFirst = i === 0;
     const isLast = i === points.length - 1;
     if (isLast || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
-      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeekDate(p.x) : fmtDateShort(p.x);
       // 先頭・末尾のラベルは中央揃えだとグラフ領域の外にはみ出して切れるため、内側寄せにする
       const anchor = isFirst ? "start" : isLast ? "end" : "middle";
       const lx = isFirst ? Math.max(cx - barW / 2, 0) : isLast ? Math.min(cx + barW / 2, totalW) : cx;
@@ -3090,7 +3091,7 @@ function drawLineSvgScroll(axisSvg, lineSvg, scrollEl, wrapEl, tooltipEl, points
   });
   if (linePts.length > 1) el += `<polyline fill="none" stroke="${opts.color || "#2e8b6d"}" stroke-width="2.2" stroke-linejoin="round" points="${linePts.join(" ")}"/>`;
 
-  const labelCharCount = opts.monthly ? 3 : opts.dowLabels ? 1 : 5;
+  const labelCharCount = opts.monthly ? 3 : 5;
   const labelStep = Math.max(1, Math.ceil((labelCharCount * 7 + 6) / bandW));
   points.forEach((p, i) => {
     const cx = bandW * (i + 0.5);
@@ -3100,7 +3101,7 @@ function drawLineSvgScroll(axisSvg, lineSvg, scrollEl, wrapEl, tooltipEl, points
     const isFirst = i === 0;
     const isLast = i === points.length - 1;
     if (isLast || (i % labelStep === 0 && points.length - 1 - i >= labelStep)) {
-      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeek(p.x) : fmtDateShort(p.x);
+      const lbl = opts.monthly ? fmtMonthLabel(p.x) : opts.dowLabels ? fmtDayOfWeekDate(p.x) : fmtDateShort(p.x);
       const anchor = isFirst ? "start" : isLast ? "end" : "middle";
       const lx = isFirst ? Math.max(cx - 10, 0) : isLast ? Math.min(cx + 10, totalW) : cx;
       el += `<text x="${lx}" y="${H - 8}" text-anchor="${anchor}" font-size="11" fill="#6b7a72">${lbl}</text>`;
