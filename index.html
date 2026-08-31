@@ -620,8 +620,7 @@
     <div class="card">
       <h2>📈 推移グラフ</h2>
       <div class="seg" id="metric-seg">
-        <button data-m="weight" class="on">体重</button>
-        <button data-m="liver">AST/ALT</button>
+        <button data-m="liver" class="on">AST/ALT</button>
         <button data-m="ggtp">γGTP</button>
         <button data-m="fib4">FIB-4</button>
         <button data-m="lipid">脂質</button>
@@ -2795,7 +2794,7 @@ function renderInbodyShape(wrapId) {
 function renderVisitPage() { renderVisitTable(); renderChart(); renderInbodyShape(); }
 
 /* ============ グラフ（記録タブ内） ============ */
-let chartMetric = "weight", chartRange = "3";
+let chartMetric = "liver", chartRange = "3";
 document.getElementById("metric-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   document.querySelectorAll("#metric-seg button").forEach(x => x.classList.remove("on"));
@@ -2824,20 +2823,10 @@ function updateVisitRangeSegDisabled() {
 }
 
 function metricSeries(metric) {
-  const daily = load(K.daily), visits = load(K.visits);
+  const visits = load(K.visits);
   const vDates = Object.keys(visits).sort();
   const pick = (key) => vDates.filter(d => visits[d][key] != null).map(d => ({ x: d, y: visits[d][key] }));
   switch (metric) {
-    case "weight": {
-      const dDates = Object.keys(daily).sort().filter(d => daily[d].weight != null);
-      const pts = dDates.map(d => ({ x: d, y: daily[d].weight }));
-      vDates.filter(d => visits[d].weight != null).forEach(d => {
-        if (!dDates.includes(d)) pts.push({ x: d, y: visits[d].weight });
-      });
-      pts.sort((a, b) => a.x < b.x ? -1 : 1);
-      const goal = load(K.profile).goalWeight || null;
-      return { series: [{ label: "体重(kg)", color: "#2e8b6d", pts }], goal, note: "日々の記録と来院時体重をあわせて表示しています。" };
-    }
     case "liver": return { series: [
       { label: "AST(U/L)", color: "#2e8b6d", pts: pick("ast") },
       { label: "ALT(U/L)", color: "#3a7ca5", pts: pick("alt") }],
