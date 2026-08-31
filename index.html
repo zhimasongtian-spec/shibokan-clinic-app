@@ -629,11 +629,8 @@
         <button data-m="fscan">FibroScan</button>
       </div>
       <div class="seg" id="range-seg">
-        <button data-range="30">1か月</button>
-        <button data-range="90" class="on">3か月</button>
-        <button data-range="180">半年</button>
-        <button data-range="365">1年</button>
-        <button data-range="ytd">年初来</button>
+        <button data-range="3" class="on">直近3回</button>
+        <button data-range="5">直近5回</button>
         <button data-range="all">全期間</button>
       </div>
       <svg id="chart" class="chart-svg" viewBox="0 0 600 320" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -2798,7 +2795,7 @@ function renderInbodyShape(wrapId) {
 function renderVisitPage() { renderVisitTable(); renderChart(); renderInbodyShape(); }
 
 /* ============ グラフ（記録タブ内） ============ */
-let chartMetric = "weight", chartRange = "90";
+let chartMetric = "weight", chartRange = "3";
 document.getElementById("metric-seg").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   document.querySelectorAll("#metric-seg button").forEach(x => x.classList.remove("on"));
@@ -2809,6 +2806,22 @@ document.getElementById("range-seg").addEventListener("click", e => {
   document.querySelectorAll("#range-seg button").forEach(x => x.classList.remove("on"));
   b.classList.add("on"); chartRange = b.dataset.range; renderChart();
 });
+// 来院は数か月おきと間隔がまばらなため、カレンダー期間ではなく「直近○回の来院」を
+// 基準にした期間で絞り込む（それより前の来院日を起点にする）
+function visitCountCutoff(range) {
+  if (range === "all") return null;
+  const dates = Object.keys(load(K.visits)).sort();
+  const n = Number(range);
+  if (dates.length <= n) return null;
+  return dates[dates.length - n];
+}
+function updateVisitRangeSegDisabled() {
+  const count = Object.keys(load(K.visits)).length;
+  document.querySelectorAll("#range-seg button").forEach(btn => {
+    const range = btn.dataset.range;
+    btn.disabled = count < 2 || (range !== "all" && count <= Number(range));
+  });
+}
 
 function metricSeries(metric) {
   const daily = load(K.daily), visits = load(K.visits);
@@ -3135,8 +3148,8 @@ function renderChart() {
   const svg = document.getElementById("chart");
   const { series, goal, refline, note } = metricSeries(chartMetric);
   document.getElementById("chart-note").textContent = note || "";
-  updateRangeSegDisabled("range-seg", series.flatMap(s => s.pts.map(p => p.x)), 2);
-  drawTrendSvg(svg, series, goal, refline, rangeCutoff(chartRange));
+  updateVisitRangeSegDisabled();
+  drawTrendSvg(svg, series, goal, refline, visitCountCutoff(chartRange));
 }
 
 /* ============ 設定 ============ */
