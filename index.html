@@ -2114,25 +2114,14 @@ async function analyzeLabsPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-// 採血・InBodyそれぞれの読み取りで測定日が得られた際、既に入力済みの来院日と
-// 異なる場合は無条件に上書きせず確認する（読み取りミスによる日付のずれ防止）
-function applyMeasuredDateToForm(measuredDate) {
-  const dateEl = document.getElementById("v-date");
-  const current = dateEl.value;
-  if (vDateTrusted && current && current !== measuredDate
-    && !confirm(`来院日を ${fmtDate(current)} から ${fmtDate(measuredDate)} に変更します。よろしいですか？\n（採血結果とInBodyの測定日が異なる場合に表示されます）`)) {
-    return false;
-  }
-  dateEl.value = measuredDate;
-  vDateTrusted = true;
-  flashField(dateEl);
-  return true;
-}
+// 採血日・InBody測定日は来院日とは別の項目として保持する（用紙記載日と来院日は
+// 一致しないことがあるため、来院日欄には反映しない）
 function applyLabsAnalyzeResult(thumb, values, measuredDate) {
   const area = document.getElementById("labs-analyze-area");
   const appliedLabels = [];
-  if (measuredDate && applyMeasuredDateToForm(measuredDate)) {
-    appliedLabels.push("来院日");
+  if (measuredDate) {
+    vLabsDate = measuredDate;
+    appliedLabels.push(`採血日(${fmtDate(measuredDate)})`);
   }
   LABS_FIELDS.forEach(f => {
     if (values[f.key] == null) return;
@@ -2142,9 +2131,12 @@ function applyLabsAnalyzeResult(thumb, values, measuredDate) {
     appliedLabels.push(f.label);
   });
   updateFibLine();
+  const dateNote = measuredDate && document.getElementById("v-date").value && measuredDate !== document.getElementById("v-date").value
+    ? `<p class="muted" style="color:var(--warn);">※来院日(${fmtDate(document.getElementById("v-date").value)})と異なります。読み取りミスでないかご確認ください。</p>` : "";
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="採血結果">
     <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+    ${dateNote}
   </div>`;
   toast(`${appliedLabels.length}件を反映しました`);
 }
@@ -2235,8 +2227,9 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
 function applyInbodyAnalyzeResult(thumb, values, measuredDate) {
   const area = document.getElementById("inbody-analyze-area");
   const appliedLabels = [];
-  if (measuredDate && applyMeasuredDateToForm(measuredDate)) {
-    appliedLabels.push("来院日");
+  if (measuredDate) {
+    vInbodyDate = measuredDate;
+    appliedLabels.push(`InBody測定日(${fmtDate(measuredDate)})`);
   }
   INBODY_FIELDS.forEach(f => {
     if (values[f.key] == null) return;
@@ -2245,9 +2238,12 @@ function applyInbodyAnalyzeResult(thumb, values, measuredDate) {
     flashField(el);
     appliedLabels.push(f.label);
   });
+  const dateNote = measuredDate && document.getElementById("v-date").value && measuredDate !== document.getElementById("v-date").value
+    ? `<p class="muted" style="color:var(--warn);">※来院日(${fmtDate(document.getElementById("v-date").value)})と異なります。読み取りミスでないかご確認ください。</p>` : "";
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="InBody結果">
     <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+    ${dateNote}
   </div>`;
   toast(`${appliedLabels.length}件を反映しました`);
 }
@@ -2681,6 +2677,7 @@ document.getElementById("v-save").addEventListener("click", () => {
     ldl: vNum("v-ldl"), tg: vNum("v-tg"), hba1c: vNum("v-hba1c"),
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
     meds: document.getElementById("v-meds").value.trim() || null,
+    labsDate: vLabsDate, inbodyDate: vInbodyDate,
   };
   const visits = load(K.visits);
   const prev = visits[date] || {};
@@ -2700,18 +2697,20 @@ document.getElementById("v-save").addEventListener("click", () => {
   rec.fib4 = calcFib4(ageAtDate(p.birthdate, date), rec.ast, rec.alt, rec.plt);
   visits[date] = rec;
   save(K.visits, visits);
+  vLabsDate = null; vInbodyDate = null;
   toast("来院データを保存しました 🏥");
   renderVisitPage();
 });
 let vFormLoadedDate = null;
-// v-dateが「未入力時の今日の日付」のままか、ユーザー/AIが明示的にセットした値かを
-// 区別する（前者なら測定日の自動反映時に確認ダイアログを出す必要がない）
-let vDateTrusted = false;
-document.getElementById("v-date").addEventListener("input", () => { vDateTrusted = true; });
+// 採血日・InBody測定日は来院日とは別項目として保持する（フォームは常に単一なので、
+// 保存・読み込みのたびにここへ出し入れする）
+let vLabsDate = null;
+let vInbodyDate = null;
 function loadVisitToForm(date) {
   const v = load(K.visits)[date]; if (!v) return;
   vFormLoadedDate = date;
-  vDateTrusted = true;
+  vLabsDate = v.labsDate ?? null;
+  vInbodyDate = v.inbodyDate ?? null;
   document.getElementById("v-date").value = date;
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);

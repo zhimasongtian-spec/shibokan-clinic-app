@@ -1843,25 +1843,15 @@ const LE_INBODY_FIELDS = [
   { key: "musc_rleg_pct", label: "右脚筋肉量%", target: "le-ib-musc-rleg-pct" },
   { key: "musc_lleg_pct", label: "左脚筋肉量%", target: "le-ib-musc-lleg-pct" },
 ];
-// 採血・InBodyそれぞれの読み取りで測定日が得られた際、既に入力済みの来院日と
-// 異なる場合は無条件に上書きせず確認する（読み取りミスによる日付のずれ防止）
-function leApplyMeasuredDateToForm(measuredDate) {
-  const dateEl = document.getElementById("le-date");
-  const current = dateEl.value;
-  if (leDateTrusted && current && current !== measuredDate
-    && !confirm(`来院日を ${fmtDate(current)} から ${fmtDate(measuredDate)} に変更します。よろしいですか？\n（採血結果とInBodyの測定日が異なる場合に表示されます）`)) {
-    return false;
-  }
-  dateEl.value = measuredDate;
-  leDateTrusted = true;
-  leFlashField(dateEl);
-  return true;
-}
-function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDate) {
+// 採血日・InBody測定日は来院日とは別の項目として保持する（用紙記載日と来院日は
+// 一致しないことがあるため、来院日欄には反映しない）
+function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDate, dateField, dateLabel) {
   const area = document.getElementById(areaId);
   const appliedLabels = [];
-  if (measuredDate && leApplyMeasuredDateToForm(measuredDate)) {
-    appliedLabels.push("来院日");
+  if (measuredDate) {
+    if (dateField === "labs") leLabsDate = measuredDate;
+    else if (dateField === "inbody") leInbodyDate = measuredDate;
+    appliedLabels.push(`${dateLabel}(${fmtDate(measuredDate)})`);
   }
   fields.forEach(f => {
     if (values[f.key] == null) return;
@@ -1870,9 +1860,13 @@ function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDa
     leFlashField(el);
     appliedLabels.push(f.label);
   });
+  const leDate = document.getElementById("le-date").value;
+  const dateNote = measuredDate && leDate && measuredDate !== leDate
+    ? `<p class="muted" style="color:var(--warn);">※来院日(${fmtDate(leDate)})と異なります。読み取りミスでないかご確認ください。</p>` : "";
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="${altText}">
     <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
+    ${dateNote}
   </div>`;
 }
 async function leAnalyzeLabsPhoto(aiImage, thumb) {
@@ -1893,7 +1887,7 @@ async function leAnalyzeLabsPhoto(aiImage, thumb) {
     });
     const measuredDate = leIsValidDateStr(parsed.date) ? parsed.date : null;
     if (found === 0 && !measuredDate) throw new Error("検査値を認識できませんでした");
-    leApplyAnalyzeResult("le-labs-analyze-area", thumb, "採血結果", LE_LABS_FIELDS, values, measuredDate);
+    leApplyAnalyzeResult("le-labs-analyze-area", thumb, "採血結果", LE_LABS_FIELDS, values, measuredDate, "labs", "採血日");
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="採血結果">
@@ -1919,7 +1913,7 @@ async function leAnalyzeInbodyPhoto(aiImage, thumb) {
     });
     const measuredDate = leIsValidDateStr(parsed.date) ? parsed.date : null;
     if (found === 0 && !measuredDate) throw new Error("測定値を認識できませんでした");
-    leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values, measuredDate);
+    leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values, measuredDate, "inbody", "InBody測定日");
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="InBody結果">
@@ -1998,15 +1992,15 @@ document.getElementById("le-meds-photo-input").addEventListener("change", async 
   }
 });
 
-// le-dateが「未入力時の今日の日付」のままか、ユーザー/AIが明示的にセットした値かを
-// 区別する（前者なら測定日の自動反映時に確認ダイアログを出す必要がない）
-let leDateTrusted = false;
-document.getElementById("le-date").addEventListener("input", () => { leDateTrusted = true; });
+// 採血日・InBody測定日は来院日とは別項目として保持する（フォームは常に単一なので、
+// 保存・読み込みのたびにここへ出し入れする）
+let leLabsDate = null;
+let leInbodyDate = null;
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-labs-entry-view").classList.remove("hidden");
   document.getElementById("le-date").value = todayStr();
-  leDateTrusted = false;
+  leLabsDate = null; leInbodyDate = null;
   ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
     "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
     "le-ast", "le-alt", "le-ggtp",
@@ -2061,6 +2055,7 @@ document.getElementById("le-save").addEventListener("click", async () => {
     ldl: num("le-ldl"), tg: num("le-tg"), hba1c: num("le-hba1c"),
     kpa: num("le-kpa"), cap: num("le-cap"),
     meds: document.getElementById("le-meds").value.trim() || null,
+    labsDate: leLabsDate, inbodyDate: leInbodyDate,
   };
   const profile = (pdCache && pdCache.profile) || {};
   // フォームで空欄のまま（未編集）の項目は、患者アプリ側で既に入力済みのデータを
@@ -2088,6 +2083,7 @@ document.getElementById("le-save").addEventListener("click", async () => {
         .set({ value: visits, updatedAt: Date.now() });
     }
     if (pdCache) pdCache.visits[date] = rec;
+    leLabsDate = null; leInbodyDate = null;
     document.getElementById("le-saved-msg").style.display = "block";
   } catch (err) {
     errEl.textContent = "保存に失敗しました: " + (err.message || err);
