@@ -1843,13 +1843,24 @@ const LE_INBODY_FIELDS = [
   { key: "musc_rleg_pct", label: "右脚筋肉量%", target: "le-ib-musc-rleg-pct" },
   { key: "musc_lleg_pct", label: "左脚筋肉量%", target: "le-ib-musc-lleg-pct" },
 ];
+// 採血・InBodyそれぞれの読み取りで測定日が得られた際、既に入力済みの来院日と
+// 異なる場合は無条件に上書きせず確認する（読み取りミスによる日付のずれ防止）
+function leApplyMeasuredDateToForm(measuredDate) {
+  const dateEl = document.getElementById("le-date");
+  const current = dateEl.value;
+  if (leDateTrusted && current && current !== measuredDate
+    && !confirm(`来院日を ${fmtDate(current)} から ${fmtDate(measuredDate)} に変更します。よろしいですか？\n（採血結果とInBodyの測定日が異なる場合に表示されます）`)) {
+    return false;
+  }
+  dateEl.value = measuredDate;
+  leDateTrusted = true;
+  leFlashField(dateEl);
+  return true;
+}
 function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDate) {
   const area = document.getElementById(areaId);
   const appliedLabels = [];
-  if (measuredDate) {
-    const dateEl = document.getElementById("le-date");
-    dateEl.value = measuredDate;
-    leFlashField(dateEl);
+  if (measuredDate && leApplyMeasuredDateToForm(measuredDate)) {
     appliedLabels.push("来院日");
   }
   fields.forEach(f => {
@@ -1951,13 +1962,15 @@ async function leAnalyzeMedsPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\"}";
+  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。また、処方日・発行日として印字されている日付があれば、YYYY-MM-DD形式で読み取ってください（西暦に変換すること）。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\",\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const parsed = await leCallGemini(promptText, base64);
     const meds = String(parsed.meds || "").trim();
     if (!meds) throw new Error("薬剤情報を認識できませんでした");
+    const medsDate = leIsValidDateStr(parsed.date) ? parsed.date : null;
+    const entry = medsDate ? `${meds}（処方日: ${fmtDate(medsDate)}）` : meds;
     const medsEl = document.getElementById("le-meds");
-    medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${meds}` : meds;
+    medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${entry}` : entry;
     leFlashField(medsEl);
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="処方箋">
@@ -1985,10 +1998,15 @@ document.getElementById("le-meds-photo-input").addEventListener("change", async 
   }
 });
 
+// le-dateが「未入力時の今日の日付」のままか、ユーザー/AIが明示的にセットした値かを
+// 区別する（前者なら測定日の自動反映時に確認ダイアログを出す必要がない）
+let leDateTrusted = false;
+document.getElementById("le-date").addEventListener("input", () => { leDateTrusted = true; });
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-labs-entry-view").classList.remove("hidden");
   document.getElementById("le-date").value = todayStr();
+  leDateTrusted = false;
   ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
     "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
     "le-ast", "le-alt", "le-ggtp",

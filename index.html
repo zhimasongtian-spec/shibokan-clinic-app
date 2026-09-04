@@ -613,7 +613,7 @@
 
     <div class="card">
       <h2>来院履歴</h2>
-      <p class="muted">行をタップすると内容を上のフォームに読み込みます。</p>
+      <p class="muted">記録をタップすると、内容を修正できます。</p>
       <div class="table-scroll" id="visit-table"></div>
     </div>
 
@@ -1987,7 +1987,7 @@ async function analyzeMedsPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\"}";
+  const promptText = "この処方箋または薬の説明書の写真から、薬剤名・用量・用法を日本語で読み取ってください。1行につき1つの薬剤を「薬剤名 用量 用法」の形式で記載してください。また、処方日・発行日として印字されている日付があれば、YYYY-MM-DD形式で読み取ってください（西暦に変換すること）。次のJSON形式のみで回答してください。\n{\"meds\":\"ビタミンE 300mg 1日1回\\n〇〇 △△mg 1日2回\",\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -2011,7 +2011,8 @@ async function analyzeMedsPhoto(aiImage, thumb) {
     const parsed = JSON.parse(jsonStr);
     const meds = String(parsed.meds || "").trim();
     if (!meds) throw new Error("薬剤情報を認識できませんでした");
-    applyMedsAnalyzeResult(thumb, meds);
+    const medsDate = isValidDateStr(parsed.date) ? parsed.date : null;
+    applyMedsAnalyzeResult(thumb, meds, medsDate);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="処方箋">
@@ -2019,10 +2020,11 @@ async function analyzeMedsPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-function applyMedsAnalyzeResult(thumb, meds) {
+function applyMedsAnalyzeResult(thumb, meds, medsDate) {
   const area = document.getElementById("meds-analyze-area");
   const medsEl = document.getElementById("v-meds");
-  medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${meds}` : meds;
+  const entry = medsDate ? `${meds}（処方日: ${fmtDate(medsDate)}）` : meds;
+  medsEl.value = medsEl.value.trim() ? `${medsEl.value.trim()}\n${entry}` : entry;
   flashField(medsEl);
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="処方箋">
@@ -2112,13 +2114,24 @@ async function analyzeLabsPhoto(aiImage, thumb) {
     </div>`;
   }
 }
+// 採血・InBodyそれぞれの読み取りで測定日が得られた際、既に入力済みの来院日と
+// 異なる場合は無条件に上書きせず確認する（読み取りミスによる日付のずれ防止）
+function applyMeasuredDateToForm(measuredDate) {
+  const dateEl = document.getElementById("v-date");
+  const current = dateEl.value;
+  if (vDateTrusted && current && current !== measuredDate
+    && !confirm(`来院日を ${fmtDate(current)} から ${fmtDate(measuredDate)} に変更します。よろしいですか？\n（採血結果とInBodyの測定日が異なる場合に表示されます）`)) {
+    return false;
+  }
+  dateEl.value = measuredDate;
+  vDateTrusted = true;
+  flashField(dateEl);
+  return true;
+}
 function applyLabsAnalyzeResult(thumb, values, measuredDate) {
   const area = document.getElementById("labs-analyze-area");
   const appliedLabels = [];
-  if (measuredDate) {
-    const dateEl = document.getElementById("v-date");
-    dateEl.value = measuredDate;
-    flashField(dateEl);
+  if (measuredDate && applyMeasuredDateToForm(measuredDate)) {
     appliedLabels.push("来院日");
   }
   LABS_FIELDS.forEach(f => {
@@ -2222,10 +2235,7 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
 function applyInbodyAnalyzeResult(thumb, values, measuredDate) {
   const area = document.getElementById("inbody-analyze-area");
   const appliedLabels = [];
-  if (measuredDate) {
-    const dateEl = document.getElementById("v-date");
-    dateEl.value = measuredDate;
-    flashField(dateEl);
+  if (measuredDate && applyMeasuredDateToForm(measuredDate)) {
     appliedLabels.push("来院日");
   }
   INBODY_FIELDS.forEach(f => {
@@ -2685,9 +2695,14 @@ document.getElementById("v-save").addEventListener("click", () => {
   renderVisitPage();
 });
 let vFormLoadedDate = null;
+// v-dateが「未入力時の今日の日付」のままか、ユーザー/AIが明示的にセットした値かを
+// 区別する（前者なら測定日の自動反映時に確認ダイアログを出す必要がない）
+let vDateTrusted = false;
+document.getElementById("v-date").addEventListener("input", () => { vDateTrusted = true; });
 function loadVisitToForm(date) {
   const v = load(K.visits)[date]; if (!v) return;
   vFormLoadedDate = date;
+  vDateTrusted = true;
   document.getElementById("v-date").value = date;
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
