@@ -2660,6 +2660,13 @@ function detectVisitConflicts(rec, prev) {
     .filter(k => rec[k] != null && prev[k] != null && rec[k] !== prev[k])
     .map(k => `${VISIT_FIELD_LABELS[k]}: ${prev[k]} → ${rec[k]}`);
 }
+// 内服薬は数値項目と違い「上書き」ではなく「追記」が正しい挙動になることが多い
+// （同日に複数科を受診し、処方箋が複数枚になる場合など）ため、既存の記載と異なれば連結する
+function mergeMedsText(rec, prev) {
+  if (rec.meds && prev.meds && rec.meds !== prev.meds && !rec.meds.includes(prev.meds)) {
+    rec.meds = `${prev.meds}\n${rec.meds}`;
+  }
+}
 document.getElementById("v-save").addEventListener("click", () => {
   const date = document.getElementById("v-date").value;
   if (!date) { toast("来院日を入力してください"); return; }
@@ -2680,6 +2687,8 @@ document.getElementById("v-save").addEventListener("click", () => {
   // このフォームで実際にこの日付の既存データを読み込んで編集した場合は、
   // 意図的な修正とみなして確認をスキップする
   if (vFormLoadedDate !== date) {
+    // 内服薬は上書きせず蓄積する（同日に複数科を受診し処方箋が複数枚になることがあるため）
+    mergeMedsText(rec, prev);
     const conflicts = detectVisitConflicts(rec, prev);
     if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) {
       return;
