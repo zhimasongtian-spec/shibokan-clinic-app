@@ -69,10 +69,13 @@
   .row3 label { margin: 11px 0 4px; }
   .unit-note { font-size: .74rem; color: var(--sub); font-weight: 400; }
   .row3 label .unit-note { display: block; }
+  .table-scroll { overflow-x: auto; }
   table.log { width: 100%; border-collapse: collapse; font-size: .84rem; }
   table.log th, table.log td { padding: 8px 5px; border-bottom: 1px solid var(--line); text-align: center; }
   table.log th { color: var(--sub); font-weight: 600; font-size: .74rem; }
   table.log td:first-child { text-align: left; white-space: nowrap; }
+  table.log .del { color: var(--danger); cursor: pointer; border: none; background: none; }
+  .empty-note { text-align: center; color: var(--sub); font-size: .88rem; padding: 20px 0; }
   .history-day-title { font-weight: 700; color: var(--accent-dark); margin: 18px 0 4px; font-size: .9rem; }
   .history-day-title:first-child { margin-top: 0; }
   .summary-row {
@@ -608,6 +611,10 @@
   </div>
   <h2 class="no-print">🩸 検査データを入力</h2>
   <p class="muted no-print">患者さん自身での入力が難しい場合に、病院から渡された検査結果などをスタッフが代わりに入力します。</p>
+
+  <h3>来院履歴</h3>
+  <p class="muted" style="font-size:.82rem;">記録をタップすると、内容を修正できます。</p>
+  <div class="table-scroll" id="le-history-table"></div>
 
   <label for="le-date">来院日</label>
   <input type="date" id="le-date">
@@ -2013,12 +2020,78 @@ document.getElementById("le-date").addEventListener("input", () => { leDateTrust
 // 保存・読み込みのたびにここへ出し入れする）
 let leLabsDate = null;
 let leInbodyDate = null;
+// 来院履歴からこの日付の既存データを読み込んで編集中かどうか
+let leFormLoadedDate = null;
+function renderLeHistoryTable() {
+  const wrap = document.getElementById("le-history-table");
+  const visits = (pdCache && pdCache.visits) || {};
+  const dates = Object.keys(visits).sort().reverse();
+  if (dates.length === 0) { wrap.innerHTML = '<p class="empty-note">まだ来院データがありません</p>'; return; }
+  let html = '<table class="log"><tr><th>来院日</th><th>AST</th><th>ALT</th><th>γGTP</th><th>脂質<br>(TG/LDL)</th><th>HbA1c</th><th></th></tr>';
+  for (const d of dates) {
+    const v = visits[d];
+    html += `<tr data-date="${d}" style="cursor:pointer;">
+      <td>${fmtDate(d)}</td>
+      <td>${v.ast ?? "—"}</td><td>${v.alt ?? "—"}</td><td>${v.ggtp ?? "—"}</td>
+      <td>${v.tg != null || v.ldl != null ? (v.tg ?? "—") + "/" + (v.ldl ?? "—") : "—"}</td>
+      <td>${v.hba1c ?? "—"}</td>
+      <td><button type="button" class="del" data-date="${d}">✕</button></td></tr>`;
+  }
+  wrap.innerHTML = html + "</table>";
+  wrap.querySelectorAll("tr[data-date]").forEach(tr =>
+    tr.addEventListener("click", e => { if (!e.target.closest(".del")) leLoadVisitToForm(tr.dataset.date); }));
+  wrap.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => leDeleteVisit(b.dataset.date)));
+}
+function leLoadVisitToForm(date) {
+  const v = (pdCache && pdCache.visits && pdCache.visits[date]); if (!v) return;
+  leFormLoadedDate = date;
+  leDateTrusted = true;
+  leLabsDate = v.labsDate ?? null;
+  leInbodyDate = v.inbodyDate ?? null;
+  document.getElementById("le-date").value = date;
+  const setv = (id, val) => document.getElementById(id).value = val ?? "";
+  setv("le-sbp", v.sbp); setv("le-dbp", v.dbp); setv("le-weight", v.weight);
+  setv("le-fat", v.fat); setv("le-muscle", v.muscle); setv("le-visceral", v.visceral);
+  setv("le-ib-bmi", v.ibBmi);
+  setv("le-ib-musc-rarm-pct", v.ibMuscRArmPct); setv("le-ib-musc-larm-pct", v.ibMuscLArmPct); setv("le-ib-musc-trunk-pct", v.ibMuscTrunkPct);
+  setv("le-ib-musc-rleg-pct", v.ibMuscRLegPct); setv("le-ib-musc-lleg-pct", v.ibMuscLLegPct);
+  setv("le-ast", v.ast); setv("le-alt", v.alt); setv("le-ggtp", v.ggtp); setv("le-plt", v.plt);
+  setv("le-ldl", v.ldl); setv("le-tg", v.tg); setv("le-hba1c", v.hba1c);
+  setv("le-kpa", v.kpa); setv("le-cap", v.cap);
+  document.getElementById("le-meds").value = v.meds ?? "";
+  document.getElementById("le-labs-analyze-area").innerHTML = "";
+  document.getElementById("le-inbody-analyze-area").innerHTML = "";
+  document.getElementById("le-meds-analyze-area").innerHTML = "";
+  document.getElementById("le-error").style.display = "none";
+  document.getElementById("le-saved-msg").style.display = "none";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+async function leDeleteVisit(date) {
+  if (!confirm(fmtDate(date) + " の来院データを削除しますか？")) return;
+  try {
+    if (demoMode) {
+      delete demoStore[DK.visits][date];
+    } else {
+      const visits = await fetchPatientDoc(openResearchId, DK.visits);
+      delete visits[date];
+      await db.collection("patients").doc(openResearchId).collection("data").doc(DK.visits)
+        .set({ value: visits, updatedAt: Date.now() });
+    }
+    if (pdCache) delete pdCache.visits[date];
+    if (leFormLoadedDate === date) leFormLoadedDate = null;
+    renderLeHistoryTable();
+  } catch (err) {
+    document.getElementById("le-error").textContent = "削除に失敗しました: " + (err.message || err);
+    document.getElementById("le-error").style.display = "block";
+  }
+}
 document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("patient-detail-view").classList.add("hidden");
   document.getElementById("patient-labs-entry-view").classList.remove("hidden");
   document.getElementById("le-date").value = todayStr();
   leDateTrusted = false;
   leLabsDate = null; leInbodyDate = null;
+  leFormLoadedDate = null;
   ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
     "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
     "le-ast", "le-alt", "le-ggtp",
@@ -2029,6 +2102,7 @@ document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   document.getElementById("le-meds-analyze-area").innerHTML = "";
   document.getElementById("le-error").style.display = "none";
   document.getElementById("le-saved-msg").style.display = "none";
+  renderLeHistoryTable();
 });
 document.getElementById("patient-labs-back").addEventListener("click", () => {
   document.getElementById("patient-labs-entry-view").classList.add("hidden");
@@ -2079,30 +2153,49 @@ document.getElementById("le-save").addEventListener("click", async () => {
   // フォームで空欄のまま（未編集）の項目は、患者アプリ側で既に入力済みのデータを
   // 消してしまわないよう、既存の値を引き継ぐ
   const recKeys = Object.keys(rec);
+  // 来院履歴から読み込んだ記録をそのまま（日付を変更せず）保存する場合は、
+  // 意図的な修正とみなして確認をスキップする
+  const isLoadedRecordUnchanged = leFormLoadedDate === date;
+  // 編集中に来院日を変更した場合は、元の日付の記録をそのまま残さず「移動」させる
+  if (leFormLoadedDate && leFormLoadedDate !== date
+    && !confirm(`来院日を ${fmtDate(leFormLoadedDate)} から ${fmtDate(date)} に変更して保存します。元の${fmtDate(leFormLoadedDate)}の記録は削除されます。よろしいですか？`)) {
+    return;
+  }
   try {
     if (demoMode) {
       const prev = demoStore[DK.visits][date] || {};
-      mergeMedsText(rec, prev);
-      const conflicts = detectVisitConflicts(rec, prev);
-      if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
+      if (!isLoadedRecordUnchanged) {
+        mergeMedsText(rec, prev);
+        const conflicts = detectVisitConflicts(rec, prev);
+        if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
+      }
       recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
+      if (leFormLoadedDate && leFormLoadedDate !== date) delete demoStore[DK.visits][leFormLoadedDate];
       demoStore[DK.visits][date] = rec;
     } else {
       const visits = await fetchPatientDoc(openResearchId, DK.visits);
       const prev = visits[date] || {};
-      mergeMedsText(rec, prev);
-      const conflicts = detectVisitConflicts(rec, prev);
-      if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
+      if (!isLoadedRecordUnchanged) {
+        mergeMedsText(rec, prev);
+        const conflicts = detectVisitConflicts(rec, prev);
+        if (conflicts.length && !confirm(`${fmtDate(date)}の記録に、既存の値と異なる項目があります。上書きしてよろしいですか？\n\n${conflicts.join("\n")}`)) return;
+      }
       recKeys.forEach(k => { if (rec[k] == null) rec[k] = prev[k] ?? null; });
       rec.fib4 = calcFib4(calcAge(profile.birthdate, date), rec.ast, rec.alt, rec.plt);
+      if (leFormLoadedDate && leFormLoadedDate !== date) delete visits[leFormLoadedDate];
       visits[date] = rec;
       await db.collection("patients").doc(openResearchId).collection("data").doc(DK.visits)
         .set({ value: visits, updatedAt: Date.now() });
     }
-    if (pdCache) pdCache.visits[date] = rec;
+    if (pdCache) {
+      if (leFormLoadedDate && leFormLoadedDate !== date) delete pdCache.visits[leFormLoadedDate];
+      pdCache.visits[date] = rec;
+    }
     leLabsDate = null; leInbodyDate = null;
+    leFormLoadedDate = date;
     document.getElementById("le-saved-msg").style.display = "block";
+    renderLeHistoryTable();
   } catch (err) {
     errEl.textContent = "保存に失敗しました: " + (err.message || err);
     errEl.style.display = "block";
