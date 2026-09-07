@@ -189,21 +189,28 @@
 
   /* ---- 体型バランス（InBody） ---- */
   .ib-shape-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 4px; }
-  .ib-shape-date { font-size: .78rem; color: var(--sub); margin-bottom: 8px; }
-  .ib-stat-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
-  .ib-stat { background: var(--bg); border-radius: 10px; padding: 8px 6px; text-align: center; }
-  .ib-stat span { display: block; font-size: .68rem; color: var(--sub); margin-bottom: 2px; }
-  .ib-stat b { font-size: 1rem; color: var(--ink); }
-  .ib-shape-wrap { display: flex; gap: 18px; align-items: flex-start; }
-  .ib-shape-svg { width: 120px; height: auto; flex: none; }
-  .ib-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: .74rem; color: var(--sub); margin: 10px 0 4px; }
-  .ib-legend span { display: flex; align-items: center; gap: 4px; }
-  .ib-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-  .ib-detail-list { flex: 1; display: flex; flex-direction: column; gap: 6px; }
-  .ib-detail-list div { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; border-bottom: 1px solid var(--line); padding-bottom: 5px; }
-  .ib-detail-list span { color: var(--sub); }
-  .ib-detail-list b { font-size: .96rem; }
-  .ib-detail-list i { font-style: normal; font-size: .74rem; color: var(--sub); }
+  .ib-shape-date { font-size: .78rem; color: var(--sub); margin-bottom: 10px; }
+  .ib-shape-wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+  .ib-shape-svg { width: 130px; height: auto; flex: none; }
+  .ib-compare-col { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 14px; }
+  .ib-compare-item { }
+  .ib-compare-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; font-size: .86rem; }
+  .ib-compare-head span { color: var(--sub); }
+  .ib-rangebar-svg { width: 100%; height: auto; display: block; }
+  .ib-rangebar-plain { font-size: .84rem; color: var(--ink); padding: 6px 0; }
+  .ib-rangebar-plain .ib-tier-tag { margin-left: 6px; }
+  .ib-tier-tag { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .ib-tier-low { background: var(--blue-soft); color: var(--blue); }
+  .ib-tier-normal { background: var(--accent-soft); color: var(--accent-dark); }
+  .ib-tier-high { background: #fbe7d4; color: var(--warn); }
+  .ib-tier-unset { background: #eef1ef; color: var(--sub); border: 1px dashed var(--line); }
+  .ib-tier-none { background: #eef1ef; color: var(--sub); }
+  .ib-caption { font-size: .88rem; font-weight: 700; color: var(--ink); margin: 12px 0 8px; }
+  .ib-shape-disclaimer { font-size: .7rem; margin-top: 6px; }
+  .ib-detail-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .ib-detail-list .ib-detail-row { display: flex; align-items: center; justify-content: space-between; font-size: .86rem; border-bottom: 1px solid var(--line); padding-bottom: 5px; gap: 8px; }
+  .ib-detail-row span { color: var(--sub); flex: none; width: 3.4em; }
+  .ib-detail-row b { font-size: .96rem; flex: none; width: 4em; text-align: right; }
 
   /* ---- 検査値テーブル ---- */
   .lab-card-date { font-size: .8rem; color: var(--sub); margin-bottom: 6px; }
@@ -347,16 +354,16 @@
     .elp-photo { max-height: 90mm; object-fit: contain; }
 
     .ib-shape-card { break-inside: avoid; padding: 8px 10px; }
-    .ib-shape-date { font-size: .68rem; margin-bottom: 4px; }
-    .ib-stat-row { gap: 5px; margin-bottom: 8px; }
-    .ib-stat { padding: 5px 4px; border-radius: 6px; }
-    .ib-stat span { font-size: .6rem; }
-    .ib-stat b { font-size: .84rem; }
-    .ib-shape-svg { width: 90px; }
-    .ib-legend { font-size: .62rem; gap: 6px; margin: 6px 0 2px; }
-    .ib-detail-list div { font-size: .74rem; padding-bottom: 3px; }
-    .ib-detail-list b { font-size: .8rem; }
-    .ib-detail-list i { font-size: .62rem; }
+    .ib-shape-date { font-size: .68rem; margin-bottom: 6px; }
+    .ib-shape-wrap { gap: 12px; }
+    .ib-shape-svg { width: 100px; }
+    .ib-compare-col { gap: 8px; min-width: 160px; }
+    .ib-compare-head { font-size: .74rem; }
+    .ib-caption { font-size: .78rem; margin: 8px 0 6px; }
+    .ib-shape-disclaimer { font-size: .62rem; }
+    .ib-detail-row { font-size: .74rem; padding-bottom: 3px; }
+    .ib-detail-row b { font-size: .8rem; }
+    .ib-tier-tag { font-size: .62rem; padding: 1px 6px; }
     @page { size: A4; margin: 10mm; }
   }
 </style>
@@ -1204,7 +1211,7 @@ async function loadPatientDetail() {
     pdCache = { daily, visits, evals, profile };
     document.getElementById("pd-print-date").textContent = `評価日: ${fmtDate(todayStr())}`;
     renderPatientSummary(daily, evals, profile);
-    renderPdInbodyShape(visits);
+    renderPdInbodyShape(visits, profile);
     renderAdvice(daily, evals, visits, profile);
     renderPlanPrint(evals);
     renderCurrentGoals(evals, profile);
@@ -1895,6 +1902,15 @@ function leApplyAnalyzeResult(areaId, thumb, altText, fields, values, measuredDa
     leUpdatePaperJudgeNote("muscle", leMuscleRange, leMuscleJudge);
     if (paperJudge.fatRange || paperJudge.fatJudge) appliedLabels.push("体脂肪率の判定");
     if (paperJudge.muscleRange || paperJudge.muscleJudge) appliedLabels.push("骨格筋量の判定");
+    if (paperJudge.seg) {
+      let segFound = 0;
+      SEGMENTS.forEach(s => {
+        const info = paperJudge.seg[s];
+        if (info && (info.range || info.judge)) segFound++;
+        leSegInfo[s] = { range: (info && info.range) || null, judge: (info && info.judge) || null };
+      });
+      if (segFound) appliedLabels.push("部位別筋肉量の判定");
+    }
   }
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="${altText}">
@@ -1934,7 +1950,7 @@ async function leAnalyzeInbodyPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。また、体脂肪率と骨格筋量それぞれについて、判定バーの下などに印字されている基準範囲（例:「18.0 - 28.0」）と判定結果の文字（例:「標準」「やや過剰」「不足」）があれば、そのまま読み取ってください。無ければnullにしてください。また、用紙上部に印字されている「測定日時」をYYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull,\"fatRange\":\"文字列またはnull\",\"fatJudge\":\"文字列またはnull\",\"muscleRange\":\"文字列またはnull\",\"muscleJudge\":\"文字列またはnull\",\"date\":\"YYYY-MM-DD\"またはnull}";
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。また、体脂肪率・骨格筋量・部位別筋肉量（右腕・左腕・体幹・右脚・左脚）のそれぞれについて、判定バーの下などに印字されている基準範囲（例:「18.0 - 28.0」）と判定結果の文字（例:「標準」「やや過剰」「不足」）があれば、そのまま読み取ってください。無ければnullにしてください。また、用紙上部に印字されている「測定日時」をYYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull,\"fatRange\":\"文字列またはnull\",\"fatJudge\":\"文字列またはnull\",\"muscleRange\":\"文字列またはnull\",\"muscleJudge\":\"文字列またはnull\",\"rarmRange\":\"文字列またはnull\",\"rarmJudge\":\"文字列またはnull\",\"larmRange\":\"文字列またはnull\",\"larmJudge\":\"文字列またはnull\",\"trunkRange\":\"文字列またはnull\",\"trunkJudge\":\"文字列またはnull\",\"rlegRange\":\"文字列またはnull\",\"rlegJudge\":\"文字列またはnull\",\"llegRange\":\"文字列またはnull\",\"llegJudge\":\"文字列またはnull\",\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const parsed = await leCallGemini(promptText, base64);
     const values = {};
@@ -1949,6 +1965,13 @@ async function leAnalyzeInbodyPhoto(aiImage, thumb) {
     const paperJudge = {
       fatRange: leSanitizeShortText(parsed.fatRange), fatJudge: leSanitizeShortText(parsed.fatJudge),
       muscleRange: leSanitizeShortText(parsed.muscleRange), muscleJudge: leSanitizeShortText(parsed.muscleJudge),
+      seg: {
+        rarm: { range: leSanitizeShortText(parsed.rarmRange), judge: leSanitizeShortText(parsed.rarmJudge) },
+        larm: { range: leSanitizeShortText(parsed.larmRange), judge: leSanitizeShortText(parsed.larmJudge) },
+        trunk: { range: leSanitizeShortText(parsed.trunkRange), judge: leSanitizeShortText(parsed.trunkJudge) },
+        rleg: { range: leSanitizeShortText(parsed.rlegRange), judge: leSanitizeShortText(parsed.rlegJudge) },
+        lleg: { range: leSanitizeShortText(parsed.llegRange), judge: leSanitizeShortText(parsed.llegJudge) },
+      },
     };
     leApplyAnalyzeResult("le-inbody-analyze-area", thumb, "InBody結果", LE_INBODY_FIELDS, values, measuredDate, "inbody", "InBody測定日", paperJudge);
   } catch (err) {
@@ -2039,6 +2062,12 @@ let leLabsDate = null;
 let leInbodyDate = null;
 // 体脂肪率・骨格筋量は用紙に印字されている基準範囲・判定文字をそのまま保持する
 let leFatRange = null, leFatJudge = null, leMuscleRange = null, leMuscleJudge = null;
+// 部位別筋肉量も同様に、用紙に印字されている基準範囲・判定文字があれば部位ごとに保持する
+const SEGMENTS = ["rarm", "larm", "trunk", "rleg", "lleg"];
+function emptySegInfo() {
+  return { rarm: { range: null, judge: null }, larm: { range: null, judge: null }, trunk: { range: null, judge: null }, rleg: { range: null, judge: null }, lleg: { range: null, judge: null } };
+}
+let leSegInfo = emptySegInfo();
 // 来院履歴からこの日付の既存データを読み込んで編集中かどうか
 let leFormLoadedDate = null;
 function renderLeHistoryTable() {
@@ -2069,6 +2098,8 @@ function leLoadVisitToForm(date) {
   leInbodyDate = v.inbodyDate ?? null;
   leFatRange = v.fatRange ?? null; leFatJudge = v.fatJudge ?? null;
   leMuscleRange = v.muscleRange ?? null; leMuscleJudge = v.muscleJudge ?? null;
+  leSegInfo = emptySegInfo();
+  SEGMENTS.forEach(s => { leSegInfo[s] = { range: v[`${s}Range`] ?? null, judge: v[`${s}Judge`] ?? null }; });
   document.getElementById("le-date").value = date;
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("le-sbp", v.sbp); setv("le-dbp", v.dbp); setv("le-weight", v.weight);
@@ -2116,6 +2147,7 @@ document.getElementById("pd-labs-entry-btn").addEventListener("click", () => {
   leDateTrusted = false;
   leLabsDate = null; leInbodyDate = null;
   leFatRange = null; leFatJudge = null; leMuscleRange = null; leMuscleJudge = null;
+  leSegInfo = emptySegInfo();
   leFormLoadedDate = null;
   ["le-weight", "le-sbp", "le-dbp", "le-fat", "le-muscle", "le-visceral", "le-ib-bmi",
     "le-ib-musc-rarm-pct", "le-ib-musc-larm-pct", "le-ib-musc-trunk-pct", "le-ib-musc-rleg-pct", "le-ib-musc-lleg-pct",
@@ -2230,6 +2262,7 @@ document.getElementById("le-save").addEventListener("click", async () => {
     labsDate: leLabsDate, inbodyDate: leInbodyDate,
     fatRange: leFatRange, fatJudge: leFatJudge, muscleRange: leMuscleRange, muscleJudge: leMuscleJudge,
   };
+  SEGMENTS.forEach(s => { rec[`${s}Range`] = leSegInfo[s].range; rec[`${s}Judge`] = leSegInfo[s].judge; });
   const profile = (pdCache && pdCache.profile) || {};
   // フォームで空欄のまま（未編集）の項目は、患者アプリ側で既に入力済みのデータを
   // 消してしまわないよう、既存の値を引き継ぐ
@@ -2275,6 +2308,7 @@ document.getElementById("le-save").addEventListener("click", async () => {
     }
     leLabsDate = null; leInbodyDate = null;
     leFatRange = null; leFatJudge = null; leMuscleRange = null; leMuscleJudge = null;
+    leSegInfo = emptySegInfo();
     leUpdatePaperJudgeNote("fat", null, null);
     leUpdatePaperJudgeNote("muscle", null, null);
     leFormLoadedDate = date;
@@ -2295,18 +2329,12 @@ function calcAge(birthdate, onDate) {
   return age;
 }
 
-/* ---- 体型バランス（InBody部位別筋肉量%のシルエット表示） ---- */
-function pctBand(pct) {
-  if (pct == null) return { color: "var(--line)", label: "データなし" };
-  if (pct < 90) return { color: "var(--warn)", label: "不足" };
-  if (pct > 110) return { color: "var(--blue)", label: "発達" };
-  return { color: "var(--accent)", label: "標準" };
-}
+/* ---- 体型バランス（体脂肪率・骨格筋量・部位別筋肉量の判定と模式図） ---- */
 function latestInbodyVisit(visits) {
   const dates = Object.keys(visits || {}).sort().reverse();
   for (const d of dates) {
     const v = visits[d];
-    if (v.fat != null || v.muscle != null || v.visceral != null || v.ibBmi != null
+    if (v.fat != null || v.muscle != null || v.ibBmi != null
       || v.ibMuscRArmPct != null || v.ibMuscLArmPct != null || v.ibMuscTrunkPct != null
       || v.ibMuscRLegPct != null || v.ibMuscLLegPct != null) {
       return { date: d, v };
@@ -2314,47 +2342,154 @@ function latestInbodyVisit(visits) {
   }
   return null;
 }
-function renderPdInbodyShape(visits) {
+// 用紙記載の基準範囲文字列（例:「18.0 - 28.0」）から上下限を取り出す
+function parseRangeBounds(range) {
+  if (!range) return null;
+  const m = String(range).match(/(-?\d+(?:\.\d+)?)\s*[-~〜]\s*(-?\d+(?:\.\d+)?)/);
+  if (!m) return null;
+  return { lo: Number(m[1]), hi: Number(m[2]) };
+}
+// 判定は「機種の判定文字」を最優先し、無ければ「用紙記載の基準範囲」と比較する。
+// どちらもなければ基準未設定、値自体がなければ未測定として扱う（ゼロとして扱わない）。
+function classifyLevel(value, judge, range) {
+  if (value == null) return { tier: "none", label: "未測定" };
+  if (judge) {
+    if (/標準|普通|正常|適正/.test(judge)) return { tier: "normal", label: "標準範囲" };
+    if (/不足|低|少な|やせ/.test(judge)) return { tier: "low", label: "少なめ" };
+    if (/過剰|高|多|肥満/.test(judge)) return { tier: "high", label: "多め" };
+  }
+  const bounds = parseRangeBounds(range);
+  if (bounds) {
+    if (value < bounds.lo) return { tier: "low", label: "少なめ" };
+    if (value > bounds.hi) return { tier: "high", label: "多め" };
+    return { tier: "normal", label: "標準範囲" };
+  }
+  return { tier: "unset", label: "基準未設定" };
+}
+const IB_SEG_FIELD = { rarm: "ibMuscRArmPct", larm: "ibMuscLArmPct", trunk: "ibMuscTrunkPct", rleg: "ibMuscRLegPct", lleg: "ibMuscLLegPct" };
+const IB_SEG_LABEL = { rarm: "右腕", larm: "左腕", trunk: "体幹", rleg: "右脚", lleg: "左脚" };
+const IB_FAT_FILL = { low: "#f5c99b", normal: "#e0973f", high: "#c65a1f", unset: "url(#ibHatchFat)", none: "none" };
+const IB_FAT_BELLY_RX = { low: 22, normal: 30, high: 40, unset: 30, none: 26 };
+const IB_MUSCLE_FILL = { low: "#cfe3de", normal: "#2f8f7a", high: "#1c5f52", unset: "url(#ibHatchMuscle)" };
+const IB_MUSCLE_SCALE = { low: 0.55, normal: 1, high: 1.3, unset: 0.8 };
+// 部位ごとの筋肉ハイライトを、その部位自身の判定に応じたサイズ・塗りで描く
+// （全身の数値から部位別の状態を推測せず、必ずその部位自身の値・基準を使う）
+function ibSegOverlay(cx, cy, baseW, baseH, tier) {
+  if (tier.tier === "none") return "";
+  const scale = IB_MUSCLE_SCALE[tier.tier] ?? 1;
+  const w = baseW * scale, h = baseH * scale;
+  const x = cx - w / 2, y = cy - h / 2;
+  const rx = Math.min(w, h) * 0.3;
+  const fill = IB_MUSCLE_FILL[tier.tier];
+  const stroke = tier.tier === "unset" ? ' stroke="#8a9490" stroke-width="1"' : "";
+  return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}" rx="${rx.toFixed(1)}" fill="${fill}"${stroke}/>`;
+}
+// 体脂肪（お腹周りの大きさ）×部位別筋肉量（各部位の色・ハイライト）を重ねた模式図。
+// 印刷しても潰れないよう、色に加えてハッチパターンで「基準未確認」を区別する。
+function ibBodySilhouetteSvg(fatTier, segTiers) {
+  const fatFill = IB_FAT_FILL[fatTier.tier];
+  const bellyRx = IB_FAT_BELLY_RX[fatTier.tier];
+  const fatStroke = fatTier.tier === "none" ? ' stroke="#b9c2bd" stroke-width="2" stroke-dasharray="4 3"' : "";
+  return `
+    <svg viewBox="0 0 220 300" class="ib-shape-svg" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="ibHatchFat" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="7" height="7" fill="#f2ece3"/><line x1="0" y1="0" x2="0" y2="7" stroke="#c9b79a" stroke-width="2.5"/>
+        </pattern>
+        <pattern id="ibHatchMuscle" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+          <rect width="7" height="7" fill="#e9efec"/><line x1="0" y1="0" x2="0" y2="7" stroke="#8fada3" stroke-width="2.5"/>
+        </pattern>
+      </defs>
+      <circle cx="110" cy="26" r="20" fill="#dfe6e1"/>
+      <rect x="82" y="50" width="56" height="58" rx="16" fill="${fatFill}"${fatStroke}/>
+      <ellipse cx="110" cy="112" rx="${bellyRx}" ry="30" fill="${fatFill}"${fatStroke}/>
+      <rect x="48" y="55" width="26" height="95" rx="13" fill="${fatFill}"${fatStroke}/>
+      <rect x="146" y="55" width="26" height="95" rx="13" fill="${fatFill}"${fatStroke}/>
+      <rect x="82" y="155" width="28" height="125" rx="14" fill="${fatFill}"${fatStroke}/>
+      <rect x="110" y="155" width="28" height="125" rx="14" fill="${fatFill}"${fatStroke}/>
+      ${ibSegOverlay(110, 78, 36, 40, segTiers.trunk)}
+      ${ibSegOverlay(61, 102, 14, 50, segTiers.rarm)}
+      ${ibSegOverlay(159, 102, 14, 50, segTiers.larm)}
+      ${ibSegOverlay(96, 217, 16, 70, segTiers.rleg)}
+      ${ibSegOverlay(124, 217, 16, 70, segTiers.lleg)}
+    </svg>`;
+}
+// 標準範囲の帯＋現在値の●で数値比較する。色だけでなく数値ラベルも必ず添える。
+function ibRangeBarSvg(value, unit, range) {
+  if (value == null) return `<p class="ib-rangebar-plain">未測定</p>`;
+  const bounds = parseRangeBounds(range);
+  if (!bounds) return `<p class="ib-rangebar-plain">${value}${unit}<span class="ib-tier-tag ib-tier-unset">基準未設定</span></p>`;
+  const W = 260, padL = 6, padR = 6, trackY = 20, trackH = 10;
+  const span = Math.max(bounds.hi - bounds.lo, 0.1);
+  const domainLo = Math.min(bounds.lo, value) - span * 0.25;
+  const domainHi = Math.max(bounds.hi, value) + span * 0.25;
+  const scaleX = x => padL + (x - domainLo) / (domainHi - domainLo) * (W - padL - padR);
+  const bandX1 = scaleX(bounds.lo), bandX2 = scaleX(bounds.hi), markX = scaleX(value);
+  return `
+    <svg viewBox="0 0 ${W} 48" class="ib-rangebar-svg" xmlns="http://www.w3.org/2000/svg">
+      <rect x="${padL}" y="${trackY}" width="${W - padL - padR}" height="${trackH}" rx="5" fill="#e7ece9"/>
+      <rect x="${bandX1.toFixed(1)}" y="${trackY}" width="${(bandX2 - bandX1).toFixed(1)}" height="${trackH}" rx="5" fill="#bfe3d6" stroke="#2f8f7a" stroke-width="1"/>
+      <line x1="${markX.toFixed(1)}" y1="${trackY - 6}" x2="${markX.toFixed(1)}" y2="${trackY + trackH + 6}" stroke="#1c3b33" stroke-width="2.4"/>
+      <circle cx="${markX.toFixed(1)}" cy="${trackY + trackH / 2}" r="4.2" fill="#1c3b33"/>
+      <text x="${markX.toFixed(1)}" y="${trackY - 10}" font-size="11" text-anchor="middle" fill="#1c3b33" font-weight="700">${value}${unit}</text>
+      <text x="${bandX1.toFixed(1)}" y="${trackY + trackH + 17}" font-size="9" text-anchor="middle" fill="#566158">${bounds.lo}</text>
+      <text x="${bandX2.toFixed(1)}" y="${trackY + trackH + 17}" font-size="9" text-anchor="middle" fill="#566158">${bounds.hi}</text>
+    </svg>`;
+}
+function renderPdInbodyShape(visits, profile) {
   const wrap = document.getElementById("pd-inbody-shape");
   const latest = latestInbodyVisit(visits);
   if (!latest) { wrap.innerHTML = '<p class="muted">まだInBodyのデータがありません</p>'; return; }
   const { date, v } = latest;
-  const rarm = pctBand(v.ibMuscRArmPct), larm = pctBand(v.ibMuscLArmPct), trunk = pctBand(v.ibMuscTrunkPct),
-    rleg = pctBand(v.ibMuscRLegPct), lleg = pctBand(v.ibMuscLLegPct);
-  const fmtPct = p => p == null ? "—" : p + "%";
-  const row = (label, pct, band) => `<div><span>${label}</span><b>${fmtPct(pct)}</b><i>${pct != null ? band.label : ""}</i></div>`;
+  const measuredDate = v.inbodyDate || date;
+  const fatTier = classifyLevel(v.fat, v.fatJudge, v.fatRange);
+  const muscleTier = classifyLevel(v.muscle, v.muscleJudge, v.muscleRange);
+  const segTiers = {};
+  SEGMENTS.forEach(s => { segTiers[s] = classifyLevel(v[IB_SEG_FIELD[s]], v[`${s}Judge`], v[`${s}Range`]); });
+
+  const height = profile && profile.height;
+  const headParts = [`測定日: ${fmtDate(measuredDate)}`];
+  if (height != null) headParts.push(`身長 ${height}cm`);
+  if (v.weight != null) headParts.push(`体重 ${v.weight}kg`);
+  if (v.ibBmi != null) headParts.push(`BMI ${v.ibBmi}`);
+
+  const captionClause = (name, value, unit, tier) => {
+    if (tier.tier === "none") return `${name}は未測定です。`;
+    if (tier.tier === "unset") return `${name}(${value}${unit})は基準が確認できませんでした。`;
+    return `${name}は${tier.label}です。`;
+  };
+  const captionParts = [
+    captionClause("体脂肪率", v.fat, "%", fatTier),
+    captionClause("骨格筋量", v.muscle, "kg", muscleTier),
+  ];
+  const weakSegs = SEGMENTS.filter(s => segTiers[s].tier === "low").map(s => IB_SEG_LABEL[s]);
+  if (weakSegs.length) captionParts.push(`特に${weakSegs.join("・")}の筋肉量が少なめです。`);
+
+  const segRows = SEGMENTS.map(s => {
+    const val = v[IB_SEG_FIELD[s]];
+    const t = segTiers[s];
+    return `<div class="ib-detail-row"><span>${IB_SEG_LABEL[s]}</span><b>${val == null ? "未測定" : val + "%"}</b><i class="ib-tier-tag ib-tier-${t.tier}">${t.label}</i></div>`;
+  }).join("");
+
   wrap.innerHTML = `
     <div class="ib-shape-card">
-      <p class="ib-shape-date">${fmtDate(date)}時点</p>
-      <div class="ib-stat-row">
-        <div class="ib-stat"><span>体脂肪率</span><b>${v.fat != null ? v.fat + "%" : "—"}</b></div>
-        <div class="ib-stat"><span>骨格筋量</span><b>${v.muscle != null ? v.muscle + "kg" : "—"}</b></div>
-        <div class="ib-stat"><span>内臓脂肪Lv</span><b>${v.visceral ?? "—"}</b></div>
-        <div class="ib-stat"><span>BMI</span><b>${v.ibBmi ?? "—"}</b></div>
-      </div>
+      <p class="ib-shape-date">${headParts.join(" ／ ")}</p>
       <div class="ib-shape-wrap">
-        <svg viewBox="0 0 220 300" class="ib-shape-svg" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="110" cy="26" r="20" fill="#dfe6e1"/>
-          <rect x="80" y="50" width="60" height="100" rx="18" fill="${trunk.color}"/>
-          <rect x="48" y="55" width="26" height="95" rx="13" fill="${rarm.color}"/>
-          <rect x="146" y="55" width="26" height="95" rx="13" fill="${larm.color}"/>
-          <rect x="82" y="152" width="28" height="130" rx="14" fill="${rleg.color}"/>
-          <rect x="110" y="152" width="28" height="130" rx="14" fill="${lleg.color}"/>
-        </svg>
-        <div class="ib-detail-list">
-          ${row("右腕", v.ibMuscRArmPct, rarm)}
-          ${row("左腕", v.ibMuscLArmPct, larm)}
-          ${row("体幹", v.ibMuscTrunkPct, trunk)}
-          ${row("右脚", v.ibMuscRLegPct, rleg)}
-          ${row("左脚", v.ibMuscLLegPct, lleg)}
+        ${ibBodySilhouetteSvg(fatTier, segTiers)}
+        <div class="ib-compare-col">
+          <div class="ib-compare-item">
+            <div class="ib-compare-head"><span>体脂肪率</span><b class="ib-tier-tag ib-tier-${fatTier.tier}">${fatTier.label}</b></div>
+            ${ibRangeBarSvg(v.fat, "%", v.fatRange)}
+          </div>
+          <div class="ib-compare-item">
+            <div class="ib-compare-head"><span>骨格筋量</span><b class="ib-tier-tag ib-tier-${muscleTier.tier}">${muscleTier.label}</b></div>
+            ${ibRangeBarSvg(v.muscle, "kg", v.muscleRange)}
+          </div>
         </div>
       </div>
-      <div class="ib-legend">
-        <span><i style="background:var(--warn)"></i>不足（90%未満）</span>
-        <span><i style="background:var(--accent)"></i>標準（90〜110%）</span>
-        <span><i style="background:var(--blue)"></i>発達（110%超）</span>
-      </div>
-      <p class="muted" style="font-size:.74rem;">部位別筋肉量は標準体重比。100%が標準的な筋肉量の目安です。</p>
+      <p class="ib-caption">${captionParts.join("")}</p>
+      <div class="ib-detail-list">${segRows}</div>
+      <p class="muted ib-shape-disclaimer">※体形は模式図であり、実際の見た目を再現したものではありません。部位別筋肉量は標準体重比（用紙に基準の記載がある場合はそちらを優先して判定しています）。</p>
     </div>
   `;
 }
