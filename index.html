@@ -573,8 +573,10 @@
       <button type="button" class="btn secondary small" id="inbody-photo-btn">📷 InBodyの用紙を撮影して読み取る</button>
       <div id="inbody-analyze-area"></div>
       <div class="row3">
-        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80"></div>
-        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80"></div>
+        <div><label>体脂肪率 <span class="unit-note">%</span></label><input type="number" id="v-fat" step="0.1" min="1" max="80">
+          <div class="muted" id="v-fat-paper-note" style="font-size:.74rem;"></div></div>
+        <div><label>骨格筋量 <span class="unit-note">kg</span></label><input type="number" id="v-muscle" step="0.1" min="5" max="80">
+          <div class="muted" id="v-muscle-paper-note" style="font-size:.74rem;"></div></div>
         <div><label>内臓脂肪Lv <span class="unit-note">レベル</span></label><input type="number" id="v-visceral" step="0.5" min="1" max="30"></div>
       </div>
       <div class="row3">
@@ -2200,7 +2202,7 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
     <div class="analyze-status"><span class="spinner"></span>AIが読み取り中...</div>
   </div>`;
   const base64 = aiImage.split(",")[1];
-  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。また、用紙上部に印字されている「測定日時」をYYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull,\"date\":\"YYYY-MM-DD\"またはnull}";
+  const promptText = "この写真はInBody体成分分析の結果用紙です。ページ下部にある「体成分履歴」（過去の測定値を並べた表・グラフ）は無視し、それ以外の今回の測定値から次の項目だけを読み取ってください。他の項目は読み取らなくて構いません。骨格筋量は「研究項目(Research Parameters)」欄の骨格筋量を使ってください（体成分分析欄の筋肉量とは別の項目です）。「部位別筋肉量(Segmental Lean Analysis)」欄には各部位ごとにkg数値と%数値が両方書かれていますが、%数値だけを読み取ってください（%は標準体重を100%とした相対値です）。また、体脂肪率と骨格筋量それぞれについて、判定バーの下などに印字されている基準範囲（例:「18.0 - 28.0」）と判定結果の文字（例:「標準」「やや過剰」「不足」）があれば、そのまま読み取ってください。無ければnullにしてください。また、用紙上部に印字されている「測定日時」をYYYY-MM-DD形式で読み取ってください（西暦に変換すること）。読み取れない項目はnullにしてください。次のJSON形式のみで回答してください。\n{\"fat_pct\":数値またはnull,\"muscle\":数値またはnull,\"visceral\":数値またはnull,\"bmi\":数値またはnull,\"musc_rarm_pct\":数値またはnull,\"musc_larm_pct\":数値またはnull,\"musc_trunk_pct\":数値またはnull,\"musc_rleg_pct\":数値またはnull,\"musc_lleg_pct\":数値またはnull,\"fatRange\":\"文字列またはnull\",\"fatJudge\":\"文字列またはnull\",\"muscleRange\":\"文字列またはnull\",\"muscleJudge\":\"文字列またはnull\",\"date\":\"YYYY-MM-DD\"またはnull}";
   try {
     const res = apiKey
       ? await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`, {
@@ -2230,7 +2232,12 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
     });
     const measuredDate = isValidDateStr(parsed.date) ? parsed.date : null;
     if (found === 0 && !measuredDate) throw new Error("測定値を認識できませんでした");
-    applyInbodyAnalyzeResult(thumb, values, measuredDate);
+    const sanitizeShortText = s => (typeof s === "string" && s.trim()) ? s.trim().slice(0, 40) : null;
+    const paperJudge = {
+      fatRange: sanitizeShortText(parsed.fatRange), fatJudge: sanitizeShortText(parsed.fatJudge),
+      muscleRange: sanitizeShortText(parsed.muscleRange), muscleJudge: sanitizeShortText(parsed.muscleJudge),
+    };
+    applyInbodyAnalyzeResult(thumb, values, measuredDate, paperJudge);
   } catch (err) {
     area.innerHTML = `<div class="analyze-box">
       <img src="${thumb}" class="analyze-preview" alt="InBody結果">
@@ -2238,7 +2245,17 @@ async function analyzeInbodyPhoto(aiImage, thumb) {
     </div>`;
   }
 }
-function applyInbodyAnalyzeResult(thumb, values, measuredDate) {
+// 用紙に印字されている基準範囲・判定文字は、AI読み取り時にそのまま保存する
+// （体格や年齢で個人差が大きい骨格筋量等は、アプリ独自の固定基準より用紙の表記を優先する）
+function updatePaperJudgeNote(prefix, range, judge) {
+  const el = document.getElementById(`v-${prefix}-paper-note`);
+  if (!el) return;
+  const parts = [];
+  if (range) parts.push(`用紙の基準: ${range}`);
+  if (judge) parts.push(`判定: ${judge}`);
+  el.textContent = parts.join(" / ");
+}
+function applyInbodyAnalyzeResult(thumb, values, measuredDate, paperJudge) {
   const area = document.getElementById("inbody-analyze-area");
   const appliedLabels = [];
   if (measuredDate) {
@@ -2256,6 +2273,14 @@ function applyInbodyAnalyzeResult(thumb, values, measuredDate) {
     flashField(el);
     appliedLabels.push(f.label);
   });
+  if (paperJudge) {
+    vFatRange = paperJudge.fatRange; vFatJudge = paperJudge.fatJudge;
+    vMuscleRange = paperJudge.muscleRange; vMuscleJudge = paperJudge.muscleJudge;
+    updatePaperJudgeNote("fat", vFatRange, vFatJudge);
+    updatePaperJudgeNote("muscle", vMuscleRange, vMuscleJudge);
+    if (paperJudge.fatRange || paperJudge.fatJudge) appliedLabels.push("体脂肪率の判定");
+    if (paperJudge.muscleRange || paperJudge.muscleJudge) appliedLabels.push("骨格筋量の判定");
+  }
   area.innerHTML = `<div class="analyze-box">
     <img src="${thumb}" class="analyze-preview" alt="InBody結果">
     <p class="muted">✅ ${appliedLabels.join("・")} を読み取り、フォームに反映しました。内容を確認し、必要に応じて下で修正してください。</p>
@@ -2693,6 +2718,7 @@ document.getElementById("v-save").addEventListener("click", () => {
     kpa: vNum("v-kpa"), cap: vNum("v-cap"),
     meds: document.getElementById("v-meds").value.trim() || null,
     labsDate: vLabsDate, inbodyDate: vInbodyDate,
+    fatRange: vFatRange, fatJudge: vFatJudge, muscleRange: vMuscleRange, muscleJudge: vMuscleJudge,
   };
   const visits = load(K.visits);
   const prev = visits[date] || {};
@@ -2719,6 +2745,8 @@ document.getElementById("v-save").addEventListener("click", () => {
   visits[date] = rec;
   save(K.visits, visits);
   vLabsDate = null; vInbodyDate = null;
+  vFatRange = null; vFatJudge = null; vMuscleRange = null; vMuscleJudge = null;
+  updatePaperJudgeNote("fat", null, null); updatePaperJudgeNote("muscle", null, null);
   toast("来院データを保存しました 🏥");
   renderVisitPage();
 });
@@ -2731,12 +2759,16 @@ document.getElementById("v-date").addEventListener("input", () => { vDateTrusted
 // 保存・読み込みのたびにここへ出し入れする）
 let vLabsDate = null;
 let vInbodyDate = null;
+// 体脂肪率・骨格筋量は用紙に印字されている基準範囲・判定文字をそのまま保持する
+let vFatRange = null, vFatJudge = null, vMuscleRange = null, vMuscleJudge = null;
 function loadVisitToForm(date) {
   const v = load(K.visits)[date]; if (!v) return;
   vFormLoadedDate = date;
   vDateTrusted = true;
   vLabsDate = v.labsDate ?? null;
   vInbodyDate = v.inbodyDate ?? null;
+  vFatRange = v.fatRange ?? null; vFatJudge = v.fatJudge ?? null;
+  vMuscleRange = v.muscleRange ?? null; vMuscleJudge = v.muscleJudge ?? null;
   document.getElementById("v-date").value = date;
   const setv = (id, val) => document.getElementById(id).value = val ?? "";
   setv("v-sbp", v.sbp); setv("v-dbp", v.dbp); setv("v-weight", v.weight);
@@ -2748,6 +2780,8 @@ function loadVisitToForm(date) {
   setv("v-ldl", v.ldl); setv("v-tg", v.tg); setv("v-hba1c", v.hba1c);
   setv("v-kpa", v.kpa); setv("v-cap", v.cap);
   document.getElementById("v-meds").value = v.meds ?? "";
+  updatePaperJudgeNote("fat", vFatRange, vFatJudge);
+  updatePaperJudgeNote("muscle", vMuscleRange, vMuscleJudge);
   Object.keys(REF_RANGES).forEach(updateRangeWarning);
   updateFibLine();
   window.scrollTo({ top: 0, behavior: "smooth" });
