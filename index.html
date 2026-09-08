@@ -3359,7 +3359,6 @@ function findExerciseById(id) {
 }
 
 // ------- 運動プログラム（理学療法士監修・レベル1〜10、staff.htmlと同一データ） -------
-const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
 const EXERCISE_PROGRAM = [
   { level: 1, title: "運動の習慣づけと基礎体力づくり（初心者向け）",
     image: null, kcal: 80,
@@ -3504,12 +3503,10 @@ function renderDoctorMessage() {
     nutritionCard.classList.add("hidden");
   }
 
-  // 先生が選んだ運動（患者は編集不可・表示のみ）。個別選択があればそちらを優先し、
-  // なければ従来のレベル一括選択を表示する。
+  // 先生が個別に選んだ運動を表示する（患者は編集不可・表示のみ）。
   const sel = ev.selectedExercises || {};
   const strengthList = (sel.strength || []).map(findExerciseById).filter(Boolean);
   const aerobicList = (sel.aerobic || []).map(findExerciseById).filter(Boolean);
-  const lv = ev.exerciseLevel != null ? EXERCISE_PROGRAM.find(l => l.level === ev.exerciseLevel) : null;
   const exCard = (name, ex) => `
       <p style="font-weight:700; color:var(--accent-dark); margin:10px 0 0;">${ex.name}（${ex.reps || ex.time}）</p>
       <a href="${ex.image}" target="_blank" rel="noopener" style="position:relative; display:block; margin:4px 0 6px;">
@@ -3523,21 +3520,6 @@ function renderDoctorMessage() {
     if (strengthList.length) html += `<p style="font-weight:700; margin:0;">【筋トレ】</p>` + strengthList.map(ex => exCard("strength", ex)).join("");
     if (aerobicList.length) html += `<p style="font-weight:700; margin:10px 0 0;">【有酸素運動】</p>` + aerobicList.map(ex => exCard("aerobic", ex)).join("");
     document.getElementById("doctor-exercise-content").innerHTML = html;
-  } else if (lv) {
-    exerciseCard.classList.remove("hidden");
-    const list = items => `<ul style="margin:4px 0 0; padding-left:20px;">${items.map(it =>
-      `<li style="margin-bottom:4px;"><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
-    const photoBlock = lv.image ? `
-      <a href="${lv.image}" target="_blank" rel="noopener" style="position:relative; display:block; margin-bottom:6px;">
-        <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" style="width:100%; height:auto; border-radius:10px; display:block;">
-        <span style="position:absolute; right:8px; bottom:8px; background:rgba(36,49,42,.72); color:#fff; font-size:.72rem; font-weight:700; padding:4px 9px; border-radius:999px;">🔍 タップで拡大表示</span>
-      </a>` : "";
-    document.getElementById("doctor-exercise-content").innerHTML = `
-      <p style="font-weight:700; color:var(--accent-dark); margin:0;">レベル${lv.level}：${lv.title}</p>
-      <p class="muted" style="font-size:.78rem; margin:2px 0 6px;">頻度目安: ${EXERCISE_PROGRAM_NOTE} ／ 消費カロリー目安: 1回約${lv.kcal}kcal（体重60kg換算）</p>
-      ${photoBlock}
-      <p style="font-weight:700; margin:6px 0 0;">【筋トレ】</p>${list(lv.strength)}
-      <p style="font-weight:700; margin:6px 0 0;">【有酸素運動】</p>${list(lv.aerobic)}`;
   } else {
     exerciseCard.classList.add("hidden");
   }
