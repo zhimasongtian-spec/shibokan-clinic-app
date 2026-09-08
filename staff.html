@@ -23,11 +23,12 @@
   .logo { font-size: 2.6rem; margin-bottom: 4px; }
   .box h2 { font-size: 1.2rem; color: var(--accent-dark); margin-bottom: 8px; }
   .box label { display: block; text-align: left; font-size: .84rem; font-weight: 600; margin: 11px 0 4px; }
-  .box input {
+  .box input, .box select {
     width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 1.05rem; font-family: inherit; background: #fbfdfc; color: var(--ink);
   }
-  .box input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .box select { white-space: normal; }
+  .box input:focus, .box select:focus { outline: 2px solid var(--accent); border-color: transparent; }
   .muted { color: var(--sub); font-size: .84rem; }
   .btn {
     display: block; width: 100%; padding: 14px; margin-top: 14px;
