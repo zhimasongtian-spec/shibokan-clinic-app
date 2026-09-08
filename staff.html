@@ -3046,7 +3046,8 @@ function prefillEvalForm(evals, profile) {
   document.getElementById("pd-goal-steps").value = profile.goalSteps ?? "";
   document.getElementById("pd-comment").value = "";
   renderAdvicePicker(latest && latest.nutritionAdvice);
-  const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "";
+  // 前回の設定がなければレベル1をデフォルトにする（毎回レベル選択の手間を省く）
+  const exLevel = latest && latest.exerciseLevel != null ? String(latest.exerciseLevel) : "1";
   document.getElementById("pd-exercise-level").value = exLevel;
   renderExercisePicker(exLevel);
   applySelectedExercises(latest && latest.selectedExercises);
