@@ -2729,7 +2729,7 @@ function findExerciseById(id) {
 const EXERCISE_PROGRAM_NOTE = "週3〜4回（例: 月・水・金・土）、1回約15〜25分";
 const EXERCISE_PROGRAM = [
   { level: 1, title: "運動の習慣づけと基礎体力づくり（初心者向け）",
-    image: "exercise-images/level1.jpg", kcal: 80,
+    image: null, kcal: 80,
     strength: [
       { id: "wall-pushup", image: "exercise-images/l1-wall-pushup.jpg", name: "ウォール・プッシュアップ（壁立て伏せ）", reps: "8〜10回×2セット", point: "壁に向かって立ち、腕立て伏せを行います。胸と腕の筋肉を刺激します。" },
       { id: "chair-squat", image: "exercise-images/l1-chair-squat.jpg", name: "チェア・スクワット（椅子座り立ち）", reps: "10回×2セット", point: "椅子の座面を利用し、立ち上がりと座りを繰り返します。太ももと下半身の強化に最適です。" },
@@ -2853,13 +2853,15 @@ function renderExerciseLevelPreview(level) {
   const lv = EXERCISE_PROGRAM.find(l => l.level === Number(level));
   if (!lv) { el.innerHTML = `<p class="muted" style="margin:0;">頻度目安: ${EXERCISE_PROGRAM_NOTE}</p>`; return; }
   const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
-  el.innerHTML = `
-    <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
-    <p class="muted" style="font-size:.76rem; margin:2px 0 8px;">消費カロリー目安: 1回あたり約${lv.kcal}kcal（体重60kg換算の目安です）</p>
+  const photoBlock = lv.image ? `
     <a href="${lv.image}" target="_blank" rel="noopener" class="elp-photo-link">
       <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" class="elp-photo">
       <span class="elp-photo-hint">🔍 タップで拡大表示</span>
-    </a>
+    </a>` : "";
+  el.innerHTML = `
+    <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
+    <p class="muted" style="font-size:.76rem; margin:2px 0 8px;">消費カロリー目安: 1回あたり約${lv.kcal}kcal（体重60kg換算の目安です）</p>
+    ${photoBlock}
     <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
     <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}`;
 }
@@ -3023,10 +3025,11 @@ function renderPlanPrint(evals) {
   }
   if (lv) {
     const list = items => `<ul>${items.map(it => `<li><strong>${it.name}</strong>（${it.reps || it.time}）：${it.point}</li>`).join("")}</ul>`;
+    const photoTag = lv.image ? `<img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" class="elp-photo">` : "";
     html += `<div class="exercise-level-preview" style="margin-top:10px;">
       <div class="elp-title">レベル${lv.level}：${lv.title}（頻度目安: ${EXERCISE_PROGRAM_NOTE}）</div>
       <p class="muted" style="font-size:.76rem; margin:2px 0 8px;">消費カロリー目安: 1回あたり約${lv.kcal}kcal（体重60kg換算の目安です）</p>
-      <img src="${lv.image}" alt="レベル${lv.level}の運動フォーム写真" class="elp-photo">
+      ${photoTag}
       <div class="elp-group">【筋トレ】</div>${list(lv.strength)}
       <div class="elp-group">【有酸素運動】</div>${list(lv.aerobic)}
     </div>`;
